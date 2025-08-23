@@ -3,6 +3,7 @@
 Processing dataset: Aids2
 Dataset shape: (2839, 6)
 Percentage of censored data: 37.971116590348714%
+Evaluation time points: [ 30.2  97.  165.6 241.  320.  418.2 522.  655.2 875. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5354
 Running Grid Search for RSF...
@@ -44,6 +45,7 @@ Mean AUC: 0.5741
 Processing dataset: Dialysis
 Dataset shape: (6805, 6)
 Percentage of censored data: 76.44379132990449%
+Evaluation time points: [ 2.  3.  5.  8. 11. 15. 20. 26. 33.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.6391
 Running Grid Search for RSF...
@@ -85,6 +87,7 @@ Mean AUC: 0.6974
 Processing dataset: Framingham
 Dataset shape: (4699, 9)
 Percentage of censored data: 68.65290487337732%
+Evaluation time points: [ 2421.   4284.4  5819.   7328.2  8911.  10422.6 11500.1]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.6964
 Running Grid Search for RSF...
@@ -126,6 +129,7 @@ Mean AUC: 0.7504
 Processing dataset: GBSG2
 Dataset shape: (686, 10)
 Percentage of censored data: 56.41399416909621%
+Evaluation time points: [ 336.4  498.8  635.   800.6 1043.  1277.6 1516.8 1754.8 2013.4]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6879
 Running Grid Search for RSF...
@@ -167,6 +171,7 @@ Mean AUC: 0.7624
 Processing dataset: LeukSurv
 Dataset shape: (1043, 9)
 Percentage of censored data: 15.723873441994247%
+Evaluation time points: [   6.    24.    60.    97.   176.5  280.   420.5  647.  1552. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6481
 Running Grid Search for RSF...
@@ -208,6 +213,7 @@ Mean AUC: 0.6984
 Processing dataset: Melanoma
 Dataset shape: (205, 7)
 Percentage of censored data: 72.1951219512195%
+Evaluation time points: [ 682.3 1213.6 1624.8 1788.2 1956.5 2107.2 2495.8 3188.8 3623.8]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.8687
 Running Grid Search for RSF...
@@ -249,6 +255,7 @@ Mean AUC: 0.6191
 Processing dataset: NSBCD
 Dataset shape: (115, 551)
 Percentage of censored data: 66.95652173913044%
+Evaluation time points: [ 8.  13.  16.8 22.4 30.  36.6 41.  52.8 66.4]
 Running Grid Search for CoxPH...
 CoxPH trial failed with params {'alpha': 1e-06}: LAPACK reported an illegal value in 5-th argument.
 Best CoxPH params: {'alpha': 0.001}, Score: 0.6506
@@ -266,6 +273,8 @@ Training CoxPH...
 Processing dataset: TRACE
 Dataset shape: (1878, 8)
 Percentage of censored data: 48.988285410010654%
+Evaluation time points: [0.07752517 0.874      2.2795     4.2        6.08       6.419
+ 6.7525     7.154      7.562     ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7217
 Running Grid Search for RSF...
@@ -307,6 +316,7 @@ Mean AUC: 0.8081
 Processing dataset: UnempDur
 Dataset shape: (3241, 8)
 Percentage of censored data: 38.722616476396176%
+Evaluation time points: [ 2.   3.   5.   5.8  7.  10.  14. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.6824
 Running Grid Search for RSF...
@@ -348,6 +358,7 @@ Mean AUC: 0.7084
 Processing dataset: Unemployment
 Dataset shape: (452, 7)
 Percentage of censored data: 43.36283185840708%
+Evaluation time points: [ 3.   4.   7.  10.  13.  19.1 29.  52. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5647
 Running Grid Search for RSF...
@@ -389,6 +400,7 @@ Mean AUC: 0.5419
 Processing dataset: acath
 Dataset shape: (3504, 5)
 Percentage of censored data: 33.39041095890411%
+Evaluation time points: [  1.   3.   6.  10.  17.  30.  46.  72. 120.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5902
 Running Grid Search for RSF...
@@ -430,6 +442,7 @@ Mean AUC: 0.6269
 Processing dataset: actg
 Dataset shape: (1151, 13)
 Percentage of censored data: 91.65942658557776%
+Evaluation time points: [ 86.7 151.  195.1 230.8 256.5 273.  291.  311.  328. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7380
 Running Grid Search for RSF...
@@ -471,6 +484,7 @@ Mean AUC: 0.6649
 Processing dataset: breast
 Dataset shape: (100, 6)
 Percentage of censored data: 74.0%
+Evaluation time points: [32.6578946 48.1776314 61.6578946]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6400
 Running Grid Search for RSF...
@@ -512,6 +526,7 @@ Mean AUC: 0.8316
 Processing dataset: burn
 Dataset shape: (154, 13)
 Percentage of censored data: 68.83116883116884%
+Evaluation time points: [ 5.   8.  11.  14.  17.  21.  27.3 32.2 43.3]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5957
 Running Grid Search for RSF...
@@ -553,6 +568,7 @@ Mean AUC: 0.4329
 Processing dataset: cancer
 Dataset shape: (228, 10)
 Percentage of censored data: 27.631578947368425%
+Evaluation time points: [ 79.4 136.  181.  210.8 259.  292.2 353.  443.2 587. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.5849
 Running Grid Search for RSF...
@@ -594,6 +610,7 @@ Mean AUC: 0.4868
 Processing dataset: cgd
 Dataset shape: (128, 12)
 Percentage of censored data: 65.625%
+Evaluation time points: [ 83.8 165.8 207.  253.6 269.  276.  293.9 317.2 337.6]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.4273
 Running Grid Search for RSF...
@@ -635,6 +652,7 @@ Mean AUC: 0.6346
 Processing dataset: colon
 Dataset shape: (929, 11)
 Percentage of censored data: 51.34553283100107%
+Evaluation time points: [ 389.8  642.6  961.  1426.  1971.  2164.  2277.6 2481.4 2695.8]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6856
 Running Grid Search for RSF...
@@ -676,6 +694,7 @@ Mean AUC: 0.6277
 Processing dataset: cost
 Dataset shape: (518, 15)
 Percentage of censored data: 22.00772200772201%
+Evaluation time points: [  90.   376.8  833.4 1357.8 1821.5 2198.  2810.6 3725.  3938.6]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7198
 Running Grid Search for RSF...
@@ -717,6 +736,8 @@ Mean AUC: 0.7354
 Processing dataset: d.oropha.rec
 Dataset shape: (192, 14)
 Percentage of censored data: 27.604166666666668%
+Evaluation time points: [0.35835616 0.56493151 0.74958904 0.9369863  1.22191781 1.49369863
+ 1.92657534 2.50246575 3.40767123]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6640
 Running Grid Search for RSF...
@@ -758,6 +779,7 @@ Mean AUC: 0.6214
 Processing dataset: dataDIVAT1
 Dataset shape: (5943, 7)
 Percentage of censored data: 83.57731785293623%
+Evaluation time points: [  12.   83.  192.  383.  747. 1202. 1683. 2193. 3031.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6614
 Running Grid Search for RSF...
@@ -799,6 +821,8 @@ Mean AUC: 0.7379
 Processing dataset: dataDIVAT2
 Dataset shape: (1837, 6)
 Percentage of censored data: 68.31790963527492%
+Evaluation time points: [ 0.21629021  1.12525667  2.30800821  3.86858316  4.95277207  6.01232033
+  7.88774812  9.9247091  12.65434634]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5939
 Running Grid Search for RSF...
@@ -840,6 +864,7 @@ Mean AUC: 0.6613
 Processing dataset: dataDIVAT3
 Dataset shape: (4267, 9)
 Percentage of censored data: 94.35200374970705%
+Evaluation time points: [ 152.   389.   607.   840.  1095.  1327.  1622.  2001.  2587.5]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6972
 Running Grid Search for RSF...
@@ -881,6 +906,7 @@ Mean AUC: 0.6918
 Processing dataset: dataOvarian1
 Dataset shape: (912, 162)
 Percentage of censored data: 40.35087719298245%
+Evaluation time points: [ 133.   234.6  293.2  360.   450.   547.8  688.   935.4 1380. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.5970
 Running Grid Search for RSF...
@@ -922,6 +948,8 @@ Mean AUC: 0.6788
 Processing dataset: diabetes
 Dataset shape: (394, 6)
 Percentage of censored data: 60.659898477157356%
+Evaluation time points: [ 5.71426051 10.71096943 19.03137065 30.24842288 38.77760938 42.74651846
+ 50.03401072 56.69281437 63.84877228]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6542
 Running Grid Search for RSF...
@@ -963,6 +991,7 @@ Mean AUC: 0.6140
 Processing dataset: e1684
 Dataset shape: (284, 5)
 Percentage of censored data: 30.985915492957744%
+Evaluation time points: [0.15342 0.28767 0.46027 0.8274  1.48767 2.31507 4.45205 6.13699 7.63836]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5798
 Running Grid Search for RSF...
@@ -1004,6 +1033,8 @@ Mean AUC: 0.5028
 Processing dataset: follic
 Dataset shape: (541, 7)
 Percentage of censored data: 35.67467652495379%
+Evaluation time points: [ 0.57604381  1.41711157  2.3266256   3.74537988  5.46475017  6.99301848
+  9.11047228 12.92922656 18.0752909 ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6243
 Running Grid Search for RSF...
@@ -1045,6 +1076,7 @@ Mean AUC: 0.6737
 Processing dataset: glioma
 Dataset shape: (37, 6)
 Percentage of censored data: 37.83783783783784%
+Evaluation time points: [15. 28. 36. 48. 51.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.8571
 Running Grid Search for RSF...
@@ -1086,6 +1118,7 @@ Mean AUC: 0.7163
 Processing dataset: grace
 Dataset shape: (1000, 7)
 Percentage of censored data: 67.60000000000001%
+Evaluation time points: [  3.    7.   15.   80.  176.5]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7261
 Running Grid Search for RSF...
@@ -1127,6 +1160,7 @@ Mean AUC: 0.6140
 Processing dataset: hepatoCellular
 Dataset shape: (227, 45)
 Percentage of censored data: 57.268722466960355%
+Evaluation time points: [ 9.  13.  20.  29.  36.5 44.  50.  61.  67.9]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6064
 Running Grid Search for RSF...
@@ -1168,6 +1202,7 @@ Mean AUC: 0.7096
 Processing dataset: mgus
 Dataset shape: (241, 11)
 Percentage of censored data: 6.639004149377594%
+Evaluation time points: [  757.3  1766.6  2675.3  3581.2  4923.5  5927.4  6761.8  9043.8 11416. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7598
 Running Grid Search for RSF...
@@ -1209,6 +1244,8 @@ Mean AUC: 0.7951
 Processing dataset: nki70
 Dataset shape: (144, 77)
 Percentage of censored data: 66.66666666666666%
+Evaluation time points: [ 2.23052704  3.48199863  5.31937029  6.15468857  6.99520876  7.83353867
+  9.06502396 10.74934976 12.56153319]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.001}, Score: 0.6322
 Running Grid Search for RSF...
@@ -1250,6 +1287,7 @@ Mean AUC: 0.6957
 Processing dataset: nwtco
 Dataset shape: (4028, 9)
 Percentage of censored data: 85.82423038728898%
+Evaluation time points: [ 304.6  675.  1065.  1495.8 1939.  2489.  3187.4 3943.6 4760.2]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7145
 Running Grid Search for RSF...
@@ -1291,6 +1329,7 @@ Mean AUC: 0.7085
 Processing dataset: ova
 Dataset shape: (358, 7)
 Percentage of censored data: 25.69832402234637%
+Evaluation time points: [ 162.8  280.4  442.3  582.4  754.5 1047.6 1542.1 1824.4 2068.4]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6683
 Running Grid Search for RSF...
@@ -1332,6 +1371,7 @@ Mean AUC: 0.7206
 Processing dataset: ovarian
 Dataset shape: (26, 6)
 Percentage of censored data: 53.84615384615385%
+Evaluation time points: [390.2 437.8 469.5 528.6 769.7]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.8000
 Running Grid Search for RSF...
@@ -1373,6 +1413,7 @@ Mean AUC: 1.0000
 Processing dataset: pbc
 Dataset shape: (312, 8)
 Percentage of censored data: 59.93589743589743%
+Evaluation time points: [ 575.6 1024.  1320.2 1573.2 1882.  2262.4 2561.6 3072.4 3693. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6897
 Running Grid Search for RSF...
@@ -1414,6 +1455,7 @@ Mean AUC: 0.7855
 Processing dataset: pharmacoSmoking
 Dataset shape: (125, 13)
 Percentage of censored data: 28.799999999999997%
+Evaluation time points: [ 1.  4. 14. 28. 56. 77.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6000
 Running Grid Search for RSF...
@@ -1455,6 +1497,8 @@ Mean AUC: 0.7230
 Processing dataset: phpl04K8a
 Dataset shape: (442, 23)
 Percentage of censored data: 46.60633484162896%
+Evaluation time points: [0.87166667 1.63166667 2.42666667 3.17166667 3.99166667 4.81133333
+ 5.7535     6.74333333 8.11333333]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.6903
 Running Grid Search for RSF...
@@ -1496,6 +1540,7 @@ Mean AUC: 0.5514
 Processing dataset: prostate
 Dataset shape: (502, 17)
 Percentage of censored data: 29.482071713147413%
+Evaluation time points: [ 5. 12. 19. 26. 33. 46. 53. 60. 67.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5902
 Running Grid Search for RSF...
@@ -1537,6 +1582,7 @@ Mean AUC: 0.5223
 Processing dataset: rdata
 Dataset shape: (1040, 6)
 Percentage of censored data: 47.40384615384615%
+Evaluation time points: [ 337.7  934.2 1497.8 2095.6 2933.5 3640.6 3977.  4280.8 4722.8]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7085
 Running Grid Search for RSF...
@@ -1578,6 +1624,7 @@ Mean AUC: 0.7314
 Processing dataset: retinopathy
 Dataset shape: (394, 9)
 Percentage of censored data: 60.659898477157356%
+Evaluation time points: [ 5.688 10.66  18.99  30.24  38.73  42.716 49.996 56.662 63.8  ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6373
 Running Grid Search for RSF...
@@ -1619,6 +1666,7 @@ Mean AUC: 0.5735
 Processing dataset: rhc
 Dataset shape: (5735, 55)
 Percentage of censored data: 35.10026155187445%
+Evaluation time points: [  5.   11.   23.   57.  166.5 190.  215.  238.  417.4]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7100
 Running Grid Search for RSF...
@@ -1660,6 +1708,8 @@ Mean AUC: 0.7298
 Processing dataset: rott2
 Dataset shape: (2982, 13)
 Percentage of censored data: 57.3440643863179%
+Evaluation time points: [ 26.8845992  42.7827528  59.3971248  72.180695   86.160164   97.511292
+ 109.7002    122.671044  137.698571 ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.7137
 Running Grid Search for RSF...
@@ -1701,6 +1751,7 @@ Mean AUC: 0.7179
 Processing dataset: scania
 Dataset shape: (1931, 7)
 Percentage of censored data: 43.759709994821335%
+Evaluation time points: [ 1.918  4.185  6.969  9.576 12.771 16.434 19.974 24.111 28.303]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5750
 Running Grid Search for RSF...
@@ -1742,6 +1793,7 @@ Mean AUC: 0.5113
 Processing dataset: smarto
 Dataset shape: (3873, 28)
 Percentage of censored data: 88.12290214304157%
+Evaluation time points: [ 199.3  418.   681.6  938.4 1206.  1562.  1947.  2350.8 2773.6]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.6919
 Running Grid Search for RSF...
@@ -1783,6 +1835,7 @@ Mean AUC: 0.6228
 Processing dataset: stagec
 Dataset shape: (146, 9)
 Percentage of censored data: 63.013698630136986%
+Evaluation time points: [ 1.93  3.32  4.49  5.24  5.9   6.5   7.31  8.9  11.61]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.5840
 Running Grid Search for RSF...
@@ -1824,6 +1877,7 @@ Mean AUC: 0.5949
 Processing dataset: uis
 Dataset shape: (628, 10)
 Percentage of censored data: 19.10828025477707%
+Evaluation time points: [ 26.4  59.   90.  122.8 168.  218.4 296.4 501.6 555. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5756
 Running Grid Search for RSF...
@@ -1865,6 +1919,7 @@ Mean AUC: 0.5901
 Processing dataset: veteran
 Dataset shape: (137, 8)
 Percentage of censored data: 6.569343065693431%
+Evaluation time points: [ 10.5  19.   30.5  51.   76.5  99.  120.  162.  285. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 1e-06}, Score: 0.5000
 Running Grid Search for RSF...
@@ -1906,6 +1961,7 @@ Mean AUC: 0.6235
 Processing dataset: vlbw
 Dataset shape: (617, 24)
 Percentage of censored data: 82.6580226904376%
+Evaluation time points: [  6.   14.6  23.   31.   39.   47.   59.   75.  102. ]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.8810
 Running Grid Search for RSF...
@@ -1947,6 +2003,7 @@ Mean AUC: 0.8490
 Processing dataset: whas500
 Dataset shape: (461, 18)
 Percentage of censored data: 61.82212581344903%
+Evaluation time points: [ 101.  343.  437.  532.  903. 1187. 1320. 1579. 2009.]
 Running Grid Search for CoxPH...
 Best CoxPH params: {'alpha': 0.1}, Score: 0.7586
 Running Grid Search for RSF...
@@ -1988,6 +2045,7 @@ Mean AUC: 0.8592
 Processing dataset: zinc
 Dataset shape: (431, 15)
 Percentage of censored data: 81.20649651972158%
+Evaluation time points: [1072.5 2557.  3872.  4897. ]
 Running Grid Search for CoxPH...
 CoxPH trial failed with params {'alpha': 1e-06}: LAPACK reported an illegal value in 5-th argument.
 Best CoxPH params: {'alpha': 0.1}, Score: 0.7234
@@ -2025,4 +2083,4 @@ DeepSurv:
 C-index: 0.7035
 IBS: 0.1980
 Mean AUC: 0.7185
-Total runtime: 3h 20m 55s
+Total runtime: 3h 20m 14s
