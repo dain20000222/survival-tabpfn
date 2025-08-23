@@ -1,0 +1,2028 @@
+==================================================
+
+Processing dataset: Aids2
+Dataset shape: (2839, 6)
+Percentage of censored data: 37.971116590348714%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5354
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.5542
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 5}, Score: 0.5709
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.5666
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5439
+IBS: 0.2139
+Mean AUC: 0.5559
+
+CoxPH:
+C-index: 0.5715
+IBS: 0.2088
+Mean AUC: 0.5896
+
+DeepHit:
+C-index: 0.5719
+IBS: 0.2114
+Mean AUC: 0.5984
+
+DeepSurv:
+C-index: 0.5570
+IBS: 0.2094
+Mean AUC: 0.5741
+==================================================
+
+Processing dataset: Dialysis
+Dataset shape: (6805, 6)
+Percentage of censored data: 76.44379132990449%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.6391
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.6621
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 20}, Score: 0.6313
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6411
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6957
+IBS: 0.1612
+Mean AUC: 0.7237
+
+CoxPH:
+C-index: 0.6569
+IBS: 0.1662
+Mean AUC: 0.6917
+
+DeepHit:
+C-index: 0.5350
+IBS: 0.1635
+Mean AUC: 0.4257
+
+DeepSurv:
+C-index: 0.6592
+IBS: 0.1641
+Mean AUC: 0.6974
+==================================================
+
+Processing dataset: Framingham
+Dataset shape: (4699, 9)
+Percentage of censored data: 68.65290487337732%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.6964
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.6871
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.6964
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6976
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6906
+IBS: 0.1507
+Mean AUC: 0.7570
+
+CoxPH:
+C-index: 0.7022
+IBS: 0.1478
+Mean AUC: 0.7683
+
+DeepHit:
+C-index: 0.3311
+IBS: 0.1608
+Mean AUC: 0.2610
+
+DeepSurv:
+C-index: 0.6869
+IBS: 0.1522
+Mean AUC: 0.7504
+==================================================
+
+Processing dataset: GBSG2
+Dataset shape: (686, 10)
+Percentage of censored data: 56.41399416909621%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6879
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.6844
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 15}, Score: 0.7186
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6921
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7064
+IBS: 0.1678
+Mean AUC: 0.7616
+
+CoxPH:
+C-index: 0.6975
+IBS: 0.1742
+Mean AUC: 0.7506
+
+DeepHit:
+C-index: 0.6264
+IBS: 0.2059
+Mean AUC: 0.6431
+
+DeepSurv:
+C-index: 0.7071
+IBS: 0.1646
+Mean AUC: 0.7624
+==================================================
+
+Processing dataset: LeukSurv
+Dataset shape: (1043, 9)
+Percentage of censored data: 15.723873441994247%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6481
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 2}, Score: 0.6391
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.6460
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6580
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6719
+IBS: 0.1784
+Mean AUC: 0.7280
+
+CoxPH:
+C-index: 0.6744
+IBS: 0.1818
+Mean AUC: 0.7231
+
+DeepHit:
+C-index: 0.6690
+IBS: 0.3594
+Mean AUC: 0.7248
+
+DeepSurv:
+C-index: 0.6456
+IBS: 0.1963
+Mean AUC: 0.6984
+==================================================
+
+Processing dataset: Melanoma
+Dataset shape: (205, 7)
+Percentage of censored data: 72.1951219512195%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.8687
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 2}, Score: 0.8636
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 20}, Score: 0.8838
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.8485
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6477
+IBS: 0.1934
+Mean AUC: 0.6914
+
+CoxPH:
+C-index: 0.7202
+IBS: 0.1619
+Mean AUC: 0.7720
+
+DeepHit:
+C-index: 0.3938
+IBS: 0.2330
+Mean AUC: 0.3716
+
+DeepSurv:
+C-index: 0.5648
+IBS: 0.3186
+Mean AUC: 0.6191
+==================================================
+
+Processing dataset: NSBCD
+Dataset shape: (115, 551)
+Percentage of censored data: 66.95652173913044%
+Running Grid Search for CoxPH...
+CoxPH trial failed with params {'alpha': 1e-06}: LAPACK reported an illegal value in 5-th argument.
+Best CoxPH params: {'alpha': 0.001}, Score: 0.6506
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.8554
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 10}, Score: 0.8795
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.8313
+Training RSF...
+Training CoxPH...
+ Skipping NSBCD.csv: LAPACK reported an illegal value in 5-th argument.
+==================================================
+
+Processing dataset: TRACE
+Dataset shape: (1878, 8)
+Percentage of censored data: 48.988285410010654%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7217
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.7223
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 15}, Score: 0.7318
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.7340
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7373
+IBS: 0.1581
+Mean AUC: 0.8111
+
+CoxPH:
+C-index: 0.7423
+IBS: 0.1575
+Mean AUC: 0.8119
+
+DeepHit:
+C-index: 0.7251
+IBS: 0.1892
+Mean AUC: 0.7887
+
+DeepSurv:
+C-index: 0.7381
+IBS: 0.1601
+Mean AUC: 0.8081
+==================================================
+
+Processing dataset: UnempDur
+Dataset shape: (3241, 8)
+Percentage of censored data: 38.722616476396176%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.6824
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.6699
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 15}, Score: 0.6693
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6872
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6624
+IBS: 0.2225
+Mean AUC: 0.6878
+
+CoxPH:
+C-index: 0.6731
+IBS: 0.2193
+Mean AUC: 0.7040
+
+DeepHit:
+C-index: 0.6357
+IBS: 0.2905
+Mean AUC: 0.6593
+
+DeepSurv:
+C-index: 0.6815
+IBS: 0.2264
+Mean AUC: 0.7084
+==================================================
+
+Processing dataset: Unemployment
+Dataset shape: (452, 7)
+Percentage of censored data: 43.36283185840708%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5647
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.5548
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 5}, Score: 0.6849
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6070
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5841
+IBS: 0.2196
+Mean AUC: 0.6526
+
+CoxPH:
+C-index: 0.5658
+IBS: 0.2128
+Mean AUC: 0.6201
+
+DeepHit:
+C-index: 0.5503
+IBS: 0.3029
+Mean AUC: 0.5834
+
+DeepSurv:
+C-index: 0.5257
+IBS: 0.2356
+Mean AUC: 0.5419
+==================================================
+
+Processing dataset: acath
+Dataset shape: (3504, 5)
+Percentage of censored data: 33.39041095890411%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5902
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.5873
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 20}, Score: 0.6172
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6172
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5819
+IBS: 0.2277
+Mean AUC: 0.6023
+
+CoxPH:
+C-index: 0.5803
+IBS: 0.2235
+Mean AUC: 0.6228
+
+DeepHit:
+C-index: 0.5691
+IBS: 0.3347
+Mean AUC: 0.5767
+
+DeepSurv:
+C-index: 0.5896
+IBS: 0.2226
+Mean AUC: 0.6269
+==================================================
+
+Processing dataset: actg
+Dataset shape: (1151, 13)
+Percentage of censored data: 91.65942658557776%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7380
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.7764
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.8006
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.7688
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7969
+IBS: 0.0620
+Mean AUC: 0.8060
+
+CoxPH:
+C-index: 0.8278
+IBS: 0.0608
+Mean AUC: 0.8625
+
+DeepHit:
+C-index: 0.8029
+IBS: 0.1018
+Mean AUC: 0.8292
+
+DeepSurv:
+C-index: 0.6437
+IBS: 0.0937
+Mean AUC: 0.6649
+==================================================
+
+Processing dataset: breast
+Dataset shape: (100, 6)
+Percentage of censored data: 74.0%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6400
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 2}, Score: 0.6800
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 5}, Score: 0.7800
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6800
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7632
+IBS: 0.2084
+Mean AUC: 0.7885
+
+CoxPH:
+C-index: 0.8158
+IBS: 0.2032
+Mean AUC: 0.8316
+
+DeepHit:
+C-index: 0.6053
+IBS: 0.1932
+Mean AUC: 0.4971
+
+DeepSurv:
+C-index: 0.8158
+IBS: 0.2217
+Mean AUC: 0.8316
+==================================================
+
+Processing dataset: burn
+Dataset shape: (154, 13)
+Percentage of censored data: 68.83116883116884%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5957
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.7606
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 5}, Score: 0.8191
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6915
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.4091
+IBS: 0.2139
+Mean AUC: 0.3342
+
+CoxPH:
+C-index: 0.5341
+IBS: 0.2138
+Mean AUC: 0.4796
+
+DeepHit:
+C-index: 0.5000
+IBS: 0.1757
+Mean AUC: 0.4711
+
+DeepSurv:
+C-index: 0.4659
+IBS: 0.2332
+Mean AUC: 0.4329
+==================================================
+
+Processing dataset: cancer
+Dataset shape: (228, 10)
+Percentage of censored data: 27.631578947368425%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.5849
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 2}, Score: 0.6360
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 10}, Score: 0.6748
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6380
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5762
+IBS: 0.2247
+Mean AUC: 0.5660
+
+CoxPH:
+C-index: 0.5493
+IBS: 0.2641
+Mean AUC: 0.5074
+
+DeepHit:
+C-index: 0.3991
+IBS: 0.2409
+Mean AUC: 0.3868
+
+DeepSurv:
+C-index: 0.5090
+IBS: 0.2567
+Mean AUC: 0.4868
+==================================================
+
+Processing dataset: cgd
+Dataset shape: (128, 12)
+Percentage of censored data: 65.625%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.4273
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.6000
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 20}, Score: 0.7364
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.7273
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6786
+IBS: 0.1411
+Mean AUC: 0.7539
+
+CoxPH:
+C-index: 0.7500
+IBS: 0.1281
+Mean AUC: 0.7820
+
+DeepHit:
+C-index: 0.5238
+IBS: 0.2661
+Mean AUC: 0.5833
+
+DeepSurv:
+C-index: 0.5714
+IBS: 0.1572
+Mean AUC: 0.6346
+==================================================
+
+Processing dataset: colon
+Dataset shape: (929, 11)
+Percentage of censored data: 51.34553283100107%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6856
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 2}, Score: 0.6898
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 15}, Score: 0.6888
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6757
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6013
+IBS: 0.2073
+Mean AUC: 0.6148
+
+CoxPH:
+C-index: 0.5998
+IBS: 0.2050
+Mean AUC: 0.6223
+
+DeepHit:
+C-index: 0.5011
+IBS: 0.2342
+Mean AUC: 0.5106
+
+DeepSurv:
+C-index: 0.6013
+IBS: 0.2085
+Mean AUC: 0.6277
+==================================================
+
+Processing dataset: cost
+Dataset shape: (518, 15)
+Percentage of censored data: 22.00772200772201%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7198
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 2}, Score: 0.7041
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.7320
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.7292
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6617
+IBS: 0.1823
+Mean AUC: 0.7210
+
+CoxPH:
+C-index: 0.6854
+IBS: 0.1759
+Mean AUC: 0.7618
+
+DeepHit:
+C-index: 0.6854
+IBS: 0.2050
+Mean AUC: 0.7506
+
+DeepSurv:
+C-index: 0.6672
+IBS: 0.1839
+Mean AUC: 0.7354
+==================================================
+
+Processing dataset: d.oropha.rec
+Dataset shape: (192, 14)
+Percentage of censored data: 27.604166666666668%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6640
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.6773
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 5}, Score: 0.7120
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6987
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6723
+IBS: 0.1782
+Mean AUC: 0.7307
+
+CoxPH:
+C-index: 0.6977
+IBS: 0.1757
+Mean AUC: 0.7641
+
+DeepHit:
+C-index: 0.5565
+IBS: 0.2194
+Mean AUC: 0.5339
+
+DeepSurv:
+C-index: 0.5876
+IBS: 0.1984
+Mean AUC: 0.6214
+==================================================
+
+Processing dataset: dataDIVAT1
+Dataset shape: (5943, 7)
+Percentage of censored data: 83.57731785293623%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6614
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.5904
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 10}, Score: 0.6720
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6652
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6520
+IBS: 0.1230
+Mean AUC: 0.6852
+
+CoxPH:
+C-index: 0.6753
+IBS: 0.1158
+Mean AUC: 0.7491
+
+DeepHit:
+C-index: 0.6423
+IBS: 0.1196
+Mean AUC: 0.7268
+
+DeepSurv:
+C-index: 0.6732
+IBS: 0.1162
+Mean AUC: 0.7379
+==================================================
+
+Processing dataset: dataDIVAT2
+Dataset shape: (1837, 6)
+Percentage of censored data: 68.31790963527492%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5939
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.5524
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 10}, Score: 0.5982
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6145
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5998
+IBS: 0.1797
+Mean AUC: 0.6042
+
+CoxPH:
+C-index: 0.6172
+IBS: 0.1671
+Mean AUC: 0.6510
+
+DeepHit:
+C-index: 0.6032
+IBS: 0.1789
+Mean AUC: 0.6203
+
+DeepSurv:
+C-index: 0.6345
+IBS: 0.1668
+Mean AUC: 0.6613
+==================================================
+
+Processing dataset: dataDIVAT3
+Dataset shape: (4267, 9)
+Percentage of censored data: 94.35200374970705%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6972
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 2}, Score: 0.6592
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 5}, Score: 0.7436
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.7092
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6382
+IBS: 0.0533
+Mean AUC: 0.6466
+
+CoxPH:
+C-index: 0.7037
+IBS: 0.0509
+Mean AUC: 0.7014
+
+DeepHit:
+C-index: 0.5295
+IBS: 0.0460
+Mean AUC: 0.6831
+
+DeepSurv:
+C-index: 0.6823
+IBS: 0.0510
+Mean AUC: 0.6918
+==================================================
+
+Processing dataset: dataOvarian1
+Dataset shape: (912, 162)
+Percentage of censored data: 40.35087719298245%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.5970
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.6575
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 15}, Score: 0.6811
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6697
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6215
+IBS: 0.1815
+Mean AUC: 0.6664
+
+CoxPH:
+C-index: 0.6173
+IBS: 0.2059
+Mean AUC: 0.6715
+
+DeepHit:
+C-index: 0.5961
+IBS: 0.2824
+Mean AUC: 0.6487
+
+DeepSurv:
+C-index: 0.6273
+IBS: 0.1879
+Mean AUC: 0.6788
+==================================================
+
+Processing dataset: diabetes
+Dataset shape: (394, 6)
+Percentage of censored data: 60.659898477157356%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6542
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.5829
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 5}, Score: 0.7130
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6522
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6788
+IBS: 0.1791
+Mean AUC: 0.7280
+
+CoxPH:
+C-index: 0.5495
+IBS: 0.2000
+Mean AUC: 0.5804
+
+DeepHit:
+C-index: 0.5504
+IBS: 0.2234
+Mean AUC: 0.5484
+
+DeepSurv:
+C-index: 0.5884
+IBS: 0.1918
+Mean AUC: 0.6140
+==================================================
+
+Processing dataset: e1684
+Dataset shape: (284, 5)
+Percentage of censored data: 30.985915492957744%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5798
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 2}, Score: 0.6163
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 10}, Score: 0.6066
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.5907
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5504
+IBS: 0.2304
+Mean AUC: 0.5670
+
+CoxPH:
+C-index: 0.5876
+IBS: 0.1989
+Mean AUC: 0.6441
+
+DeepHit:
+C-index: 0.4111
+IBS: 0.2676
+Mean AUC: 0.3821
+
+DeepSurv:
+C-index: 0.4931
+IBS: 0.2675
+Mean AUC: 0.5028
+==================================================
+
+Processing dataset: follic
+Dataset shape: (541, 7)
+Percentage of censored data: 35.67467652495379%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6243
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.6014
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 5}, Score: 0.6629
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6542
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5923
+IBS: 0.2003
+Mean AUC: 0.6199
+
+CoxPH:
+C-index: 0.6348
+IBS: 0.1900
+Mean AUC: 0.6760
+
+DeepHit:
+C-index: 0.5661
+IBS: 0.2260
+Mean AUC: 0.6177
+
+DeepSurv:
+C-index: 0.6325
+IBS: 0.1922
+Mean AUC: 0.6737
+==================================================
+
+Processing dataset: glioma
+Dataset shape: (37, 6)
+Percentage of censored data: 37.83783783783784%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.8571
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.8214
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 10}, Score: 1.0000
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.9286
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.8571
+IBS: 0.1883
+Mean AUC: 0.8582
+
+CoxPH:
+C-index: 0.7857
+IBS: 0.1792
+Mean AUC: 0.7719
+
+DeepHit:
+C-index: 0.5714
+IBS: 0.2386
+Mean AUC: 0.6300
+
+DeepSurv:
+C-index: 0.6429
+IBS: 0.2269
+Mean AUC: 0.7163
+==================================================
+
+Processing dataset: grace
+Dataset shape: (1000, 7)
+Percentage of censored data: 67.60000000000001%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7261
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 10}, Score: 0.7479
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.7447
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.7518
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6543
+IBS: 0.2552
+Mean AUC: 0.6229
+
+CoxPH:
+C-index: 0.6220
+IBS: 0.2640
+Mean AUC: 0.5765
+
+DeepHit:
+C-index: 0.6290
+IBS: 0.1639
+Mean AUC: 0.6027
+
+DeepSurv:
+C-index: 0.6360
+IBS: 0.2955
+Mean AUC: 0.6140
+==================================================
+
+Processing dataset: hepatoCellular
+Dataset shape: (227, 45)
+Percentage of censored data: 57.268722466960355%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6064
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 10}, Score: 0.7289
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.8542
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.8017
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6467
+IBS: 0.1685
+Mean AUC: 0.7197
+
+CoxPH:
+C-index: 0.7337
+IBS: 0.1570
+Mean AUC: 0.8146
+
+DeepHit:
+C-index: 0.5842
+IBS: 0.2008
+Mean AUC: 0.6585
+
+DeepSurv:
+C-index: 0.6630
+IBS: 0.1922
+Mean AUC: 0.7096
+==================================================
+
+Processing dataset: mgus
+Dataset shape: (241, 11)
+Percentage of censored data: 6.639004149377594%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7598
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 2}, Score: 0.7417
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 10}, Score: 0.7719
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.7734
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6953
+IBS: 0.1388
+Mean AUC: 0.8146
+
+CoxPH:
+C-index: 0.7134
+IBS: 0.1401
+Mean AUC: 0.8286
+
+DeepHit:
+C-index: 0.6410
+IBS: 0.1577
+Mean AUC: 0.7258
+
+DeepSurv:
+C-index: 0.6968
+IBS: 0.1612
+Mean AUC: 0.7951
+==================================================
+
+Processing dataset: nki70
+Dataset shape: (144, 77)
+Percentage of censored data: 66.66666666666666%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.001}, Score: 0.6322
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.7011
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 10}, Score: 0.8391
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.8046
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7520
+IBS: 0.1796
+Mean AUC: 0.8140
+
+CoxPH:
+C-index: 0.4800
+IBS: 0.2987
+Mean AUC: 0.5561
+
+DeepHit:
+C-index: 0.7280
+IBS: 0.1952
+Mean AUC: 0.8022
+
+DeepSurv:
+C-index: 0.6880
+IBS: 0.2329
+Mean AUC: 0.6957
+==================================================
+
+Processing dataset: nwtco
+Dataset shape: (4028, 9)
+Percentage of censored data: 85.82423038728898%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7145
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.6765
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 5}, Score: 0.7143
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.7275
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6981
+IBS: 0.1037
+Mean AUC: 0.7170
+
+CoxPH:
+C-index: 0.7199
+IBS: 0.1043
+Mean AUC: 0.7294
+
+DeepHit:
+C-index: 0.5713
+IBS: 0.1114
+Mean AUC: 0.5997
+
+DeepSurv:
+C-index: 0.7024
+IBS: 0.1055
+Mean AUC: 0.7085
+==================================================
+
+Processing dataset: ova
+Dataset shape: (358, 7)
+Percentage of censored data: 25.69832402234637%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6683
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.6322
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 20}, Score: 0.7149
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.6698
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6787
+IBS: 0.1771
+Mean AUC: 0.7456
+
+CoxPH:
+C-index: 0.6847
+IBS: 0.1775
+Mean AUC: 0.7686
+
+DeepHit:
+C-index: 0.5280
+IBS: 0.2342
+Mean AUC: 0.5130
+
+DeepSurv:
+C-index: 0.6593
+IBS: 0.1791
+Mean AUC: 0.7206
+==================================================
+
+Processing dataset: ovarian
+Dataset shape: (26, 6)
+Percentage of censored data: 53.84615384615385%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.8000
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 2}, Score: 0.9000
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 20}, Score: 1.0000
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.8000
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 1.0000
+IBS: 0.1395
+Mean AUC: 1.0000
+
+CoxPH:
+C-index: 1.0000
+IBS: 0.1365
+Mean AUC: 1.0000
+
+DeepHit:
+C-index: 0.0000
+IBS: 0.2551
+Mean AUC: 0.0000
+
+DeepSurv:
+C-index: 1.0000
+IBS: 0.0962
+Mean AUC: 1.0000
+==================================================
+
+Processing dataset: pbc
+Dataset shape: (312, 8)
+Percentage of censored data: 59.93589743589743%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6897
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 10}, Score: 0.7108
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 20}, Score: 0.7508
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.7367
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.8165
+IBS: 0.1482
+Mean AUC: 0.7989
+
+CoxPH:
+C-index: 0.7940
+IBS: 0.1536
+Mean AUC: 0.7990
+
+DeepHit:
+C-index: 0.5000
+IBS: 0.1981
+Mean AUC: 0.5446
+
+DeepSurv:
+C-index: 0.8034
+IBS: 0.1609
+Mean AUC: 0.7855
+==================================================
+
+Processing dataset: pharmacoSmoking
+Dataset shape: (125, 13)
+Percentage of censored data: 28.799999999999997%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6000
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 2}, Score: 0.6581
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 5}, Score: 0.7161
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.7355
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6395
+IBS: 0.2358
+Mean AUC: 0.7412
+
+CoxPH:
+C-index: 0.6628
+IBS: 0.2417
+Mean AUC: 0.7371
+
+DeepHit:
+C-index: 0.4535
+IBS: 0.4012
+Mean AUC: 0.4540
+
+DeepSurv:
+C-index: 0.6628
+IBS: 0.2566
+Mean AUC: 0.7230
+==================================================
+
+Processing dataset: phpl04K8a
+Dataset shape: (442, 23)
+Percentage of censored data: 46.60633484162896%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.6903
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 10}, Score: 0.6980
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 10}, Score: 0.6875
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6729
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6209
+IBS: 0.2125
+Mean AUC: 0.6682
+
+CoxPH:
+C-index: 0.6196
+IBS: 0.2032
+Mean AUC: 0.6672
+
+DeepHit:
+C-index: 0.5457
+IBS: 0.2319
+Mean AUC: 0.5700
+
+DeepSurv:
+C-index: 0.5483
+IBS: 0.2629
+Mean AUC: 0.5514
+==================================================
+
+Processing dataset: prostate
+Dataset shape: (502, 17)
+Percentage of censored data: 29.482071713147413%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5902
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 10}, Score: 0.5851
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 10}, Score: 0.6335
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6068
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5860
+IBS: 0.2104
+Mean AUC: 0.6114
+
+CoxPH:
+C-index: 0.6086
+IBS: 0.2077
+Mean AUC: 0.6470
+
+DeepHit:
+C-index: 0.5082
+IBS: 0.2203
+Mean AUC: 0.5302
+
+DeepSurv:
+C-index: 0.5128
+IBS: 0.2295
+Mean AUC: 0.5223
+==================================================
+
+Processing dataset: rdata
+Dataset shape: (1040, 6)
+Percentage of censored data: 47.40384615384615%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7085
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.6915
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 10}, Score: 0.7190
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.7118
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6867
+IBS: 0.1832
+Mean AUC: 0.7184
+
+CoxPH:
+C-index: 0.6987
+IBS: 0.1782
+Mean AUC: 0.7405
+
+DeepHit:
+C-index: 0.6860
+IBS: 0.1977
+Mean AUC: 0.7216
+
+DeepSurv:
+C-index: 0.6940
+IBS: 0.1800
+Mean AUC: 0.7314
+==================================================
+
+Processing dataset: retinopathy
+Dataset shape: (394, 9)
+Percentage of censored data: 60.659898477157356%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6373
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 20}, Score: 0.6027
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 10}, Score: 0.7034
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.6551
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6914
+IBS: 0.1812
+Mean AUC: 0.7366
+
+CoxPH:
+C-index: 0.5708
+IBS: 0.1963
+Mean AUC: 0.6037
+
+DeepHit:
+C-index: 0.5040
+IBS: 0.2304
+Mean AUC: 0.4918
+
+DeepSurv:
+C-index: 0.5518
+IBS: 0.2662
+Mean AUC: 0.5735
+==================================================
+
+Processing dataset: rhc
+Dataset shape: (5735, 55)
+Percentage of censored data: 35.10026155187445%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7100
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.7250
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 15}, Score: 0.6807
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.7069
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7079
+IBS: 0.2012
+Mean AUC: 0.7459
+
+CoxPH:
+C-index: 0.6945
+IBS: 0.2093
+Mean AUC: 0.7330
+
+DeepHit:
+C-index: 0.6677
+IBS: 0.2562
+Mean AUC: 0.7048
+
+DeepSurv:
+C-index: 0.6893
+IBS: 0.2275
+Mean AUC: 0.7298
+==================================================
+
+Processing dataset: rott2
+Dataset shape: (2982, 13)
+Percentage of censored data: 57.3440643863179%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.7137
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.7419
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 15}, Score: 0.7202
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.7285
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7011
+IBS: 0.1755
+Mean AUC: 0.7342
+
+CoxPH:
+C-index: 0.6836
+IBS: 0.1817
+Mean AUC: 0.7152
+
+DeepHit:
+C-index: 0.6532
+IBS: 0.1933
+Mean AUC: 0.7009
+
+DeepSurv:
+C-index: 0.6876
+IBS: 0.1827
+Mean AUC: 0.7179
+==================================================
+
+Processing dataset: scania
+Dataset shape: (1931, 7)
+Percentage of censored data: 43.759709994821335%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5750
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 10}, Score: 0.5319
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 20}, Score: 0.5831
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.5885
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.5848
+IBS: 0.1751
+Mean AUC: 0.5950
+
+CoxPH:
+C-index: 0.5544
+IBS: 0.1676
+Mean AUC: 0.4928
+
+DeepHit:
+C-index: 0.5620
+IBS: 0.1649
+Mean AUC: 0.5412
+
+DeepSurv:
+C-index: 0.5289
+IBS: 0.1689
+Mean AUC: 0.5113
+==================================================
+
+Processing dataset: smarto
+Dataset shape: (3873, 28)
+Percentage of censored data: 88.12290214304157%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.6919
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 10}, Score: 0.7072
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 10}, Score: 0.6785
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.6986
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6505
+IBS: 0.0960
+Mean AUC: 0.6375
+
+CoxPH:
+C-index: 0.6405
+IBS: 0.0969
+Mean AUC: 0.6308
+
+DeepHit:
+C-index: 0.5692
+IBS: 0.1157
+Mean AUC: 0.5938
+
+DeepSurv:
+C-index: 0.6177
+IBS: 0.1027
+Mean AUC: 0.6228
+==================================================
+
+Processing dataset: stagec
+Dataset shape: (146, 9)
+Percentage of censored data: 63.013698630136986%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.5840
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.6400
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 1e-05, 'num_bins': 10}, Score: 0.8800
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 1e-05}, Score: 0.6480
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7054
+IBS: 0.1700
+Mean AUC: 0.7414
+
+CoxPH:
+C-index: 0.7752
+IBS: 0.1605
+Mean AUC: 0.7625
+
+DeepHit:
+C-index: 0.6357
+IBS: 0.1933
+Mean AUC: 0.5465
+
+DeepSurv:
+C-index: 0.6512
+IBS: 0.1765
+Mean AUC: 0.5949
+==================================================
+
+Processing dataset: uis
+Dataset shape: (628, 10)
+Percentage of censored data: 19.10828025477707%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5756
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 50, 'min_samples_split': 20}, Score: 0.5598
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 512, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 15}, Score: 0.6160
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 32, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.5746
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6339
+IBS: 0.1790
+Mean AUC: 0.6943
+
+CoxPH:
+C-index: 0.6183
+IBS: 0.1775
+Mean AUC: 0.6685
+
+DeepHit:
+C-index: 0.5688
+IBS: 0.2901
+Mean AUC: 0.5964
+
+DeepSurv:
+C-index: 0.5709
+IBS: 0.1949
+Mean AUC: 0.5901
+==================================================
+
+Processing dataset: veteran
+Dataset shape: (137, 8)
+Percentage of censored data: 6.569343065693431%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 1e-06}, Score: 0.5000
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 2}, Score: 0.6061
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.001, 'num_bins': 5}, Score: 0.6970
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.001}, Score: 0.6768
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.7596
+IBS: 0.1502
+Mean AUC: 0.8556
+
+CoxPH:
+C-index: 0.7308
+IBS: 0.1646
+Mean AUC: 0.8216
+
+DeepHit:
+C-index: 0.5433
+IBS: 0.2842
+Mean AUC: 0.5590
+
+DeepSurv:
+C-index: 0.6394
+IBS: 0.2617
+Mean AUC: 0.6235
+==================================================
+
+Processing dataset: vlbw
+Dataset shape: (617, 24)
+Percentage of censored data: 82.6580226904376%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.8810
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 10}, Score: 0.9375
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 10}, Score: 0.9008
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.9206
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.9076
+IBS: 0.0818
+Mean AUC: 0.8818
+
+CoxPH:
+C-index: 0.8197
+IBS: 0.0992
+Mean AUC: 0.8267
+
+DeepHit:
+C-index: 0.8655
+IBS: 0.1480
+Mean AUC: 0.8479
+
+DeepSurv:
+C-index: 0.8843
+IBS: 0.0925
+Mean AUC: 0.8490
+==================================================
+
+Processing dataset: whas500
+Dataset shape: (461, 18)
+Percentage of censored data: 61.82212581344903%
+Running Grid Search for CoxPH...
+Best CoxPH params: {'alpha': 0.1}, Score: 0.7586
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 200, 'min_samples_split': 10}, Score: 0.7848
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.7740
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 256, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.7579
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.8043
+IBS: 0.1661
+Mean AUC: 0.8141
+
+CoxPH:
+C-index: 0.8315
+IBS: 0.1507
+Mean AUC: 0.8457
+
+DeepHit:
+C-index: 0.8155
+IBS: 0.1970
+Mean AUC: 0.8204
+
+DeepSurv:
+C-index: 0.8427
+IBS: 0.1497
+Mean AUC: 0.8592
+==================================================
+
+Processing dataset: zinc
+Dataset shape: (431, 15)
+Percentage of censored data: 81.20649651972158%
+Running Grid Search for CoxPH...
+CoxPH trial failed with params {'alpha': 1e-06}: LAPACK reported an illegal value in 5-th argument.
+Best CoxPH params: {'alpha': 0.1}, Score: 0.7234
+Running Grid Search for RSF...
+Best RSF params: {'n_estimators': 100, 'min_samples_split': 20}, Score: 0.7791
+Running Grid Search for DeepHit...
+Best DeepHit params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001, 'num_bins': 20}, Score: 0.7993
+Running Grid Search for DeepSurv...
+Best DeepSurv params: {'dropout': 0.1, 'first_layer_size': 128, 'second_layer_size': 32, 'learning_rate': 0.0001}, Score: 0.7808
+Training RSF...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+==================================================
+HOLDOUT TEST SET RESULTS
+==================================================
+
+Random Survival Forest:
+C-index: 0.6782
+IBS: 0.1752
+Mean AUC: 0.7069
+
+CoxPH:
+C-index: 0.5804
+IBS: 0.2122
+Mean AUC: 0.5979
+
+DeepHit:
+C-index: 0.6972
+IBS: 0.2031
+Mean AUC: 0.7070
+
+DeepSurv:
+C-index: 0.7035
+IBS: 0.1980
+Mean AUC: 0.7185
+Total runtime: 3h 20m 55s
