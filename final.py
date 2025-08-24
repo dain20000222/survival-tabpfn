@@ -16,12 +16,10 @@ import torch
 import torch.nn as nn
 from pycox.models import DeepHitSingle, CoxPH
 import torchtuples as tt
-from pycox.preprocessing.label_transforms import LabTransDiscreteTime
 from tabpfn import TabPFNClassifier
 import warnings
 import matplotlib.pyplot as plt
 import random
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
 from sksurv.nonparametric import SurvivalFunctionEstimator 
 warnings.filterwarnings("ignore")
 
@@ -40,75 +38,75 @@ data_dir = os.path.join("test")
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
-# Sweep configs
-neighbors_list = [1, 2, 3, 4]
-bin_sizes = [5, 10, 15, 20, 25]
+bin_sizes = [3, 5, 7, 10, 15, 20, 25, 30]
 
 # CSV path
 csv_path = "tabpfn_evaluation.csv"
 
-def construct_tabpfn_trainset(x_train_imputed, y_train, n_neighbors=1):
+def construct_tabpfn_trainset(x_train_imputed, y_train, cuts):
     """
-    Construct TabPFN training dataset by creating classification examples for each patient
-    at n timepoints before/after their event/censoring time, including the exact time if it exists.
+    Construct TabPFN training dataset by creating examples for each patient at cut timepoints:
+    - Examples at timepoints where patient was observed (class C or D)
+    - Examples at timepoints before/after patient time (class A or B)
 
     Parameters:
         x_train_imputed (pd.DataFrame): Imputed covariates (n_patients × features)
-        y_train (structured array): Survival data with fields "event" and "time"
-        n_neighbors (int): Number of timepoints to include before and after the event time
+        y_train (structured array): Survival data with fields "event" and "time" (discretized indices)
+        cuts (np.ndarray): The actual cut values used for discretization
 
     Returns:
         X_tabpfn_train (pd.DataFrame): Feature matrix with timepoints
         y_tabpfn_train (pd.Series): Corresponding class labels ("A", "B", "C", "D")
     """
     # Extract event/censoring times and status
-    T_train = y_train["time"]
+    T_train = y_train["time"]  # These are discretized indices
     delta_train = y_train["event"]
     n_train = len(T_train)
 
-    # Sorted unique event/censoring times
-    unique_times = np.sort(np.unique(T_train))
+    # Use the actual cut values as evaluation timepoints
+    selected_times = cuts.copy()
+
     dataset_rows = []
     class_labels = []
 
+    # Create examples for each patient at each cut timepoint
     for i in range(n_train):
         x_i = x_train_imputed.iloc[i].values
-        T_i = T_train[i]
+        T_i_idx = T_train[i]  # Discretized time index
         delta_i = delta_train[i]
 
-        # Index of T_i in unique_times
-        idx = np.searchsorted(unique_times, T_i)
-
-        # Collect candidate timepoints: n before, at, n after
-        start_idx = max(0, idx - n_neighbors)
-        end_idx = min(len(unique_times), idx + n_neighbors + 1)
-
-        timepoints = unique_times[start_idx:end_idx]
-
-        for t_j in timepoints:
-            # Assign class label based on T_i and t_j
-            if T_i < t_j:
-                label = "A"
-            elif T_i > t_j:
-                label = "B"
-            elif np.isclose(T_i, t_j) and delta_i == 0:
-                label = "C"
-            elif np.isclose(T_i, t_j) and delta_i == 1:
-                label = "D"
+        # Create examples at each cut timepoint
+        for j, t_j in enumerate(selected_times):
+            # Assign class label based on T_i_idx and current timepoint index j
+            if T_i_idx < j:
+                label = "A"  # Event/censoring happened before this timepoint
+            elif T_i_idx > j:
+                label = "B"  # Event/censoring will happen after this timepoint
+            elif T_i_idx == j and delta_i == 0:
+                label = "C"  # Censored at this timepoint
+            elif T_i_idx == j and delta_i == 1:
+                label = "D"  # Event at this timepoint
             else:
-                raise ValueError(f"Unexpected condition: T_i={T_i}, t_j={t_j}, delta_i={delta_i}")
+                # Fallback (shouldn't happen with proper discretization)
+                if T_i_idx < j:
+                    label = "A"
+                else:
+                    label = "B"
 
-            # Feature = original + eval_time
+            # Feature = original + eval_time (use actual cut value)
             row = np.concatenate([x_i, [t_j]])
             dataset_rows.append(row)
             class_labels.append(label)
 
-    # Create DataFrame
-    timepoint_name = "eval_time"
-    feature_cols = list(x_train_imputed.columns) + [timepoint_name]
+    # Convert to arrays for easier manipulation
+    dataset_rows = np.array(dataset_rows)
+    class_labels = np.array(class_labels)
+    
+    # Create DataFrame and Series for return
+    feature_cols = list(x_train_imputed.columns) + ["eval_time"]
     X_tabpfn_train = pd.DataFrame(dataset_rows, columns=feature_cols)
-    y_tabpfn_train = pd.Series(class_labels, name="label")
-
+    y_tabpfn_train = pd.Series(class_labels)
+    
     return X_tabpfn_train, y_tabpfn_train
 
 def construct_tabpfn_testset(x_test_imputed, times):
@@ -251,15 +249,12 @@ for file_name in dataset_files:
         shape = df.shape
         print(f"Dataset shape: {shape}")
 
-        # One-hot encode categorical variables
-        df = pd.get_dummies(df, drop_first=True)
-        censored = (df["event"] == 0).sum()
-        censored_percent = (censored)/len(df)*100
-        print(f"Percentage of censored data: {censored_percent}%")
-
         # Define columns
         time_col = "time"
         event_col = "event"
+        censored = (df["event"] == 0).sum()
+        censored_percent = (censored)/len(df)*100
+        print(f"Percentage of censored data: {censored_percent}%")
         covariates = df.columns.difference([time_col, event_col])
 
         # Define covariates and target variable
@@ -275,14 +270,25 @@ for file_name in dataset_files:
         )
         # 0.1765 * 0.85 ≈ 0.15, so test/val are both 15%
 
+        # One-hot encode using get_dummies (fit on TRAIN only!)
+        x_train_ohe = pd.get_dummies(x_train, drop_first=True)
+        x_val_ohe   = pd.get_dummies(x_val, drop_first=True)
+        x_test_ohe  = pd.get_dummies(x_test, drop_first=True)
+
+        # Align columns so train/val/test match
+        x_train_ohe, x_val_ohe = x_train_ohe.align(x_val_ohe, join="left", axis=1, fill_value=0)
+        x_train_ohe, x_test_ohe = x_train_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
+
+        covariates_ohe = x_train_ohe.columns  # all columns are covariates after OHE
+
         # Impute missing values in covariates (fit on train only, same as baseline.py)
-        imputer = SimpleImputer().fit(x_train.loc[:, covariates.tolist()])
-        x_train_imputed = imputer.transform(x_train.loc[:, covariates.tolist()])
-        x_train_imputed = pd.DataFrame(x_train_imputed, columns=covariates, index=x_train.index)
-        x_val_imputed = imputer.transform(x_val.loc[:, covariates.tolist()])
-        x_val_imputed = pd.DataFrame(x_val_imputed, columns=covariates, index=x_val.index)
-        x_test_imputed = imputer.transform(x_test.loc[:, covariates.tolist()])
-        x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates, index=x_test.index)
+        imputer = SimpleImputer().fit(x_train_ohe.loc[:, covariates_ohe.tolist()])
+        x_train_imputed = imputer.transform(x_train_ohe.loc[:, covariates_ohe.tolist()])
+        x_train_imputed = pd.DataFrame(x_train_imputed, columns=covariates_ohe, index=x_train.index)
+        x_val_imputed = imputer.transform(x_val_ohe.loc[:, covariates_ohe.tolist()])
+        x_val_imputed = pd.DataFrame(x_val_imputed, columns=covariates_ohe, index=x_val.index)
+        x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
+        x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
 
         # Evaluation time points (use train+val, same as baseline.py)
         times = np.percentile(y_trainval["time"], np.arange(10, 100, 10))
@@ -302,129 +308,136 @@ for file_name in dataset_files:
         y_train_orig = y_train
         y_test_orig = y_test_filtered
 
-        # ========================= n_bins / n_neighbors sweep (hyperparameter tuning on validation set) =========================
+        # ========================= n_bins sweep (hyperparameter tuning on validation set) =========================
         print("Running hyperparameter tuning on validation set...")
         best_val_cindex = -1.0
-        best_params = None
+        best_n_bins = None
         
         for n_bins in bin_sizes:
-            print(f"Using KM-based discretization with {n_bins} cuts.")
-            # 1) Build KM-quantile right-cuts (length = n_bins, includes min and max)
-            cuts = km_quantile_cuts(
-                durations=df.loc[x_train.index, time_col].to_numpy(),
-                events=df.loc[x_train.index, event_col].to_numpy(),
-                num=n_bins,
-                min_=df[time_col].min(),
-                dtype="float64",
-            )
-            if (np.diff(cuts) == 0).any():
-                print(f"⚠️ Skipping n_bins={n_bins}: non-unique KM cuts.")
-                continue
-
-            # 2) Discretize TRAIN (pycox §4.1): events -> right edge, censor -> left edge; right-censor beyond last cut
-            t_tr = df.loc[x_train.index, time_col].to_numpy()
-            e_tr = df.loc[x_train.index, event_col].astype(bool).to_numpy()
-            td_tr, e_tr_adj = discretize_unknown_c(t_tr, e_tr, cuts, right_censor=True, censor_side="left")
-
-            # 3) Discretize VAL the same way (using TRAIN cuts!)
-            t_val = df.loc[x_val.index, time_col].to_numpy()
-            e_val = df.loc[x_val.index, event_col].astype(bool).to_numpy()
-            td_val, e_val_adj = discretize_unknown_c(t_val, e_val, cuts, right_censor=True, censor_side="left")
-
-            # 4) Map discrete cut-values -> integer indices 0..len(cuts)-1
-            to_idx = duration_to_index_map(cuts)
-            t_train_bin = to_idx(td_tr)
-            t_val_bin = to_idx(td_val)
-
-            # 5) Build Surv objects in *model time* (indices)
-            y_train_model = Surv.from_arrays(event=e_tr_adj, time=t_train_bin)
-            y_val_model = Surv.from_arrays(event=e_val_adj, time=t_val_bin)
-
-            # 6) Map continuous evaluation 'times' -> model indices via right rounding (like events)
-            times_eval = bin_numerical(times, cuts, error_on_larger=False)  # 0..len(cuts) ; clip to last valid index
-            times_eval = np.clip(times_eval, 0, len(cuts) - 1).astype(int)
-            
-            for n_neighbors in neighbors_list:
-                try:
-                    # Train set uses model-time (binned)
-                    X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(
-                        x_train_imputed, y_train_model, n_neighbors=n_neighbors
-                    )
-
-                    tabpfn_model = TabPFNClassifier(
-                        device='cuda' if torch.cuda.is_available() else 'cpu',
-                        ignore_pretraining_limits=True
-                    )
-                    tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
-
-                    # Work on unique evaluation bins to avoid duplicate counting
-                    unique_bins, inv = np.unique(times_eval, return_inverse=True)
-
-                    # Predict on unique bins only for validation
-                    X_tabpfn_val, val_patient_ids = construct_tabpfn_testset(x_val_imputed, unique_bins)
-                    probs = tabpfn_model.predict_proba(X_tabpfn_val)
-
-                    # Convert A/B/C/D -> discrete hazards per unique bin
-                    def hazards_from_probs(X_test, pids, probs, unique_bins, eps=1e-12):
-                        n_patients = pids.max() + 1
-                        m = len(unique_bins)
-                        h = np.zeros((n_patients, m), dtype=float)
-                        for j, t in enumerate(unique_bins):
-                            idx_at_t = np.where(np.isclose(X_test["eval_time"], t))[0]
-                            for idx in idx_at_t:
-                                pid = pids[idx]
-                                pA, pB, pC, pD = probs[idx]
-                                denom = pB + pC + pD + eps   # at-risk at t
-                                h[pid, j] = pD / denom
-                        return np.clip(h, 0.0, 1.0)
-
-                    h_unique = hazards_from_probs(X_tabpfn_val, val_patient_ids, probs, unique_bins)
-
-                    # Build survival on the model's native grid
-                    S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)   # (n_val, len(unique_bins))
-
-                    # Interpolate to ORIGINAL 'times' grid
-                    bin_t_grid = cuts[unique_bins]  # <-- use KM right cuts
-                    S_full = np.vstack([
-                        np.interp(times, bin_t_grid, S_unique[i], left=1.0, right=S_unique[i, -1])
-                        for i in range(S_unique.shape[0])
-                    ])
-                    S_full = np.minimum.accumulate(S_full, axis=1)
-
-                    # Risk for ranking: probability of event by horizon
-                    risk_scores = 1.0 - S_full[:, -1]
-
-                    # Validation C-index
-                    c_index, *_ = concordance_index_censored(y_val["event"], y_val["time"], risk_scores)
-                    
-                    print(f"n_bins={n_bins}, n_neighbors={n_neighbors}: val_c_index={c_index:.4f}")
-                    
-                    if c_index > best_val_cindex:
-                        best_val_cindex = c_index
-                        best_params = {'n_bins': n_bins, 'n_neighbors': n_neighbors}
-                        
-                except Exception as e:
-                    print(f"Error with n_bins={n_bins}, n_neighbors={n_neighbors}: {e}")
+            try:
+                print(f"Using KM-based discretization with {n_bins} cuts.")
+                # 1) Build KM-quantile right-cuts using only training data (no data leakage)
+                cuts = km_quantile_cuts(
+                    durations=df.loc[x_train.index, time_col].to_numpy(),
+                    events=df.loc[x_train.index, event_col].to_numpy(),
+                    num=n_bins,
+                    min_=df[time_col].min(),
+                    dtype="float64",
+                )
+                if (np.diff(cuts) == 0).any():
+                    print(f"⚠️ Skipping n_bins={n_bins}: non-unique KM cuts.")
                     continue
+
+                # 2) Discretize TRAIN (pycox §4.1): events -> right edge, censor -> left edge; right-censor beyond last cut
+                t_tr = df.loc[x_train.index, time_col].to_numpy()
+                e_tr = df.loc[x_train.index, event_col].astype(bool).to_numpy()
+                td_tr, e_tr_adj = discretize_unknown_c(t_tr, e_tr, cuts, right_censor=True, censor_side="left")
+
+                # 3) Discretize VAL the same way (using TRAIN cuts!)
+                t_val = df.loc[x_val.index, time_col].to_numpy()
+                e_val = df.loc[x_val.index, event_col].astype(bool).to_numpy()
+                td_val, e_val_adj = discretize_unknown_c(t_val, e_val, cuts, right_censor=True, censor_side="left")
+
+                # 4) Map discrete cut-values -> integer indices 0..len(cuts)-1
+                to_idx = duration_to_index_map(cuts)
+                t_train_bin = to_idx(td_tr)
+                t_val_bin = to_idx(td_val)
+
+                # 5) Build Surv objects in *model time* (indices)
+                y_train_model = Surv.from_arrays(event=e_tr_adj, time=t_train_bin)
+                y_val_model = Surv.from_arrays(event=e_val_adj, time=t_val_bin)
+
+                # 6) Map continuous evaluation 'times' -> model indices via right rounding (like events)
+                times_eval = bin_numerical(times, cuts, error_on_larger=False)  # 0..len(cuts) ; clip to last valid index
+                times_eval = np.clip(times_eval, 0, len(cuts) - 1).astype(int)
+                
+                # Train set uses model-time (binned)
+                X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(
+                    x_train_imputed, y_train_model, cuts
+                )
+
+                tabpfn_model = TabPFNClassifier(
+                    device='cuda' if torch.cuda.is_available() else 'cpu',
+                    ignore_pretraining_limits=True
+                )
+                tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+
+                # Work on unique evaluation bins to avoid duplicate counting
+                unique_bins, inv = np.unique(times_eval, return_inverse=True)
+
+                # Predict on unique bins only for validation
+                X_tabpfn_val, val_patient_ids = construct_tabpfn_testset(x_val_imputed, cuts[unique_bins])
+                probs = tabpfn_model.predict_proba(X_tabpfn_val)
+
+                # Convert A/B/C/D -> discrete hazards per unique bin
+                def hazards_from_probs(X_test, pids, probs, unique_cut_values, eps=1e-12):
+                    n_patients = pids.max() + 1
+                    m = len(unique_cut_values)
+                    h = np.zeros((n_patients, m), dtype=float)
+                    for j, t in enumerate(unique_cut_values):
+                        idx_at_t = np.where(np.isclose(X_test["eval_time"], t))[0]
+                        for idx in idx_at_t:
+                            pid = pids[idx]
+                            pA, pB, pC, pD = probs[idx]
+                            denom = pB + pC + pD + eps   # at-risk at t
+                            h[pid, j] = pD / denom
+                    return np.clip(h, 0.0, 1.0)
+
+                h_unique = hazards_from_probs(X_tabpfn_val, val_patient_ids, probs, cuts[unique_bins])
+
+                # Build survival on the model's native grid
+                S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)   # (n_val, len(unique_bins))
+
+                # Interpolate to ORIGINAL 'times' grid
+                bin_t_grid = cuts[unique_bins]  # <-- use KM right cuts
+                S_full = np.vstack([
+                    np.interp(times, bin_t_grid, S_unique[i], left=1.0, right=S_unique[i, -1])
+                    for i in range(S_unique.shape[0])
+                ])
+                S_full = np.minimum.accumulate(S_full, axis=1)
+
+                # Risk for ranking: probability of event by horizon
+                risk_scores = 1.0 - S_full[:, -1]
+
+                # Validation C-index
+                c_index, *_ = concordance_index_censored(y_val["event"], y_val["time"], risk_scores)
+                
+                print(f"n_bins={n_bins}: val_c_index={c_index:.4f}")
+                
+                if c_index > best_val_cindex:
+                    best_val_cindex = c_index
+                    best_n_bins = n_bins
+                        
+            except Exception as e:
+                print(f"Error with n_bins={n_bins}: {e}")
+                continue
         
-        print(f"Best validation params: {best_params}, val_c_index={best_val_cindex:.4f}")
+        print(f"Best validation n_bins: {best_n_bins}, val_c_index={best_val_cindex:.4f}")
         
         # Fallback if no valid parameters found
-        if best_params is None:
-            print("No valid hyperparameters found, using defaults")
-            best_params = {'n_bins': 10, 'n_neighbors': 2}
+        if best_n_bins is None:
+            print("No valid hyperparameters found, using default")
+            best_n_bins = 10
         
         # ========================= Final evaluation on test set with best params =========================
         print("Evaluating on test set with best hyperparameters...")
-        n_bins = best_params['n_bins']
-        n_neighbors = best_params['n_neighbors']
+        n_bins = best_n_bins
+
         # ========== Retrain on train+val, evaluate on test (same as baseline.py) ==========
-        # Use trainval for final training
-        x_trainval_imputed = pd.concat([x_train_imputed, x_val_imputed])
-        y_trainval = Surv.from_arrays(
-            event=np.concatenate([y_train["event"], y_val["event"]]),
-            time=np.concatenate([y_train["time"], y_val["time"]])
-        )
+        # OHE and impute trainval/test
+        x_trainval_ohe = pd.get_dummies(x_trainval, drop_first=True)
+        x_test_ohe = pd.get_dummies(x_test, drop_first=True)
+        x_trainval_ohe, x_test_ohe = x_trainval_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
+        covariates_ohe = x_trainval_ohe.columns
+        imputer = SimpleImputer().fit(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
+        x_trainval_imputed = imputer.transform(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
+        x_trainval_imputed = pd.DataFrame(x_trainval_imputed, columns=covariates_ohe, index=x_trainval.index)
+        x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
+        x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
+        test_mask = y_test["time"] < max_trainval_time
+        y_test_filtered = y_test[test_mask]
+        x_test_filtered = x_test_imputed[test_mask]
+        times = times[(times > y_test_filtered["time"].min()) & (times < y_test_filtered["time"].max())]
         
         print(f"Using KM-based discretization with {n_bins} cuts.")
         # 1) Build KM-quantile right-cuts using trainval data
@@ -464,7 +477,7 @@ for file_name in dataset_files:
         
         # Train TabPFN on trainval data
         X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(
-            x_trainval_imputed, y_trainval_model, n_neighbors=n_neighbors
+            x_trainval_imputed, y_trainval_model, cuts
         )
 
         tabpfn_model = TabPFNClassifier(
@@ -477,15 +490,15 @@ for file_name in dataset_files:
         unique_bins, inv = np.unique(times_eval, return_inverse=True)
 
         # Predict on unique bins only
-        X_tabpfn_test, test_patient_ids = construct_tabpfn_testset(x_test_filtered, unique_bins)
+        X_tabpfn_test, test_patient_ids = construct_tabpfn_testset(x_test_filtered, cuts[unique_bins])
         probs = tabpfn_model.predict_proba(X_tabpfn_test)
 
         # Convert A/B/C/D -> discrete hazards per unique bin
-        def hazards_from_probs(X_test, pids, probs, unique_bins, eps=1e-12):
+        def hazards_from_probs(X_test, pids, probs, unique_cut_values, eps=1e-12):
             n_patients = pids.max() + 1
-            m = len(unique_bins)
+            m = len(unique_cut_values)
             h = np.zeros((n_patients, m), dtype=float)
-            for j, t in enumerate(unique_bins):
+            for j, t in enumerate(unique_cut_values):
                 idx_at_t = np.where(np.isclose(X_test["eval_time"], t))[0]
                 for idx in idx_at_t:
                     pid = pids[idx]
@@ -494,7 +507,7 @@ for file_name in dataset_files:
                     h[pid, j] = pD / denom
             return np.clip(h, 0.0, 1.0)
 
-        h_unique = hazards_from_probs(X_tabpfn_test, test_patient_ids, probs, unique_bins)
+        h_unique = hazards_from_probs(X_tabpfn_test, test_patient_ids, probs, cuts[unique_bins])
 
         # Build survival on the model's native grid
         S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)
@@ -518,7 +531,7 @@ for file_name in dataset_files:
         best_row = {
             "dataset": dataset_name,
             "n_bins": n_bins,
-            "n_neighbors": n_neighbors,
+            "score": round(float(best_val_cindex), 4),
             "c_index": round(float(c_index), 4),
             "ibs": round(float(ibs), 4),
             "mean_auc": round(float(mean_auc), 4),
@@ -526,7 +539,8 @@ for file_name in dataset_files:
         
         print("="*50)
         print(f"Final test results for dataset {dataset_name}:")
-        print(f"Best n_bins: {best_row['n_bins']}, Best n_neighbors: {best_row['n_neighbors']}")
+        print(f"Best n_bins: {best_row['n_bins']}")
+        print(f"Validation C-index (Score): {best_row['score']:.4f}")
         print(f"Test C-index: {best_row['c_index']:.4f}")
         print(f"Test interval Brier Score (IBS): {best_row['ibs']:.4f}")
         print(f"Test mean AUC: {best_row['mean_auc']:.4f}")
@@ -535,7 +549,7 @@ for file_name in dataset_files:
         if best_row is not None:
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["dataset", "n_bins", "n_neighbors", "c_index", "ibs", "mean_auc"])
+                writer = csv.DictWriter(f, fieldnames=["dataset", "n_bins", "score", "c_index", "ibs", "mean_auc"])
                 if not file_exists:
                     writer.writeheader()
                 writer.writerow(best_row)
