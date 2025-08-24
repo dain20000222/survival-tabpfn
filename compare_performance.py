@@ -214,7 +214,7 @@ def create_performance_comparison_table(df):
 def plot_average_ranks(avg_ranks_df):
     """Create visualization of average ranks and save each metric separately."""
     metrics = ['c_index', 'ibs', 'mean_auc']
-    metric_titles = ['C-Index (↑)', 'IBS (↓)', 'Mean AUC (↑)']
+    metric_titles = ['C-Index', 'IBS', 'Mean AUC']
     
     # Define model order
     model_order = ['CoxPH', 'RSF', 'DeepSurv', 'DeepHit', 'TabPFN']
@@ -261,7 +261,7 @@ def plot_win_rates(comparison_df):
     """Create visualization of win rates."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     metrics = ['c_index', 'ibs', 'mean_auc']
-    metric_titles = ['C-Index (↑)', 'IBS (↓)', 'Mean AUC (↑)']
+    metric_titles = ['C-Index', 'IBS', 'Mean AUC']
     
     for i, (metric, title) in enumerate(zip(metrics, metric_titles)):
         data = comparison_df[comparison_df['metric'] == metric]

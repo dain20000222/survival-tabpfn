@@ -1,0 +1,86 @@
+Loading and preparing data...
+Successfully merged 48 datasets
+
+Creating evaluation metrics table...
+
+Ranking models for each dataset and metric...
+
+Creating ranking table per dataset...
+
+Calculating average ranks...
+
+Saving main result files...
+
+============================================================
+AVERAGE RANKS BY MODEL AND METRIC
+============================================================
+
+C_INDEX Rankings:
+ metric    model  avg_rank  std_rank  count
+c_index    CoxPH     2.375     1.248     48
+c_index      RSF     2.562     1.367     48
+c_index   TabPFN     2.604     1.349     48
+c_index DeepSurv     3.083     1.145     48
+c_index  DeepHit     4.375     0.981     48
+
+IBS Rankings:
+metric    model  avg_rank  std_rank  count
+   ibs    CoxPH     2.042     1.184     48
+   ibs      RSF     2.125     1.064     48
+   ibs DeepSurv     3.104     1.096     48
+   ibs   TabPFN     3.812     1.331     48
+   ibs  DeepHit     3.917     1.200     48
+
+MEAN_AUC Rankings:
+  metric    model  avg_rank  std_rank  count
+mean_auc   TabPFN     2.250     1.296     48
+mean_auc    CoxPH     2.354     1.263     48
+mean_auc      RSF     2.729     1.395     48
+mean_auc DeepSurv     3.354     1.082     48
+mean_auc  DeepHit     4.312     0.926     48
+
+============================================================
+WIN/LOSS ANALYSIS: TabPFN vs Baselines
+============================================================
+
+C_INDEX:
+baseline_model  wins  losses  ties  win_rate
+           RSF    22      26     0     0.458
+         CoxPH    23      25     0     0.479
+       DeepHit    40       8     0     0.833
+      DeepSurv    30      18     0     0.625
+
+IBS:
+baseline_model  wins  losses  ties  win_rate
+           RSF     6      42     0     0.125
+         CoxPH    10      38     0     0.208
+       DeepHit    26      22     0     0.542
+      DeepSurv    15      33     0     0.312
+
+MEAN_AUC:
+baseline_model  wins  losses  ties  win_rate
+           RSF    29      19     0     0.604
+         CoxPH    24      24     0     0.500
+       DeepHit    43       5     0     0.896
+      DeepSurv    36      12     0     0.750
+
+============================================================
+SUMMARY STATISTICS
+============================================================
+
+Overall Average Rank Across All Metrics:
+CoxPH     : 2.257
+RSF       : 2.472
+TabPFN    : 2.889
+DeepSurv  : 3.180
+DeepHit   : 4.201
+
+TabPFN Overall Win Rate: 0.528
+
+Best Model by Metric (lowest average rank):
+c_index     : CoxPH (avg rank: 2.375)
+ibs         : CoxPH (avg rank: 2.042)
+mean_auc    : TabPFN (avg rank: 2.250)
+
+Creating visualizations...
+Total runtime: 0h 0m 5s
