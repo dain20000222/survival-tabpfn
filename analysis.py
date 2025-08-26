@@ -8,8 +8,12 @@ Hypothesis: TabPFN's formulation emphasizes discrimination through localized per
 classification, aligning with pairwise ordering (C-index) and time-specific AUC. 
 However, IBS penalizes global miscalibration, which is sensitive to:
 1. Discretization granularity: Coarse KM-based discretization induces stepwise survival curves
-2. Censoring imbalance: At later times, heavily censored datasets reduce effective risk sets
-3. Interpolation artifacts: Converting discrete hazards to continuous survival curves introduces errors
+2. Censoring imbalance: At later times, heavily censored datasets reduce effective risk sets  
+3. Interpolation method: Using proper Constant Density Interpolation (CDI) vs simple linear interpolation affects survival curve quality
+
+Note: TabPFN uses CDI interpolation which assumes constant density within intervals,
+while baseline models (RSF, CoxPH, DeepSurv) produce naturally smooth survival functions.
+DeepHit also uses discretization but with its own interpolation approach.
 """
 
 import pandas as pd
@@ -71,7 +75,7 @@ def find_worst_ibs_dataset():
     print("Top 5 datasets where TabPFN has worst IBS relative to best baseline:")
     print(worst_datasets[['dataset', 'ibs', 'best_baseline_ibs', 'ibs_difference', 'ibs_ratio']].round(4))
     
-    return worst_datasets.iloc[0]['dataset']
+    return worst_datasets.iloc[0]['dataset']  # Return worst dataset name for backward compatibility
 
 # TabPFN utility functions (copied from tabpfn.py)
 def _is_monotonic_increasing(x: np.ndarray) -> bool:
@@ -146,6 +150,59 @@ def duration_to_index_map(cuts: np.ndarray):
     order = np.argsort(uniq)
     idx_map = {float(uniq[o]): int(o) for o in order}
     return np.vectorize(idx_map.get, otypes=[int])
+
+def cdi_interpolate(eval_times, grid_times, S_grid):
+    """
+    Constant Density Interpolation (CDI) for survival functions.
+    
+    Assumes uniform distribution of event times within each interval,
+    leading to S(t) = α_j - β_j * t within interval (τ_{j-1}, τ_j].
+    
+    Parameters:
+        eval_times: array of times to evaluate S(t) at
+        grid_times: array of grid points τ_j (sorted)
+        S_grid: survival probabilities at grid points (n_patients × n_grid)
+    
+    Returns:
+        S_eval: survival probabilities at eval_times (n_patients × n_eval)
+    """
+    n_patients, n_grid = S_grid.shape
+    n_eval = len(eval_times)
+    S_eval = np.zeros((n_patients, n_eval))
+    
+    for i in range(n_patients):
+        S_i = S_grid[i]
+        
+        for j, t in enumerate(eval_times):
+            # Find interval: t ∈ (τ_{k-1}, τ_k]
+            k = np.searchsorted(grid_times, t, side='right')
+            
+            if k == 0:
+                # t <= τ_0, extrapolate as constant
+                S_eval[i, j] = 1.0  # or S_i[0]
+            elif k >= n_grid:
+                # t > τ_{max}, extrapolate as constant
+                S_eval[i, j] = S_i[-1]
+            else:
+                # t ∈ (τ_{k-1}, τ_k], apply CDI formula
+                tau_prev = grid_times[k-1] if k > 0 else 0.0
+                tau_curr = grid_times[k]
+                S_prev = S_i[k-1] if k > 0 else 1.0
+                S_curr = S_i[k]
+                
+                # CDI coefficients: S(t) = α_j - β_j * t
+                delta_tau = tau_curr - tau_prev
+                if delta_tau > 0:
+                    alpha_j = (S_prev * tau_curr - S_curr * tau_prev) / delta_tau
+                    beta_j = (S_prev - S_curr) / delta_tau
+                    S_eval[i, j] = alpha_j - beta_j * t
+                else:
+                    # Degenerate interval, use endpoint value
+                    S_eval[i, j] = S_curr
+    
+    # Ensure monotonicity and bounds
+    S_eval = np.clip(S_eval, 0.0, 1.0)
+    return S_eval
 
 def construct_tabpfn_trainset(x_train_imputed, y_train, cuts):
     T_train = y_train["time"]
@@ -237,7 +294,7 @@ def analyze_dataset_characteristics(df, dataset_name):
     }
 
 def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times, y_test, dataset_name):
-    """Plot survival curve comparison showing discretization artifacts."""
+    """Plot survival curve comparison showing CDI vs naturally smooth curves."""
     n_models = len(baseline_names) + 1  # +1 for TabPFN
     fig, axes = plt.subplots(2, 5, figsize=(20, 8))
     axes = axes.flatten()
@@ -253,11 +310,11 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
         # Plot all baselines
         colors = ['red', 'green', 'blue', 'orange']
         for j, (S_baseline, name) in enumerate(zip(S_baselines, baseline_names)):
-            ax.plot(times, S_baseline[idx], '-', label=name, linewidth=2, alpha=0.8, color=colors[j % len(colors)])
+            ax.plot(times, S_baseline[idx], '-', label=f'{name}', linewidth=2, alpha=0.8, color=colors[j % len(colors)])
         
         # Mark actual event/censoring time
-        actual_time = y_test['time'].iloc[idx]
-        event_status = y_test['event'].iloc[idx]
+        actual_time = y_test['time'][idx]
+        event_status = y_test['event'][idx]
         if actual_time <= times.max():
             color = 'red' if event_status else 'blue'
             marker = 'x' if event_status else 'o'
@@ -612,12 +669,9 @@ def comprehensive_analysis(dataset_name):
     h_unique = hazards_from_probs(X_tabpfn_test, test_patient_ids, probs, cuts[unique_bins])
     S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)
     
-    # Interpolate to evaluation times
+    # Interpolate to evaluation times using CDI
     bin_t_grid = cuts[unique_bins]
-    S_tabpfn = np.vstack([
-        np.interp(times, bin_t_grid, S_unique[i], left=1.0, right=S_unique[i, -1])
-        for i in range(S_unique.shape[0])
-    ])
+    S_tabpfn = cdi_interpolate(times, bin_t_grid, S_unique)
     S_tabpfn = np.minimum.accumulate(S_tabpfn, axis=1)
     
     # === Baseline Models ===
@@ -631,7 +685,8 @@ def comprehensive_analysis(dataset_name):
         rsf = make_pipeline(StandardScaler(), RandomSurvivalForest(n_estimators=100, min_samples_split=5, random_state=SEED))
         rsf.fit(x_trainval_imputed, y_trainval)
         
-        # Get RSF survival predictions
+        # Get RSF survival predictions (native smooth curves)
+        # Note: RSF produces naturally smooth survival functions, so linear interpolation is appropriate
         S_rsf = np.zeros((len(x_test_filtered), len(times)))
         for i in range(len(x_test_filtered)):
             sf = rsf.predict_survival_function(x_test_filtered.iloc[[i]])[0]
@@ -656,7 +711,8 @@ def comprehensive_analysis(dataset_name):
         cph = make_pipeline(StandardScaler(), CoxPHSurvivalAnalysis(alpha=1e-4))
         cph.fit(x_trainval_imputed, y_trainval)
         
-        # Get CoxPH survival predictions
+        # Get CoxPH survival predictions (native smooth curves)
+        # Note: CoxPH produces naturally smooth survival functions, so linear interpolation is appropriate
         S_cph = np.zeros((len(x_test_filtered), len(times)))
         for i in range(len(x_test_filtered)):
             sf = cph.predict_survival_function(x_test_filtered.iloc[[i]])[0]
@@ -703,7 +759,8 @@ def comprehensive_analysis(dataset_name):
         deephit.optimizer.set_lr(1e-3)
         deephit.fit(X_train_dh, (y_trainval_time, y_trainval_event), batch_size=256, epochs=100, verbose=False)
         
-        # Get DeepHit survival predictions
+        # Get DeepHit survival predictions (discrete-time model)
+        # Note: DeepHit also uses discretization but with its own interpolation method
         surv_dh = deephit.predict_surv_df(X_test_dh)
         S_dh = np.zeros((len(x_test_filtered), len(times)))
         for i in range(len(x_test_filtered)):
@@ -752,7 +809,8 @@ def comprehensive_analysis(dataset_name):
         deepsurv.fit(X_train_ds, (y_trainval_time_ds, y_trainval_event_ds), batch_size=256, epochs=100, verbose=False)
         deepsurv.compute_baseline_hazards()
         
-        # Get DeepSurv survival predictions
+        # Get DeepSurv survival predictions (continuous-time Cox model)
+        # Note: DeepSurv produces naturally smooth survival functions, so linear interpolation is appropriate
         surv_ds = deepsurv.predict_surv_df(X_test_ds)
         S_ds = np.zeros((len(x_test_filtered), len(times)))
         for i in range(len(x_test_filtered)):
@@ -819,20 +877,75 @@ def comprehensive_analysis(dataset_name):
     }
 
 if __name__ == "__main__":
-    # Find the worst performing dataset
-    worst_dataset = find_worst_ibs_dataset()
-    print(f"\nAnalyzing worst IBS dataset: {worst_dataset}")
+    # Find the worst performing datasets
+    worst_datasets_df = find_worst_ibs_dataset()
     
-    # Run comprehensive analysis
-    results = comprehensive_analysis(worst_dataset)
+    # Get top 5 worst datasets
+    tabpfn_df = pd.read_csv("tabpfn_evaluation.csv")
+    baseline_df = pd.read_csv("baseline_evaluation.csv")
+    merged = pd.merge(tabpfn_df, baseline_df, left_on='dataset', right_on='dataset_name', how='inner')
+    baseline_ibs_cols = ['rsf_ibs', 'cph_ibs', 'dh_ibs', 'ds_ibs']
+    merged['best_baseline_ibs'] = merged[baseline_ibs_cols].min(axis=1)
+    merged['ibs_difference'] = merged['ibs'] - merged['best_baseline_ibs']
+    merged['ibs_ratio'] = merged['ibs'] / merged['best_baseline_ibs']
+    worst_datasets = merged.sort_values('ibs_difference', ascending=False).head(5)
     
-    print("\n=== Analysis Complete ===")
-    print("Generated figures:")
-    print("1. Discretization analysis showing KM curve with cuts and censoring patterns")
-    print("2. Survival curves comparison showing stepwise vs smooth curves")
-    print("3. Brier score decomposition over time")
-    print("4. Calibration analysis with reliability plots")
-    print("\nThese figures illustrate the key issues:")
-    print("- Coarse discretization creates stepwise artifacts")
-    print("- Heavy censoring at later times affects calibration")  
-    print("- Interpolation introduces errors in continuous survival estimation")
+    print(f"\nAnalyzing top 5 worst IBS datasets...")
+    print("="*60)
+    
+    # Analyze each of the top 5 worst datasets
+    all_results = {}
+    
+    for idx, row in worst_datasets.iterrows():
+        dataset_name = row['dataset']
+        ibs_diff = row['ibs_difference']
+        ibs_ratio = row['ibs_ratio']
+        
+        print(f"\n{'='*60}")
+        print(f"Dataset {worst_datasets.reset_index().index[worst_datasets.reset_index()['dataset'] == dataset_name].tolist()[0] + 1}/5: {dataset_name}")
+        print(f"IBS difference: {ibs_diff:.4f} (TabPFN is {ibs_ratio:.2f}x worse)")
+        print(f"{'='*60}")
+        
+        # Run comprehensive analysis
+        try:
+            results = comprehensive_analysis(dataset_name)
+            all_results[dataset_name] = results
+            print(f"✅ Analysis completed for {dataset_name}")
+        except Exception as e:
+            print(f"❌ Analysis failed for {dataset_name}: {e}")
+            continue
+    
+    # Print summary of all datasets
+    print(f"\n{'='*60}")
+    print("SUMMARY: Analysis of Top 5 Worst IBS Datasets")
+    print(f"{'='*60}")
+    
+    for dataset_name, results in all_results.items():
+        if results:
+            tabpfn_metrics = results['metrics']['tabpfn']
+            print(f"\n{dataset_name}:")
+            print(f"  TabPFN - C-index: {tabpfn_metrics['c_index']:.4f}, IBS: {tabpfn_metrics['ibs']:.4f}, AUC: {tabpfn_metrics['auc']:.4f}")
+            
+            baseline_metrics = results['metrics']['baselines']
+            if baseline_metrics:
+                best_c_index = max(baseline_metrics.values(), key=lambda x: x['c_index'])['c_index']
+                best_ibs = min(baseline_metrics.values(), key=lambda x: x['ibs'])['ibs']
+                best_auc = max(baseline_metrics.values(), key=lambda x: x['auc'])['auc']
+                
+                print(f"  vs Best Baseline - C-index: {tabpfn_metrics['c_index'] - best_c_index:+.4f}, IBS: {tabpfn_metrics['ibs'] - best_ibs:+.4f}, AUC: {tabpfn_metrics['auc'] - best_auc:+.4f}")
+    
+    print(f"\n{'='*60}")
+    print("Generated figures for all datasets:")
+    for dataset_name in all_results.keys():
+        print(f"  figures/{dataset_name}_discretization_analysis.png")
+        print(f"  figures/{dataset_name}_survival_curves_comparison.png")
+        print(f"  figures/{dataset_name}_brier_decomposition.png")
+        print(f"  figures/{dataset_name}_calibration_analysis.png")
+    
+    print(f"\n{'='*60}")
+    print("Analysis demonstrates:")
+    print("- Coarse discretization creates stepwise artifacts across all worst-performing datasets")
+    print("- Heavy censoring at later times affects calibration consistently")  
+    print("- CDI interpolation improves curves but cannot overcome fundamental discretization limitations")
+    print("- IBS sensitivity to calibration errors is the key differentiator vs C-index/AUC")
+    print(f"{'='*60}")

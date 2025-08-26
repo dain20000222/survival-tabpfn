@@ -233,6 +233,60 @@ def duration_to_index_map(cuts: np.ndarray):
     return np.vectorize(idx_map.get, otypes=[int])
 
 
+def cdi_interpolate(eval_times, grid_times, S_grid):
+    """
+    Constant Density Interpolation (CDI) for survival functions.
+    
+    Assumes uniform distribution of event times within each interval,
+    leading to S(t) = α_j - β_j * t within interval (τ_{j-1}, τ_j].
+    
+    Parameters:
+        eval_times: array of times to evaluate S(t) at
+        grid_times: array of grid points τ_j (sorted)
+        S_grid: survival probabilities at grid points (n_patients × n_grid)
+    
+    Returns:
+        S_eval: survival probabilities at eval_times (n_patients × n_eval)
+    """
+    n_patients, n_grid = S_grid.shape
+    n_eval = len(eval_times)
+    S_eval = np.zeros((n_patients, n_eval))
+    
+    for i in range(n_patients):
+        S_i = S_grid[i]
+        
+        for j, t in enumerate(eval_times):
+            # Find interval: t ∈ (τ_{k-1}, τ_k]
+            k = np.searchsorted(grid_times, t, side='right')
+            
+            if k == 0:
+                # t <= τ_0, extrapolate as constant
+                S_eval[i, j] = 1.0  # or S_i[0]
+            elif k >= n_grid:
+                # t > τ_{max}, extrapolate as constant
+                S_eval[i, j] = S_i[-1]
+            else:
+                # t ∈ (τ_{k-1}, τ_k], apply CDI formula
+                tau_prev = grid_times[k-1] if k > 0 else 0.0
+                tau_curr = grid_times[k]
+                S_prev = S_i[k-1] if k > 0 else 1.0
+                S_curr = S_i[k]
+                
+                # CDI coefficients: S(t) = α_j - β_j * t
+                delta_tau = tau_curr - tau_prev
+                if delta_tau > 0:
+                    alpha_j = (S_prev * tau_curr - S_curr * tau_prev) / delta_tau
+                    beta_j = (S_prev - S_curr) / delta_tau
+                    S_eval[i, j] = alpha_j - beta_j * t
+                else:
+                    # Degenerate interval, use endpoint value
+                    S_eval[i, j] = S_curr
+    
+    # Ensure monotonicity and bounds
+    S_eval = np.clip(S_eval, 0.0, 1.0)
+    return S_eval
+
+
 for file_name in dataset_files:
     try:
         dataset_name = file_name.replace(".csv", "")
@@ -388,12 +442,9 @@ for file_name in dataset_files:
                 # Build survival on the model's native grid
                 S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)   # (n_val, len(unique_bins))
 
-                # Interpolate to ORIGINAL 'times' grid
+                # Interpolate to ORIGINAL 'times' grid using CDI
                 bin_t_grid = cuts[unique_bins]  # <-- use KM right cuts
-                S_full = np.vstack([
-                    np.interp(times, bin_t_grid, S_unique[i], left=1.0, right=S_unique[i, -1])
-                    for i in range(S_unique.shape[0])
-                ])
+                S_full = cdi_interpolate(times, bin_t_grid, S_unique)
                 S_full = np.minimum.accumulate(S_full, axis=1)
 
                 # Risk for ranking: probability of event by horizon
@@ -512,12 +563,9 @@ for file_name in dataset_files:
         # Build survival on the model's native grid
         S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)
 
-        # Interpolate to ORIGINAL 'times' grid
+        # Interpolate to ORIGINAL 'times' grid using CDI
         bin_t_grid = cuts[unique_bins]
-        S_full = np.vstack([
-            np.interp(times, bin_t_grid, S_unique[i], left=1.0, right=S_unique[i, -1])
-            for i in range(S_unique.shape[0])
-        ])
+        S_full = cdi_interpolate(times, bin_t_grid, S_unique)
         S_full = np.minimum.accumulate(S_full, axis=1)
 
         # Risk for ranking: probability of event by horizon
