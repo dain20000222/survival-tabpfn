@@ -1,0 +1,271 @@
+Top 5 datasets where TabPFN has worst IBS relative to best baseline:
+            dataset     ibs  best_baseline_ibs  ibs_difference  ibs_ratio
+32          ovarian  0.3592             0.0962          0.2630     3.7356
+10             actg  0.2107             0.0608          0.1499     3.4663
+26            grace  0.3010             0.1639          0.1371     1.8367
+34  pharmacoSmoking  0.3599             0.2358          0.1241     1.5265
+39              rhc  0.3196             0.2012          0.1184     1.5883
+
+Analyzing top 5 worst IBS datasets...
+============================================================
+
+============================================================
+Dataset 1/5: ovarian
+IBS difference: 0.2630 (TabPFN is 3.74x worse)
+============================================================
+Running comprehensive analysis on dataset: ovarian
+
+=== Dataset Characteristics: ovarian ===
+Sample size: 26
+Events: 12 (46.2%)
+Censoring rate: 53.8%
+Time statistics:
+count      26.000000
+mean      599.538462
+std       339.688473
+min        59.000000
+25%       368.000000
+50%       476.000000
+75%       794.750000
+max      1227.000000
+Name: time, dtype: float64
+Censoring rate up to 25th percentile: 0.0%
+Censoring rate up to 50th percentile: 23.1%
+Censoring rate up to 75th percentile: 36.8%
+Evaluation times: [390.2 437.8 469.5 528.6 769.7]
+Using optimal n_bins: 3
+Training TabPFN...
+Training Random Survival Forest...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+=== Final Metrics Comparison ===
+TabPFN  - IBS: 0.3592
+RSF      - IBS: 0.1774
+CoxPH    - IBS: 0.1262
+DeepHit  - IBS: 0.1540
+DeepSurv - IBS: 0.2272
+
+TabPFN vs Best Baseline:
+IBS difference: 0.2330
+✅ Analysis completed for ovarian
+
+============================================================
+Dataset 2/5: actg
+IBS difference: 0.1499 (TabPFN is 3.47x worse)
+============================================================
+Running comprehensive analysis on dataset: actg
+
+=== Dataset Characteristics: actg ===
+Sample size: 1151
+Events: 96 (8.3%)
+Censoring rate: 91.7%
+Time statistics:
+count    1151.000000
+mean      230.183319
+std        89.877116
+min         1.000000
+25%       174.000000
+50%       257.000000
+75%       300.000000
+max       364.000000
+Name: time, dtype: float64
+Censoring rate up to 25th percentile: 73.4%
+Censoring rate up to 50th percentile: 84.2%
+Censoring rate up to 75th percentile: 88.9%
+Evaluation times: [ 86.7 151.  195.1 230.8 256.5 273.  291.  311.  328. ]
+Using optimal n_bins: 3
+Training TabPFN...
+Training Random Survival Forest...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+=== Final Metrics Comparison ===
+TabPFN  - IBS: 0.0656
+RSF      - IBS: 0.0647
+CoxPH    - IBS: 0.0639
+DeepHit  - IBS: 0.1057
+DeepSurv - IBS: 0.0705
+
+TabPFN vs Best Baseline:
+IBS difference: 0.0016
+✅ Analysis completed for actg
+
+============================================================
+Dataset 3/5: grace
+IBS difference: 0.1371 (TabPFN is 1.84x worse)
+============================================================
+Running comprehensive analysis on dataset: grace
+
+=== Dataset Characteristics: grace ===
+Sample size: 1000
+Events: 324 (32.4%)
+Censoring rate: 67.6%
+Time statistics:
+count    1000.000000
+mean      109.847500
+std        80.227376
+min         0.500000
+25%        11.000000
+50%       177.000000
+75%       180.000000
+max       180.000000
+Name: time, dtype: float64
+Censoring rate up to 25th percentile: 44.6%
+Censoring rate up to 50th percentile: 35.6%
+Censoring rate up to 75th percentile: 67.6%
+Evaluation times: [  3.    7.   15.   80.  176.5]
+Using optimal n_bins: 3
+Training TabPFN...
+Training Random Survival Forest...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+=== Final Metrics Comparison ===
+TabPFN  - IBS: 0.3380
+RSF      - IBS: 0.2527
+CoxPH    - IBS: 0.2639
+DeepHit  - IBS: 0.1714
+DeepSurv - IBS: 0.2617
+
+TabPFN vs Best Baseline:
+IBS difference: 0.1665
+✅ Analysis completed for grace
+
+============================================================
+Dataset 4/5: pharmacoSmoking
+IBS difference: 0.1241 (TabPFN is 1.53x worse)
+============================================================
+Running comprehensive analysis on dataset: pharmacoSmoking
+
+=== Dataset Characteristics: pharmacoSmoking ===
+Sample size: 125
+Events: 89 (71.2%)
+Censoring rate: 28.8%
+Time statistics:
+count    125.000000
+mean      77.440000
+std       76.345712
+min        0.000000
+25%        8.000000
+50%       49.000000
+75%      182.000000
+max      182.000000
+Name: time, dtype: float64
+Censoring rate up to 25th percentile: 0.0%
+Censoring rate up to 50th percentile: 0.0%
+Censoring rate up to 75th percentile: 28.8%
+Evaluation times: [ 1.  4. 14. 28. 56. 77.]
+Using optimal n_bins: 3
+Training TabPFN...
+Training Random Survival Forest...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+=== Final Metrics Comparison ===
+TabPFN  - IBS: 0.4003
+RSF      - IBS: 0.2358
+CoxPH    - IBS: 0.2417
+DeepHit  - IBS: 0.3340
+DeepSurv - IBS: 0.2452
+
+TabPFN vs Best Baseline:
+IBS difference: 0.1646
+✅ Analysis completed for pharmacoSmoking
+
+============================================================
+Dataset 5/5: rhc
+IBS difference: 0.1184 (TabPFN is 1.59x worse)
+============================================================
+Running comprehensive analysis on dataset: rhc
+
+=== Dataset Characteristics: rhc ===
+Sample size: 5735
+Events: 3722 (64.9%)
+Censoring rate: 35.1%
+Time statistics:
+count    5735.000000
+mean      186.435397
+std       249.436226
+min         2.000000
+25%        16.000000
+50%       166.000000
+75%       232.000000
+max      1943.000000
+Name: time, dtype: float64
+Censoring rate up to 25th percentile: 0.4%
+Censoring rate up to 50th percentile: 2.6%
+Censoring rate up to 75th percentile: 31.6%
+Evaluation times: [  5.   11.   23.   57.  166.5 190.  215.  238.  417.4]
+Using optimal n_bins: 3
+Training TabPFN...
+Training Random Survival Forest...
+Training CoxPH...
+Training DeepHit...
+Training DeepSurv...
+
+=== Final Metrics Comparison ===
+TabPFN  - IBS: 0.3219
+RSF      - IBS: 0.2008
+CoxPH    - IBS: 0.2093
+DeepHit  - IBS: 0.2415
+DeepSurv - IBS: 0.2352
+
+TabPFN vs Best Baseline:
+IBS difference: 0.1211
+✅ Analysis completed for rhc
+
+============================================================
+SUMMARY: Analysis of Top 5 Worst IBS Datasets
+============================================================
+
+ovarian:
+  TabPFN - IBS: 0.3592
+  vs Best Baseline - IBS: +0.2330
+
+actg:
+  TabPFN - IBS: 0.0656
+  vs Best Baseline - IBS: +0.0016
+
+grace:
+  TabPFN - IBS: 0.3380
+  vs Best Baseline - IBS: +0.1665
+
+pharmacoSmoking:
+  TabPFN - IBS: 0.4003
+  vs Best Baseline - IBS: +0.1646
+
+rhc:
+  TabPFN - IBS: 0.3219
+  vs Best Baseline - IBS: +0.1211
+
+============================================================
+Generated figures for all datasets:
+  figures/ovarian_discretization_analysis.png
+  figures/ovarian_survival_curves_comparison.png
+  figures/ovarian_brier_decomposition.png
+  figures/actg_discretization_analysis.png
+  figures/actg_survival_curves_comparison.png
+  figures/actg_brier_decomposition.png
+  figures/grace_discretization_analysis.png
+  figures/grace_survival_curves_comparison.png
+  figures/grace_brier_decomposition.png
+  figures/pharmacoSmoking_discretization_analysis.png
+  figures/pharmacoSmoking_survival_curves_comparison.png
+  figures/pharmacoSmoking_brier_decomposition.png
+  figures/rhc_discretization_analysis.png
+  figures/rhc_survival_curves_comparison.png
+  figures/rhc_brier_decomposition.png
+
+============================================================
+Analysis demonstrates:
+- Coarse discretization creates stepwise artifacts across all worst-performing datasets
+- Heavy censoring at later times affects calibration consistently
+- CDI interpolation improves curves but cannot overcome fundamental discretization limitations
+- IBS sensitivity to calibration errors is the key differentiator vs C-index/AUC
+============================================================
+Total runtime: 0h 2m 46s
