@@ -29,12 +29,12 @@ from sksurv.util import Surv
 from sklearn.pipeline import make_pipeline
 from sksurv.preprocessing import OneHotEncoder
 from sksurv.linear_model import CoxPHSurvivalAnalysis
-from sksurv.metrics import cumulative_dynamic_auc, concordance_index_censored, integrated_brier_score, brier_score
+from sksurv.metrics import integrated_brier_score, brier_score
 from sksurv.ensemble import RandomSurvivalForest
 from sklearn.preprocessing import StandardScaler
 from pycox.models import DeepHitSingle, CoxPH
 from tabpfn import TabPFNClassifier
-from sksurv.nonparametric import SurvivalFunctionEstimator, kaplan_meier_estimator
+from sksurv.nonparametric import SurvivalFunctionEstimator
 from sklearn.calibration import calibration_curve
 from scipy.stats import binom
 import torchtuples as tt
@@ -77,7 +77,7 @@ def find_worst_ibs_dataset():
     
     return worst_datasets.iloc[0]['dataset']  # Return worst dataset name for backward compatibility
 
-# TabPFN utility functions (copied from tabpfn.py)
+# TabPFN utility functions
 def _is_monotonic_increasing(x: np.ndarray) -> bool:
     return (x[1:] >= x[:-1]).all()
 
@@ -337,9 +337,13 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     
     # Plot 1: KM curve with discretization cuts
-    time_km, prob_km = kaplan_meier_estimator(y_trainval['event'], y_trainval['time'])
+    sfe = SurvivalFunctionEstimator().fit(y_trainval)
     
-    axes[0,0].step(time_km, prob_km, where='post', 
+    # Create time points for smooth KM curve plotting
+    time_points = np.linspace(y_trainval['time'].min(), y_trainval['time'].max(), 1000)
+    prob_km = sfe.predict_proba(time_points)
+    
+    axes[0,0].plot(time_points, prob_km, 
                    linewidth=2, label='True KM Curve')
     
     # Add discretization cuts
@@ -460,67 +464,6 @@ def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test
     
     plt.tight_layout()
     plt.savefig(f'figures/{dataset_name}_brier_decomposition.png', dpi=300, bbox_inches='tight')
-    plt.show()
-
-def plot_calibration_analysis(S_tabpfn, S_baselines, baseline_names, y_test, times, dataset_name):
-    """Analyze calibration quality through reliability plots."""
-    n_baselines = len(baseline_names)
-    fig, axes = plt.subplots(3, 3, figsize=(18, 15))
-    
-    # Select early, middle, and late time points
-    time_indices = [0, len(times)//2, len(times)-1]
-    time_labels = ['Early', 'Middle', 'Late']
-    
-    for i, (time_idx, time_label) in enumerate(zip(time_indices, time_labels)):
-        t = times[time_idx]
-        
-        # Create binary outcomes: did event occur by time t?
-        y_binary = (y_test['time'] <= t) & (y_test['event'] == 1)
-        
-        # TabPFN calibration
-        prob_true_tabpfn, prob_pred_tabpfn = calibration_curve(
-            y_binary, 1 - S_tabpfn[:, time_idx], n_bins=10, strategy='quantile'
-        )
-        
-        # Plot calibration curves
-        axes[0, i].plot([0, 1], [0, 1], 'k--', alpha=0.5, label='Perfect Calibration')
-        axes[0, i].plot(prob_pred_tabpfn, prob_true_tabpfn, 'o-', label='TabPFN', linewidth=2)
-        
-        colors = ['red', 'green', 'blue', 'orange']
-        for j, (S_baseline, name) in enumerate(zip(S_baselines, baseline_names)):
-            prob_true_baseline, prob_pred_baseline = calibration_curve(
-                y_binary, 1 - S_baseline[:, time_idx], n_bins=10, strategy='quantile'
-            )
-            axes[0, i].plot(prob_pred_baseline, prob_true_baseline, 's-', label=name, 
-                           linewidth=2, color=colors[j % len(colors)])
-        
-        axes[0, i].set_xlabel('Mean Predicted Probability')
-        axes[0, i].set_ylabel('Fraction of Positives')
-        axes[0, i].set_title(f'Calibration at {time_label} Time (t={t:.2f})')
-        axes[0, i].legend()
-        axes[0, i].grid(True, alpha=0.3)
-        
-        # Plot histograms of predicted probabilities - TabPFN
-        axes[1, i].hist(1 - S_tabpfn[:, time_idx], alpha=0.7, bins=20, label='TabPFN', density=True)
-        axes[1, i].set_xlabel('Predicted Event Probability')
-        axes[1, i].set_ylabel('Density')
-        axes[1, i].set_title(f'TabPFN Probability Distribution at {time_label} Time')
-        axes[1, i].legend()
-        axes[1, i].grid(True, alpha=0.3)
-        
-        # Plot histograms of predicted probabilities - Best baseline
-        best_baseline_idx = 0  # Use first baseline as example
-        if len(S_baselines) > 0:
-            axes[2, i].hist(1 - S_baselines[best_baseline_idx][:, time_idx], alpha=0.7, bins=20, 
-                           label=baseline_names[best_baseline_idx], density=True, color='red')
-            axes[2, i].set_xlabel('Predicted Event Probability')
-            axes[2, i].set_ylabel('Density')
-            axes[2, i].set_title(f'{baseline_names[best_baseline_idx]} Probability Distribution at {time_label} Time')
-            axes[2, i].legend()
-            axes[2, i].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(f'figures/{dataset_name}_calibration_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 def comprehensive_analysis(dataset_name):
@@ -696,11 +639,8 @@ def comprehensive_analysis(dataset_name):
         baseline_names.append("RSF")
         
         # Compute metrics
-        risk_rsf = 1.0 - S_rsf[:, -1]
-        c_index_rsf, *_ = concordance_index_censored(y_test_filtered["event"], y_test_filtered["time"], risk_rsf)
         ibs_rsf = integrated_brier_score(y_trainval, y_test_filtered, S_rsf, times)
-        _, auc_rsf = cumulative_dynamic_auc(y_trainval, y_test_filtered, risk_rsf, times=times)
-        baseline_metrics["RSF"] = {"c_index": c_index_rsf, "ibs": ibs_rsf, "auc": auc_rsf}
+        baseline_metrics["RSF"] = {"ibs": ibs_rsf}
         
     except Exception as e:
         print(f"RSF training failed: {e}")
@@ -722,11 +662,8 @@ def comprehensive_analysis(dataset_name):
         baseline_names.append("CoxPH")
         
         # Compute metrics
-        risk_cph = 1.0 - S_cph[:, -1]
-        c_index_cph, *_ = concordance_index_censored(y_test_filtered["event"], y_test_filtered["time"], risk_cph)
         ibs_cph = integrated_brier_score(y_trainval, y_test_filtered, S_cph, times)
-        _, auc_cph = cumulative_dynamic_auc(y_trainval, y_test_filtered, risk_cph, times=times)
-        baseline_metrics["CoxPH"] = {"c_index": c_index_cph, "ibs": ibs_cph, "auc": auc_cph}
+        baseline_metrics["CoxPH"] = {"ibs": ibs_cph}
         
     except Exception as e:
         print(f"CoxPH training failed: {e}")
@@ -771,11 +708,8 @@ def comprehensive_analysis(dataset_name):
         baseline_names.append("DeepHit")
         
         # Compute metrics
-        risk_dh = 1.0 - S_dh[:, -1]
-        c_index_dh, *_ = concordance_index_censored(y_test_filtered["event"], y_test_filtered["time"], risk_dh)
         ibs_dh = integrated_brier_score(y_trainval, y_test_filtered, S_dh, times)
-        _, auc_dh = cumulative_dynamic_auc(y_trainval, y_test_filtered, risk_dh, times=times)
-        baseline_metrics["DeepHit"] = {"c_index": c_index_dh, "ibs": ibs_dh, "auc": auc_dh}
+        baseline_metrics["DeepHit"] = {"ibs": ibs_dh}
         
     except Exception as e:
         print(f"DeepHit training failed: {e}")
@@ -821,11 +755,8 @@ def comprehensive_analysis(dataset_name):
         baseline_names.append("DeepSurv")
         
         # Compute metrics
-        risk_ds = 1.0 - S_ds[:, -1]
-        c_index_ds, *_ = concordance_index_censored(y_test_filtered["event"], y_test_filtered["time"], risk_ds)
         ibs_ds = integrated_brier_score(y_trainval, y_test_filtered, S_ds, times)
-        _, auc_ds = cumulative_dynamic_auc(y_trainval, y_test_filtered, risk_ds, times=times)
-        baseline_metrics["DeepSurv"] = {"c_index": c_index_ds, "ibs": ibs_ds, "auc": auc_ds}
+        baseline_metrics["DeepSurv"] = {"ibs": ibs_ds}
         
     except Exception as e:
         print(f"DeepSurv training failed: {e}")
@@ -837,41 +768,31 @@ def comprehensive_analysis(dataset_name):
     
     # 2. Brier score decomposition
     plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test_filtered, y_trainval, times, dataset_name)
-    
-    # 3. Calibration analysis
-    plot_calibration_analysis(S_tabpfn, S_baselines, baseline_names, y_test_filtered, times, dataset_name)
-    
-    # 4. Compute final metrics for comparison
+
+    # 3. Compute final metrics for comparison
     print("\n=== Final Metrics Comparison ===")
     
     # TabPFN metrics
-    risk_tabpfn = 1.0 - S_tabpfn[:, -1]
-    c_index_tabpfn, *_ = concordance_index_censored(y_test_filtered["event"], y_test_filtered["time"], risk_tabpfn)
     ibs_tabpfn = integrated_brier_score(y_trainval, y_test_filtered, S_tabpfn, times)
-    _, auc_tabpfn = cumulative_dynamic_auc(y_trainval, y_test_filtered, risk_tabpfn, times=times)
     
-    print(f"TabPFN  - C-index: {c_index_tabpfn:.4f}, IBS: {ibs_tabpfn:.4f}, AUC: {auc_tabpfn:.4f}")
+    print(f"TabPFN  - IBS: {ibs_tabpfn:.4f}")
     
     for name in baseline_names:
         if name in baseline_metrics:
             metrics = baseline_metrics[name]
-            print(f"{name:8} - C-index: {metrics['c_index']:.4f}, IBS: {metrics['ibs']:.4f}, AUC: {metrics['auc']:.4f}")
+            print(f"{name:8} - IBS: {metrics['ibs']:.4f}")
     
-    # Find best baseline for each metric
+    # Find best baseline IBS
     if baseline_metrics:
-        best_c_index = max(baseline_metrics.values(), key=lambda x: x['c_index'])['c_index']
         best_ibs = min(baseline_metrics.values(), key=lambda x: x['ibs'])['ibs']
-        best_auc = max(baseline_metrics.values(), key=lambda x: x['auc'])['auc']
         
         print(f"\nTabPFN vs Best Baseline:")
-        print(f"C-index difference: {c_index_tabpfn - best_c_index:.4f}")
         print(f"IBS difference: {ibs_tabpfn - best_ibs:.4f}")
-        print(f"AUC difference: {auc_tabpfn - best_auc:.4f}")
     
     return {
         'dataset_characteristics': chars,
         'metrics': {
-            'tabpfn': {'c_index': c_index_tabpfn, 'ibs': ibs_tabpfn, 'auc': auc_tabpfn},
+            'tabpfn': {'ibs': ibs_tabpfn},
             'baselines': baseline_metrics
         }
     }
@@ -924,15 +845,13 @@ if __name__ == "__main__":
         if results:
             tabpfn_metrics = results['metrics']['tabpfn']
             print(f"\n{dataset_name}:")
-            print(f"  TabPFN - C-index: {tabpfn_metrics['c_index']:.4f}, IBS: {tabpfn_metrics['ibs']:.4f}, AUC: {tabpfn_metrics['auc']:.4f}")
+            print(f"  TabPFN - IBS: {tabpfn_metrics['ibs']:.4f}")
             
             baseline_metrics = results['metrics']['baselines']
             if baseline_metrics:
-                best_c_index = max(baseline_metrics.values(), key=lambda x: x['c_index'])['c_index']
                 best_ibs = min(baseline_metrics.values(), key=lambda x: x['ibs'])['ibs']
-                best_auc = max(baseline_metrics.values(), key=lambda x: x['auc'])['auc']
                 
-                print(f"  vs Best Baseline - C-index: {tabpfn_metrics['c_index'] - best_c_index:+.4f}, IBS: {tabpfn_metrics['ibs'] - best_ibs:+.4f}, AUC: {tabpfn_metrics['auc'] - best_auc:+.4f}")
+                print(f"  vs Best Baseline - IBS: {tabpfn_metrics['ibs'] - best_ibs:+.4f}")
     
     print(f"\n{'='*60}")
     print("Generated figures for all datasets:")
@@ -940,7 +859,6 @@ if __name__ == "__main__":
         print(f"  figures/{dataset_name}_discretization_analysis.png")
         print(f"  figures/{dataset_name}_survival_curves_comparison.png")
         print(f"  figures/{dataset_name}_brier_decomposition.png")
-        print(f"  figures/{dataset_name}_calibration_analysis.png")
     
     print(f"\n{'='*60}")
     print("Analysis demonstrates:")
