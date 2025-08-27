@@ -245,21 +245,21 @@ rhc:
 
 ============================================================
 Generated figures for all datasets:
-  figures/ovarian_discretization_analysis.png
-  figures/ovarian_survival_curves_comparison.png
-  figures/ovarian_brier_decomposition.png
-  figures/actg_discretization_analysis.png
-  figures/actg_survival_curves_comparison.png
-  figures/actg_brier_decomposition.png
-  figures/grace_discretization_analysis.png
-  figures/grace_survival_curves_comparison.png
-  figures/grace_brier_decomposition.png
-  figures/pharmacoSmoking_discretization_analysis.png
-  figures/pharmacoSmoking_survival_curves_comparison.png
-  figures/pharmacoSmoking_brier_decomposition.png
-  figures/rhc_discretization_analysis.png
-  figures/rhc_survival_curves_comparison.png
-  figures/rhc_brier_decomposition.png
+  figures/discrete_analysis/ovarian_discretization_analysis.png
+  figures/discrete_analysis/ovarian_survival_curves_comparison.png
+  figures/discrete_analysis/ovarian_brier_decomposition.png
+  figures/discrete_analysis/actg_discretization_analysis.png
+  figures/discrete_analysis/actg_survival_curves_comparison.png
+  figures/discrete_analysis/actg_brier_decomposition.png
+  figures/discrete_analysis/grace_discretization_analysis.png
+  figures/discrete_analysis/grace_survival_curves_comparison.png
+  figures/discrete_analysis/grace_brier_decomposition.png
+  figures/discrete_analysis/pharmacoSmoking_discretization_analysis.png
+  figures/discrete_analysis/pharmacoSmoking_survival_curves_comparison.png
+  figures/discrete_analysis/pharmacoSmoking_brier_decomposition.png
+  figures/discrete_analysis/rhc_discretization_analysis.png
+  figures/discrete_analysis/rhc_survival_curves_comparison.png
+  figures/discrete_analysis/rhc_brier_decomposition.png
 
 ============================================================
 Analysis demonstrates:

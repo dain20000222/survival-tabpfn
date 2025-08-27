@@ -53,7 +53,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = False
 
 # Create figures directory
-os.makedirs("figures", exist_ok=True)
+os.makedirs("figures/discrete_analysis", exist_ok=True)
 
 def find_worst_ibs_dataset():
     """Find the dataset where TabPFN performs worst on IBS relative to best baseline."""
@@ -329,7 +329,7 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
         ax.set_ylim(0, 1)
     
     plt.tight_layout()
-    plt.savefig(f'figures/{dataset_name}_survival_curves_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/discrete_analysis/{dataset_name}_survival_curves_comparison.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 def plot_discretization_analysis(cuts, y_trainval, dataset_name):
@@ -405,7 +405,7 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     axes[1,1].grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f'figures/{dataset_name}_discretization_analysis.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/discrete_analysis/{dataset_name}_discretization_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test, y_trainval, times, dataset_name):
@@ -463,7 +463,7 @@ def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test
     plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f'figures/{dataset_name}_brier_decomposition.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/discrete_analysis/{dataset_name}_brier_decomposition.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 def comprehensive_analysis(dataset_name):
@@ -856,9 +856,9 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print("Generated figures for all datasets:")
     for dataset_name in all_results.keys():
-        print(f"  figures/{dataset_name}_discretization_analysis.png")
-        print(f"  figures/{dataset_name}_survival_curves_comparison.png")
-        print(f"  figures/{dataset_name}_brier_decomposition.png")
+        print(f"  figures/discrete_analysis/{dataset_name}_discretization_analysis.png")
+        print(f"  figures/discrete_analysis/{dataset_name}_survival_curves_comparison.png")
+        print(f"  figures/discrete_analysis/{dataset_name}_brier_decomposition.png")
     
     print(f"\n{'='*60}")
     print("Analysis demonstrates:")
