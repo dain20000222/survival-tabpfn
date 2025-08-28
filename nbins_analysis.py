@@ -491,7 +491,7 @@ def plot_nbins_analysis(dataset_name, results, times, n_bins_range):
     plt.show()
     
     # Create detailed time-specific Brier score plot
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(10,6))
     colors = plt.cm.viridis(np.linspace(0, 1, len(n_bins_values)))
     for i, n_bins in enumerate(n_bins_values):
         brier_scores = results[n_bins]['brier_scores']
