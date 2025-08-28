@@ -33,6 +33,17 @@ import warnings
 import os
 import random
 import torch
+
+# Set matplotlib font sizes
+plt.rcParams.update({
+    'font.size': 14,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 12,
+    'figure.titlesize': 18
+})
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sksurv.util import Surv
@@ -467,23 +478,23 @@ def plot_nbins_analysis(dataset_name, results, times, n_bins_range):
     
     # IBS plot
     axes_metrics[0].plot(n_bins_values, ibs_values, 'o-', linewidth=2, markersize=8, color='red')
-    axes_metrics[0].set_xlabel('Number of Bins (n_bins)')
-    axes_metrics[0].set_ylabel('Integrated Brier Score (IBS)')
-    axes_metrics[0].set_title('IBS vs n_bins')
+    axes_metrics[0].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes_metrics[0].set_ylabel('Integrated Brier Score (IBS)', fontsize=14)
+    axes_metrics[0].set_title('IBS vs n_bins', fontsize=16)
     axes_metrics[0].grid(True, alpha=0.3)
     
     # C-index plot
     axes_metrics[1].plot(n_bins_values, c_index_values, 'o-', linewidth=2, markersize=8, color='blue')
-    axes_metrics[1].set_xlabel('Number of Bins (n_bins)')
-    axes_metrics[1].set_ylabel('C-index')
-    axes_metrics[1].set_title('C-index vs n_bins')
+    axes_metrics[1].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes_metrics[1].set_ylabel('C-index', fontsize=14)
+    axes_metrics[1].set_title('C-index vs n_bins', fontsize=16)
     axes_metrics[1].grid(True, alpha=0.3)
     
     # Mean AUC plot
     axes_metrics[2].plot(n_bins_values, mean_auc_values, 'o-', linewidth=2, markersize=8, color='green')
-    axes_metrics[2].set_xlabel('Number of Bins (n_bins)')
-    axes_metrics[2].set_ylabel('Mean AUC')
-    axes_metrics[2].set_title('Mean AUC vs n_bins')
+    axes_metrics[2].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes_metrics[2].set_ylabel('Mean AUC', fontsize=14)
+    axes_metrics[2].set_title('Mean AUC vs n_bins', fontsize=16)
     axes_metrics[2].grid(True, alpha=0.3)
     
     plt.tight_layout()
@@ -498,10 +509,10 @@ def plot_nbins_analysis(dataset_name, results, times, n_bins_range):
         plt.plot(times, brier_scores, 'o-', label=f'n_bins={n_bins}', 
                 color=colors[i], linewidth=2, markersize=6)
     
-    plt.xlabel('Time')
-    plt.ylabel('Brier Score')
-    plt.title(f'{dataset_name}: Time-specific Brier Scores for Different n_bins')
-    plt.legend()
+    plt.xlabel('Time', fontsize=14)
+    plt.ylabel('Brier Score', fontsize=14)
+    plt.title(f'{dataset_name}: Time-specific Brier Scores for Different n_bins', fontsize=16)
+    plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(f'figures/nbins_analysis/{dataset_name}_time_specific_brier_nbins.png', dpi=300, bbox_inches='tight')
@@ -539,22 +550,22 @@ def create_summary_plots(all_results, dataset_names, n_bins_range):
         axes[2].plot(n_bins_values, mean_auc_values, 'o-', label=dataset_name, 
                     color=colors[i], linewidth=2, markersize=6)
     
-    axes[0].set_xlabel('Number of Bins (n_bins)')
-    axes[0].set_ylabel('Integrated Brier Score (IBS)')
-    axes[0].set_title('IBS vs n_bins (All Datasets)')
-    axes[0].legend()
+    axes[0].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes[0].set_ylabel('Integrated Brier Score (IBS)', fontsize=14)
+    axes[0].set_title('IBS vs n_bins (All Datasets)', fontsize=16)
+    axes[0].legend(fontsize=12)
     axes[0].grid(True, alpha=0.3)
     
-    axes[1].set_xlabel('Number of Bins (n_bins)')
-    axes[1].set_ylabel('C-index')
-    axes[1].set_title('C-index vs n_bins (All Datasets)')
-    axes[1].legend()
+    axes[1].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes[1].set_ylabel('C-index', fontsize=14)
+    axes[1].set_title('C-index vs n_bins (All Datasets)', fontsize=16)
+    axes[1].legend(fontsize=12)
     axes[1].grid(True, alpha=0.3)
     
-    axes[2].set_xlabel('Number of Bins (n_bins)')
-    axes[2].set_ylabel('Mean AUC')
-    axes[2].set_title('Mean AUC vs n_bins (All Datasets)')
-    axes[2].legend()
+    axes[2].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes[2].set_ylabel('Mean AUC', fontsize=14)
+    axes[2].set_title('Mean AUC vs n_bins (All Datasets)', fontsize=16)
+    axes[2].legend(fontsize=12)
     axes[2].grid(True, alpha=0.3)
     
     plt.tight_layout()

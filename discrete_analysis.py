@@ -23,6 +23,17 @@ import warnings
 import os
 import random
 import torch
+
+# Set matplotlib font sizes
+plt.rcParams.update({
+    'font.size': 14,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 12,
+    'figure.titlesize': 18
+})
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sksurv.util import Surv
@@ -321,10 +332,10 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
             ax.axvline(actual_time, color=color, linestyle='--', alpha=0.5)
             ax.scatter([actual_time], [0.5], color=color, marker=marker, s=100, zorder=10)
         
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Survival Probability')
-        ax.set_title(f'Patient {idx+1} (Event: {bool(event_status)})')
-        ax.legend()
+        ax.set_xlabel('Time', fontsize=14)
+        ax.set_ylabel('Survival Probability', fontsize=14)
+        ax.set_title(f'Patient {idx+1} (Event: {bool(event_status)})', fontsize=16)
+        ax.legend(fontsize=12)
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 1)
     
@@ -350,10 +361,10 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     for cut in cuts:
         axes[0,0].axvline(cut, color='red', linestyle='--', alpha=0.6)
     
-    axes[0,0].set_xlabel('Time')
-    axes[0,0].set_ylabel('Survival Probability')
-    axes[0,0].set_title('KM Curve with Discretization Cuts')
-    axes[0,0].legend()
+    axes[0,0].set_xlabel('Time', fontsize=14)
+    axes[0,0].set_ylabel('Survival Probability', fontsize=14)
+    axes[0,0].set_title('KM Curve with Discretization Cuts', fontsize=16)
+    axes[0,0].legend(fontsize=12)
     axes[0,0].grid(True, alpha=0.3)
     
     # Plot 2: Distribution of events/censoring across bins
@@ -371,10 +382,10 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     x = np.arange(len(cuts))
     axes[0,1].bar(x, bin_events, alpha=0.7, label='Events', color='red')
     axes[0,1].bar(x, bin_censored, bottom=bin_events, alpha=0.7, label='Censored', color='blue')
-    axes[0,1].set_xlabel('Discretization Bin')
-    axes[0,1].set_ylabel('Count')
-    axes[0,1].set_title('Events vs Censored by Discretization Bin')
-    axes[0,1].legend()
+    axes[0,1].set_xlabel('Discretization Bin', fontsize=14)
+    axes[0,1].set_ylabel('Count', fontsize=14)
+    axes[0,1].set_title('Events vs Censored by Discretization Bin', fontsize=16)
+    axes[0,1].legend(fontsize=12)
     
     # Plot 3: Censoring rate by time
     time_points = np.linspace(y_trainval['time'].min(), y_trainval['time'].max(), 20)
@@ -388,9 +399,9 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
             censoring_rates.append(0)
     
     axes[1,0].plot(time_points, censoring_rates, 'o-', linewidth=2)
-    axes[1,0].set_xlabel('Time')
-    axes[1,0].set_ylabel('Censoring Rate')
-    axes[1,0].set_title('Censoring Rate Over Time')
+    axes[1,0].set_xlabel('Time', fontsize=14)
+    axes[1,0].set_ylabel('Censoring Rate', fontsize=14)
+    axes[1,0].set_title('Censoring Rate Over Time', fontsize=16)
     axes[1,0].grid(True, alpha=0.3)
     
     # Plot 4: Risk set size over time
@@ -399,9 +410,9 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
         risk_set_sizes.append((y_trainval['time'] >= t).sum())
     
     axes[1,1].plot(time_points, risk_set_sizes, 'o-', linewidth=2, color='green')
-    axes[1,1].set_xlabel('Time')
-    axes[1,1].set_ylabel('Risk Set Size')
-    axes[1,1].set_title('Risk Set Size Over Time')
+    axes[1,1].set_xlabel('Time', fontsize=14)
+    axes[1,1].set_ylabel('Risk Set Size', fontsize=14)
+    axes[1,1].set_title('Risk Set Size Over Time', fontsize=16)
     axes[1,1].grid(True, alpha=0.3)
     
     plt.tight_layout()
@@ -435,10 +446,10 @@ def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test
     colors = ['red', 'green', 'blue', 'orange']
     for j, name in enumerate(baseline_names):
         plt.plot(times, brier_baselines[name], 's-', label=name, linewidth=2, color=colors[j % len(colors)])
-    plt.xlabel('Time')
-    plt.ylabel('Brier Score')
-    plt.title('Time-specific Brier Scores')
-    plt.legend()
+    plt.xlabel('Time', fontsize=14)
+    plt.ylabel('Brier Score', fontsize=14)
+    plt.title('Time-specific Brier Scores', fontsize=16)
+    plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
