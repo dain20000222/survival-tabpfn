@@ -268,4 +268,4 @@ Analysis demonstrates:
 - CDI interpolation improves curves but cannot overcome fundamental discretization limitations
 - IBS sensitivity to calibration errors is the key differentiator vs C-index/AUC
 ============================================================
-Total runtime: 0h 2m 46s
+Total runtime: 0h 2m 41s

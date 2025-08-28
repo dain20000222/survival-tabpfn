@@ -1,5 +1,17 @@
 """
-TabPFN n_bins Analysis: Effect of Discretization Granularity on Performance
+TabPFN n_bins Analysis: Effect of Diswarnings.filterwarnings("ignore")
+
+# Set random seeds for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+# Create figures directoryGranularity on Performance
 
 This script investigates how the number of discretization bins (n_bins) affects TabPFN's 
 performance across calibration and discrimination metrics on the top 5 worst IBS datasets.
@@ -450,54 +462,37 @@ def plot_nbins_analysis(dataset_name, results, times, n_bins_range):
     c_index_values = [results[n]['c_index'] for n in n_bins_values]
     mean_auc_values = [results[n]['mean_auc'] for n in n_bins_values]
     
-    # Create subplot figure
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    # Create a separate figure with only the 3 main metrics (IBS, C-index, Mean AUC)
+    fig_metrics, axes_metrics = plt.subplots(1, 3, figsize=(18, 6))
     
-    # Plot 1: Time-specific Brier Scores for different n_bins
-    ax1 = axes[0, 0]
-    colors = plt.cm.viridis(np.linspace(0, 1, len(n_bins_values)))
+    # IBS plot
+    axes_metrics[0].plot(n_bins_values, ibs_values, 'o-', linewidth=2, markersize=8, color='red')
+    axes_metrics[0].set_xlabel('Number of Bins (n_bins)')
+    axes_metrics[0].set_ylabel('Integrated Brier Score (IBS)')
+    axes_metrics[0].set_title('IBS vs n_bins')
+    axes_metrics[0].grid(True, alpha=0.3)
     
-    for i, n_bins in enumerate(n_bins_values):
-        brier_scores = results[n_bins]['brier_scores']
-        ax1.plot(times, brier_scores, 'o-', label=f'n_bins={n_bins}', 
-                color=colors[i], linewidth=2, markersize=4)
+    # C-index plot
+    axes_metrics[1].plot(n_bins_values, c_index_values, 'o-', linewidth=2, markersize=8, color='blue')
+    axes_metrics[1].set_xlabel('Number of Bins (n_bins)')
+    axes_metrics[1].set_ylabel('C-index')
+    axes_metrics[1].set_title('C-index vs n_bins')
+    axes_metrics[1].grid(True, alpha=0.3)
     
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel('Brier Score')
-    ax1.set_title('Time-specific Brier Scores vs n_bins')
-    ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    ax1.grid(True, alpha=0.3)
-    
-    # Plot 2: IBS vs n_bins
-    ax2 = axes[0, 1]
-    ax2.plot(n_bins_values, ibs_values, 'o-', linewidth=2, markersize=8, color='red')
-    ax2.set_xlabel('Number of Bins (n_bins)')
-    ax2.set_ylabel('Integrated Brier Score (IBS)')
-    ax2.set_title('IBS vs n_bins')
-    ax2.grid(True, alpha=0.3)
-    
-    # Plot 3: C-index vs n_bins
-    ax3 = axes[1, 0]
-    ax3.plot(n_bins_values, c_index_values, 'o-', linewidth=2, markersize=8, color='blue')
-    ax3.set_xlabel('Number of Bins (n_bins)')
-    ax3.set_ylabel('C-index')
-    ax3.set_title('C-index vs n_bins')
-    ax3.grid(True, alpha=0.3)
-    
-    # Plot 4: Mean AUC vs n_bins
-    ax4 = axes[1, 1]
-    ax4.plot(n_bins_values, mean_auc_values, 'o-', linewidth=2, markersize=8, color='green')
-    ax4.set_xlabel('Number of Bins (n_bins)')
-    ax4.set_ylabel('Mean AUC')
-    ax4.set_title('Mean AUC vs n_bins')
-    ax4.grid(True, alpha=0.3)
+    # Mean AUC plot
+    axes_metrics[2].plot(n_bins_values, mean_auc_values, 'o-', linewidth=2, markersize=8, color='green')
+    axes_metrics[2].set_xlabel('Number of Bins (n_bins)')
+    axes_metrics[2].set_ylabel('Mean AUC')
+    axes_metrics[2].set_title('Mean AUC vs n_bins')
+    axes_metrics[2].grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f'figures/nbins_analysis/{dataset_name}_nbins_analysis.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/nbins_analysis/{dataset_name}_metrics_comparison.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     # Create detailed time-specific Brier score plot
     plt.figure(figsize=(12, 8))
+    colors = plt.cm.viridis(np.linspace(0, 1, len(n_bins_values)))
     for i, n_bins in enumerate(n_bins_values):
         brier_scores = results[n_bins]['brier_scores']
         plt.plot(times, brier_scores, 'o-', label=f'n_bins={n_bins}', 
@@ -571,7 +566,7 @@ if __name__ == "__main__":
     worst_datasets = get_worst_datasets()
     
     # Range of n_bins to test
-    n_bins_range = [5, 10, 15, 20, 25, 30]
+    n_bins_range = [3, 5, 10, 15, 20, 25, 30]
     
     print(f"\n{'='*60}")
     print("n_bins Analysis on Top 5 Worst IBS Datasets")
@@ -610,31 +605,34 @@ if __name__ == "__main__":
     print("SUMMARY: n_bins Effect Analysis")
     print(f"{'='*60}")
     
-    for dataset_name, results in all_results.items():
-        print(f"\n{dataset_name}:")
-        n_bins_values = list(results.keys())
-        n_bins_values.sort()
-        
-        print("  n_bins | IBS    | C-index | Mean AUC")
-        print("  -------|--------|---------|----------")
-        for n_bins in n_bins_values:
-            metrics = results[n_bins]
-            print(f"  {n_bins:6d} | {metrics['ibs']:.4f} | {metrics['c_index']:.4f}  | {metrics['mean_auc']:.4f}")
-        
-        # Find best n_bins for each metric
-        best_ibs_nbins = min(n_bins_values, key=lambda n: results[n]['ibs'])
-        best_cindex_nbins = max(n_bins_values, key=lambda n: results[n]['c_index'])
-        best_auc_nbins = max(n_bins_values, key=lambda n: results[n]['mean_auc'])
-        
-        print(f"  Best IBS: n_bins={best_ibs_nbins} ({results[best_ibs_nbins]['ibs']:.4f})")
-        print(f"  Best C-index: n_bins={best_cindex_nbins} ({results[best_cindex_nbins]['c_index']:.4f})")
-        print(f"  Best Mean AUC: n_bins={best_auc_nbins} ({results[best_auc_nbins]['mean_auc']:.4f})")
+    if not all_results:
+        print("No successful analyses completed.")
+    else:
+        for dataset_name, results in all_results.items():
+            print(f"\n{dataset_name}:")
+            n_bins_values = list(results.keys())
+            n_bins_values.sort()
+            
+            print("  n_bins | IBS    | C-index | Mean AUC")
+            print("  -------|--------|---------|----------")
+            for n_bins in n_bins_values:
+                metrics = results[n_bins]
+                print(f"  {n_bins:6d} | {metrics['ibs']:.4f} | {metrics['c_index']:.4f}  | {metrics['mean_auc']:.4f}")
+            
+            # Find best n_bins for each metric
+            best_ibs_nbins = min(n_bins_values, key=lambda n: results[n]['ibs'])
+            best_cindex_nbins = max(n_bins_values, key=lambda n: results[n]['c_index'])
+            best_auc_nbins = max(n_bins_values, key=lambda n: results[n]['mean_auc'])
+            
+            print(f"  Best IBS: n_bins={best_ibs_nbins} ({results[best_ibs_nbins]['ibs']:.4f})")
+            print(f"  Best C-index: n_bins={best_cindex_nbins} ({results[best_cindex_nbins]['c_index']:.4f})")
+            print(f"  Best Mean AUC: n_bins={best_auc_nbins} ({results[best_auc_nbins]['mean_auc']:.4f})")
     
     print(f"\n{'='*60}")
     print("Generated figures:")
     for dataset_name in all_results.keys():
-        print(f"  figures/nbins_analysis/{dataset_name}_nbins_analysis.png")
-        print(f"  figures/nbins_analysis/{dataset_name}_time_specific_brier_nbins.png")
+        print(f"  figures/nbins_analysis/{dataset_name}_metrics_comparison.png (3 main metrics)")
+        print(f"  figures/nbins_analysis/{dataset_name}_time_specific_brier_nbins.png (time-specific Brier)")
     if len(all_results) > 1:
         print(f"  figures/nbins_analysis/summary_nbins_analysis.png")
     

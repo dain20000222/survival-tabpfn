@@ -296,11 +296,11 @@ def analyze_dataset_characteristics(df, dataset_name):
 def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times, y_test, dataset_name):
     """Plot survival curve comparison showing CDI vs naturally smooth curves."""
     n_models = len(baseline_names) + 1  # +1 for TabPFN
-    fig, axes = plt.subplots(2, 5, figsize=(20, 8))
+    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
     axes = axes.flatten()
     
-    # Select a few representative patients
-    n_patients = min(10, S_tabpfn.shape[0])
+    # Select 6 representative patients
+    n_patients = min(6, S_tabpfn.shape[0])
     patient_indices = np.linspace(0, S_tabpfn.shape[0]-1, n_patients, dtype=int)
     
     for i, idx in enumerate(patient_indices):
@@ -410,7 +410,7 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
 
 def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test, y_trainval, times, dataset_name):
     """Plot time-specific Brier scores to identify when calibration fails."""
-    plt.figure(figsize=(15, 5))
+    plt.figure(figsize=(10, 6))
     
     brier_tabpfn = []
     brier_baselines = {name: [] for name in baseline_names}
@@ -431,7 +431,6 @@ def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test
             except:
                 brier_baselines[name].append(np.nan)
     
-    plt.subplot(1, 3, 1)
     plt.plot(times, brier_tabpfn, 'o-', label='TabPFN', linewidth=2)
     colors = ['red', 'green', 'blue', 'orange']
     for j, name in enumerate(baseline_names):
@@ -440,26 +439,6 @@ def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test
     plt.ylabel('Brier Score')
     plt.title('Time-specific Brier Scores')
     plt.legend()
-    plt.grid(True, alpha=0.3)
-    
-    # Risk set sizes at evaluation times
-    plt.subplot(1, 3, 2)
-    risk_set_sizes = [(y_test['time'] >= t).sum() for t in times]
-    plt.plot(times, risk_set_sizes, 'o-', color='green', linewidth=2)
-    plt.xlabel('Time')
-    plt.ylabel('Risk Set Size')
-    plt.title('Risk Set Size at Evaluation Times')
-    plt.grid(True, alpha=0.3)
-    
-    # Difference in Brier scores (TabPFN vs best baseline)
-    plt.subplot(1, 3, 3)
-    best_baseline_brier = np.nanmin([brier_baselines[name] for name in baseline_names], axis=0)
-    brier_diff = np.array(brier_tabpfn) - best_baseline_brier
-    plt.plot(times, brier_diff, 'o-', color='red', linewidth=2)
-    plt.axhline(0, color='black', linestyle='--', alpha=0.5)
-    plt.xlabel('Time')
-    plt.ylabel('TabPFN - Best Baseline Brier Score')
-    plt.title('Brier Score Difference (TabPFN - Best Baseline)')
     plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
