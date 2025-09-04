@@ -310,7 +310,7 @@ def train_tabpfn_with_nbins(x_trainval_imputed, y_trainval, x_test_filtered, y_t
     X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(x_trainval_imputed, y_trainval_model, cuts)
     
     tabpfn_model = TabPFNClassifier(
-        device='cuda' if torch.cuda.is_available() else 'cpu',
+        device= 'cpu',
         ignore_pretraining_limits=True
     )
     tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
