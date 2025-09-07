@@ -356,78 +356,89 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
 
 def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     """Analyze the impact of discretization on survival estimation."""
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    # Create KM curve plot
+    fig1, ax1 = plt.subplots(1, 1, figsize=(10, 6))
     
-    # Plot 1: KM curve with discretization cuts
+    # Plot KM curve
     sfe = SurvivalFunctionEstimator().fit(y_trainval)
     
     # Create time points for smooth KM curve plotting
     time_points = np.linspace(y_trainval['time'].min(), y_trainval['time'].max(), 1000)
     prob_km = sfe.predict_proba(time_points)
     
-    axes[0,0].plot(time_points, prob_km, 
-                   linewidth=2, label='True KM Curve')
+    ax1.plot(time_points, prob_km, linewidth=2, label='True KM Curve', color='blue')
     
-    # Add discretization cuts
-    for cut in cuts:
-        axes[0,0].axvline(cut, color='red', linestyle='--', alpha=0.6)
+    # Define colors for each interval
+    colors = plt.cm.Set3(np.linspace(0, 1, len(cuts)))
     
-    axes[0,0].set_xlabel('Time', fontsize=14)
-    axes[0,0].set_ylabel('Survival Probability', fontsize=14)
-    axes[0,0].set_title('KM Curve with Discretization Cuts', fontsize=16)
-    axes[0,0].legend(fontsize=12)
-    axes[0,0].grid(True, alpha=0.3)
-    
-    # Plot 2: Distribution of events/censoring across bins
+    # Calculate censoring rates and add colored intervals
     bins = bin_numerical(y_trainval['time'], cuts)
-    bin_events = []
-    bin_censored = []
+    
+    censoring_rates = []
+    interval_labels = []
     
     for i in range(len(cuts)):
+        # Get data for this bin
         mask = bins == i
-        events_in_bin = (y_trainval['event'][mask] == 1).sum()
-        censored_in_bin = (y_trainval['event'][mask] == 0).sum()
-        bin_events.append(events_in_bin)
-        bin_censored.append(censored_in_bin)
-    
-    x = np.arange(len(cuts))
-    axes[0,1].bar(x, bin_events, alpha=0.7, label='Events', color='red')
-    axes[0,1].bar(x, bin_censored, bottom=bin_events, alpha=0.7, label='Censored', color='blue')
-    axes[0,1].set_xlabel('Discretization Bin', fontsize=14)
-    axes[0,1].set_ylabel('Count', fontsize=14)
-    axes[0,1].set_title('Events vs Censored by Discretization Bin', fontsize=16)
-    axes[0,1].legend(fontsize=12)
-    
-    # Plot 3: Censoring rate by time
-    time_points = np.linspace(y_trainval['time'].min(), y_trainval['time'].max(), 20)
-    censoring_rates = []
-    
-    for t in time_points:
-        mask = y_trainval['time'] >= t
-        if mask.sum() > 0:
-            censoring_rates.append((y_trainval['event'][mask] == 0).sum() / mask.sum())
+        total_in_bin = mask.sum()
+        
+        if total_in_bin > 0:
+            censored_in_bin = (y_trainval['event'][mask] == 0).sum()
+            censoring_rate = censored_in_bin / total_in_bin
+            censoring_rates.append(censoring_rate)
+            
+            # Calculate interval bounds
+            if i == 0:
+                interval_start = y_trainval['time'].min()
+            else:
+                interval_start = cuts[i-1]
+            interval_end = cuts[i]
+            
+            # Color the interval background
+            ax1.axvspan(interval_start, interval_end, alpha=0.2, color=colors[i], 
+                       label=f'Time Grid {i+1}')
+            
+            # Add discretization cut line
+            if i < len(cuts):
+                ax1.axvline(cuts[i], color='black', linestyle='--', alpha=0.6)
+            
+            interval_labels.append(f'Grid {i+1}')
         else:
             censoring_rates.append(0)
+            interval_labels.append(f'Grid {i+1}')
     
-    axes[1,0].plot(time_points, censoring_rates, 'o-', linewidth=2)
-    axes[1,0].set_xlabel('Time', fontsize=14)
-    axes[1,0].set_ylabel('Censoring Rate', fontsize=14)
-    axes[1,0].set_title('Censoring Rate Over Time', fontsize=16)
-    axes[1,0].grid(True, alpha=0.3)
-    
-    # Plot 4: Risk set size over time
-    risk_set_sizes = []
-    for t in time_points:
-        risk_set_sizes.append((y_trainval['time'] >= t).sum())
-    
-    axes[1,1].plot(time_points, risk_set_sizes, 'o-', linewidth=2, color='green')
-    axes[1,1].set_xlabel('Time', fontsize=14)
-    axes[1,1].set_ylabel('Risk Set Size', fontsize=14)
-    axes[1,1].set_title('Risk Set Size Over Time', fontsize=16)
-    axes[1,1].grid(True, alpha=0.3)
+    # Main plot formatting
+    ax1.set_xlabel('Time', fontsize=14)
+    ax1.set_ylabel('Survival Probability', fontsize=14)
+    ax1.set_title('KM Curve with Discretization', fontsize=16)
+    ax1.legend(fontsize=10, loc='upper right')
+    ax1.grid(True, alpha=0.3)
     
     plt.tight_layout()
     plt.savefig(f'figures/discrete_analysis/{dataset_name}_discretization_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Create separate censoring rate figure
+    fig2, ax2 = plt.subplots(1, 1, figsize=(8, 5))
+    
+    x_pos = np.arange(len(censoring_rates))
+    bars = ax2.bar(x_pos, censoring_rates, color=colors[:len(censoring_rates)], alpha=0.7, edgecolor='black')
+    
+    # Add value labels on bars
+    for i, (bar, rate) in enumerate(zip(bars, censoring_rates)):
+        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
+                f'{rate:.2f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    ax2.set_xlabel('Time Grid', fontsize=14)
+    ax2.set_ylabel('Censoring Rate', fontsize=14)
+    ax2.set_title('Censoring Rate per Time Grid', fontsize=16)
+    ax2.set_xticks(x_pos)
+    ax2.set_xticklabels(interval_labels)
+    ax2.set_ylim(0, max(censoring_rates) * 1.2 if censoring_rates else 1)
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig(f'figures/discrete_analysis/{dataset_name}_censoring_rates.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test, y_trainval, times, dataset_name):
