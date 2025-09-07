@@ -147,7 +147,18 @@ class DatasetAnalyzer:
         # 1. Sample sizes
         fig1, ax1 = plt.subplots(figsize=(10, 6))
         sample_sizes = df_summary.set_index('name')['n_samples']  # Keep original order
-        bars1 = ax1.bar(range(len(sample_sizes)), sample_sizes.values)
+        
+        # Color bars based on dataset size categories
+        colors = []
+        for size in sample_sizes.values:
+            if size < 500:
+                colors.append('lightcoral')  # Small
+            elif size < 2000:
+                colors.append('gold')  # Medium
+            else:
+                colors.append('lightgreen')  # Large
+        
+        bars1 = ax1.bar(range(len(sample_sizes)), sample_sizes.values, color=colors)
         ax1.set_ylabel('Number of Samples')
         ax1.set_title('Dataset Sample Sizes', fontsize=14, fontweight='bold')
         ax1.grid(True, alpha=0.3)
@@ -160,7 +171,19 @@ class DatasetAnalyzer:
         # 2. Number of features
         fig2, ax2 = plt.subplots(figsize=(10, 6))
         n_features = df_summary.set_index('name')['n_features']  # Keep original order
-        bars2 = ax2.bar(range(len(n_features)), n_features.values)
+        sample_sizes_for_coloring = df_summary.set_index('name')['n_samples']  # Get sample sizes for coloring
+        
+        # Color bars based on dataset size categories
+        colors = []
+        for size in sample_sizes_for_coloring.values:
+            if size < 500:
+                colors.append('lightcoral')  # Small
+            elif size < 2000:
+                colors.append('gold')  # Medium
+            else:
+                colors.append('lightgreen')  # Large
+        
+        bars2 = ax2.bar(range(len(n_features)), n_features.values, color=colors)
         ax2.set_ylabel('Number of Features')
         ax2.set_title('Dataset Feature Counts', fontsize=14, fontweight='bold')
         ax2.grid(True, alpha=0.3)
@@ -173,7 +196,19 @@ class DatasetAnalyzer:
         # 3. Censoring rates
         fig3, ax3 = plt.subplots(figsize=(12, 8))
         censoring_rates = df_summary.set_index('name')['censoring_rate']  # Keep original order
-        bars3 = ax3.bar(range(len(censoring_rates)), censoring_rates.values)
+        sample_sizes_for_coloring = df_summary.set_index('name')['n_samples']  # Get sample sizes for coloring
+        
+        # Color bars based on dataset size categories
+        colors = []
+        for size in sample_sizes_for_coloring.values:
+            if size < 500:
+                colors.append('lightcoral')  # Small
+            elif size < 2000:
+                colors.append('gold')  # Medium
+            else:
+                colors.append('lightgreen')  # Large
+        
+        bars3 = ax3.bar(range(len(censoring_rates)), censoring_rates.values, color=colors)
         ax3.set_ylabel('Censoring Rate')
         ax3.set_title('Censoring Rates by Dataset', fontsize=14, fontweight='bold')
         ax3.grid(True, alpha=0.3)

@@ -63,6 +63,15 @@ if torch.cuda.is_available():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+# Model colors for consistent visualization
+model_colors = {
+    'RSF': '#D79B00',
+    'CoxPH': '#82B366', 
+    'DeepHit': '#B85450',
+    'DeepSurv': '#9673A6',
+    'TabPFN': '#6C8EBF'
+}
+
 # Create figures directory
 os.makedirs("figures/discrete_analysis", exist_ok=True)
 
@@ -316,12 +325,14 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
     
     for i, idx in enumerate(patient_indices):
         ax = axes[i]
-        ax.plot(times, S_tabpfn[idx], 'o-', label='TabPFN', linewidth=2, markersize=4)
         
-        # Plot all baselines
-        colors = ['red', 'green', 'blue', 'orange']
+        # Plot baselines first in the desired order
         for j, (S_baseline, name) in enumerate(zip(S_baselines, baseline_names)):
-            ax.plot(times, S_baseline[idx], '-', label=f'{name}', linewidth=2, alpha=0.8, color=colors[j % len(colors)])
+            color = model_colors.get(name, 'gray')  # Use defined color or gray as fallback
+            ax.plot(times, S_baseline[idx], '-', label=f'{name}', linewidth=2, alpha=0.8, color=color)
+        
+        # Plot TabPFN last so it appears on top
+        ax.plot(times, S_tabpfn[idx], 'o-', label='TabPFN', linewidth=2, markersize=4, color=model_colors['TabPFN'])
         
         # Mark actual event/censoring time
         actual_time = y_test['time'][idx]
@@ -442,10 +453,10 @@ def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test
             except:
                 brier_baselines[name].append(np.nan)
     
-    plt.plot(times, brier_tabpfn, 'o-', label='TabPFN', linewidth=2)
-    colors = ['red', 'green', 'blue', 'orange']
+    plt.plot(times, brier_tabpfn, 'o-', label='TabPFN', linewidth=2, color=model_colors['TabPFN'])
     for j, name in enumerate(baseline_names):
-        plt.plot(times, brier_baselines[name], 's-', label=name, linewidth=2, color=colors[j % len(colors)])
+        color = model_colors.get(name, 'gray')  # Use defined color or gray as fallback
+        plt.plot(times, brier_baselines[name], 's-', label=name, linewidth=2, color=color)
     plt.xlabel('Time', fontsize=14)
     plt.ylabel('Brier Score', fontsize=14)
     plt.title('Time-specific Brier Scores', fontsize=16)
@@ -612,30 +623,7 @@ def comprehensive_analysis(dataset_name):
     baseline_names = []
     baseline_metrics = {}
     
-    # 1. Random Survival Forest
-    print("Training Random Survival Forest...")
-    try:
-        rsf = make_pipeline(StandardScaler(), RandomSurvivalForest(n_estimators=100, min_samples_split=5, random_state=SEED))
-        rsf.fit(x_trainval_imputed, y_trainval)
-        
-        # Get RSF survival predictions (native smooth curves)
-        # Note: RSF produces naturally smooth survival functions, so linear interpolation is appropriate
-        S_rsf = np.zeros((len(x_test_filtered), len(times)))
-        for i in range(len(x_test_filtered)):
-            sf = rsf.predict_survival_function(x_test_filtered.iloc[[i]])[0]
-            S_rsf[i] = np.interp(times, sf.x, sf.y, left=1.0, right=sf.y[-1])
-        
-        S_baselines.append(S_rsf)
-        baseline_names.append("RSF")
-        
-        # Compute metrics
-        ibs_rsf = integrated_brier_score(y_trainval, y_test_filtered, S_rsf, times)
-        baseline_metrics["RSF"] = {"ibs": ibs_rsf}
-        
-    except Exception as e:
-        print(f"RSF training failed: {e}")
-    
-    # 2. Cox Proportional Hazards
+    # 1. Cox Proportional Hazards
     print("Training CoxPH...")
     try:
         cph = make_pipeline(StandardScaler(), CoxPHSurvivalAnalysis(alpha=1e-4))
@@ -658,6 +646,29 @@ def comprehensive_analysis(dataset_name):
     except Exception as e:
         print(f"CoxPH training failed: {e}")
     
+    # 2. Random Survival Forest
+    print("Training Random Survival Forest...")
+    try:
+        rsf = make_pipeline(StandardScaler(), RandomSurvivalForest(n_estimators=100, min_samples_split=5, random_state=SEED))
+        rsf.fit(x_trainval_imputed, y_trainval)
+        
+        # Get RSF survival predictions (native smooth curves)
+        # Note: RSF produces naturally smooth survival functions, so linear interpolation is appropriate
+        S_rsf = np.zeros((len(x_test_filtered), len(times)))
+        for i in range(len(x_test_filtered)):
+            sf = rsf.predict_survival_function(x_test_filtered.iloc[[i]])[0]
+            S_rsf[i] = np.interp(times, sf.x, sf.y, left=1.0, right=sf.y[-1])
+        
+        S_baselines.append(S_rsf)
+        baseline_names.append("RSF")
+        
+        # Compute metrics
+        ibs_rsf = integrated_brier_score(y_trainval, y_test_filtered, S_rsf, times)
+        baseline_metrics["RSF"] = {"ibs": ibs_rsf}
+        
+    except Exception as e:
+        print(f"RSF training failed: {e}")
+
     # 3. DeepHit
     print("Training DeepHit...")
     try:

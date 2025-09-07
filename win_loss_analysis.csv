@@ -1,0 +1,13 @@
+metric,baseline_model,wins,losses,ties,total,win_rate
+c_index,RSF,22,26,0,48,0.458
+c_index,CoxPH,23,25,0,48,0.479
+c_index,DeepHit,40,8,0,48,0.833
+c_index,DeepSurv,30,18,0,48,0.625
+ibs,RSF,6,42,0,48,0.125
+ibs,CoxPH,10,38,0,48,0.208
+ibs,DeepHit,26,22,0,48,0.542
+ibs,DeepSurv,15,33,0,48,0.312
+mean_auc,RSF,29,19,0,48,0.604
+mean_auc,CoxPH,24,24,0,48,0.5
+mean_auc,DeepHit,43,5,0,48,0.896
+mean_auc,DeepSurv,36,12,0,48,0.75
