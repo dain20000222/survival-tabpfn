@@ -26,13 +26,13 @@ import torch
 
 # Set matplotlib font sizes
 plt.rcParams.update({
-    'font.size': 14,
-    'axes.titlesize': 16,
-    'axes.labelsize': 14,
-    'xtick.labelsize': 12,
-    'ytick.labelsize': 12,
-    'legend.fontsize': 12,
-    'figure.titlesize': 18
+    'font.size': 16,
+    'axes.titlesize': 20,
+    'axes.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
+    'legend.fontsize': 16,
+    'figure.titlesize': 22
 })
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
@@ -408,10 +408,10 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
             interval_labels.append(f'Grid {i+1}')
     
     # Main plot formatting
-    ax1.set_xlabel('Time', fontsize=14)
-    ax1.set_ylabel('Survival Probability', fontsize=14)
-    ax1.set_title('KM Curve with Discretization', fontsize=16)
-    ax1.legend(fontsize=10, loc='upper right')
+    ax1.set_xlabel('Time', fontsize=16)
+    ax1.set_ylabel('Survival Probability', fontsize=16)
+    ax1.set_title('KM Curve with Discretization', fontsize=20)
+    ax1.legend(fontsize=14, loc='upper right')
     ax1.grid(True, alpha=0.3)
     
     # Create censoring rate bar chart
@@ -421,11 +421,11 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     # Add value labels on bars
     for i, (bar, rate) in enumerate(zip(bars, censoring_rates)):
         ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                f'{rate:.2f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+                f'{rate:.2f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
     
-    ax2.set_xlabel('Time Grid', fontsize=14)
-    ax2.set_ylabel('Censoring Rate', fontsize=14)
-    ax2.set_title('Censoring Rate per Time Grid', fontsize=16)
+    ax2.set_xlabel('Time Grid', fontsize=16)
+    ax2.set_ylabel('Censoring Rate', fontsize=16)
+    ax2.set_title('Censoring Rate per Time Grid', fontsize=20)
     ax2.set_xticks(x_pos)
     ax2.set_xticklabels(interval_labels)
     ax2.set_ylim(0, max(censoring_rates) * 1.2 if censoring_rates else 1)
