@@ -21,12 +21,17 @@ import warnings
 import os
 import random
 import torch
+
+# Set CUDA_LAUNCH_BLOCKING for better CUDA error debugging
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sksurv.util import Surv
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, classification_report
 from tabpfn import TabPFNClassifier
 from sksurv.nonparametric import SurvivalFunctionEstimator
+import traceback
 
 # Set matplotlib font sizes
 plt.rcParams.update({
@@ -53,6 +58,34 @@ if torch.cuda.is_available():
 
 # Create figures directory
 os.makedirs("figures/confusion_matrix_analysis", exist_ok=True)
+
+def print_gpu_memory_info():
+    """Print current GPU memory usage for debugging."""
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1024**3  # GB
+        reserved = torch.cuda.memory_reserved() / 1024**3    # GB
+        print(f"      GPU Memory - Allocated: {allocated:.2f}GB, Reserved: {reserved:.2f}GB")
+
+def check_and_subsample_if_needed(X_tabpfn_train, y_tabpfn_train, max_samples=50000):
+    """
+    Check if TabPFN training set is too large and subsample if needed.
+    TabPFN can struggle with very large datasets, especially on GPU.
+    """
+    n_samples = X_tabpfn_train.shape[0]
+    
+    if n_samples > max_samples:
+        print(f"      Dataset too large ({n_samples} samples), subsampling to {max_samples}")
+        # Stratified subsampling to maintain class distribution
+        from sklearn.model_selection import train_test_split
+        X_sub, _, y_sub, _ = train_test_split(
+            X_tabpfn_train, y_tabpfn_train, 
+            train_size=max_samples, 
+            stratify=y_tabpfn_train,
+            random_state=SEED
+        )
+        return X_sub, y_sub
+    
+    return X_tabpfn_train, y_tabpfn_train
 
 # TabPFN utility functions
 def _is_monotonic_increasing(x: np.ndarray) -> bool:
@@ -219,14 +252,41 @@ def train_tabpfn_for_confusion_analysis(x_trainval_imputed, y_trainval, df, time
     # Train TabPFN
     X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(x_trainval_imputed, y_trainval_model, cuts)
     
+    print(f"      TabPFN training set size: {X_tabpfn_train.shape[0]} samples, {X_tabpfn_train.shape[1]} features")
+    
+    # Check and subsample if dataset is too large
+    X_tabpfn_train, y_tabpfn_train = check_and_subsample_if_needed(X_tabpfn_train, y_tabpfn_train)
+    
     # Calculate training class distribution
     train_class_counts = y_tabpfn_train.value_counts().reindex(['A', 'B', 'C', 'D'], fill_value=0).values
     
-    tabpfn_model = TabPFNClassifier(
-        device='cpu',
-        ignore_pretraining_limits=True
-    )
-    tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+    # Clear CUDA cache before training
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print_gpu_memory_info()
+    
+    # Try CUDA first, stop if CUDA fails (don't fallback to CPU as it won't be effective)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. TabPFN requires GPU acceleration for effective training.")
+    
+    try:
+        tabpfn_model = TabPFNClassifier(
+            device=device,
+            ignore_pretraining_limits=True
+        )
+        tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+        print(f"      Successfully trained on {device.upper()}")
+        if torch.cuda.is_available():
+            print_gpu_memory_info()
+    except Exception as cuda_error:
+        print(f"      CUDA training failed: {str(cuda_error)}")
+        print("      Cannot fallback to CPU as TabPFN requires GPU acceleration.")
+        # Clear CUDA cache and raise the error to stop this n_bins iteration
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            print_gpu_memory_info()
+        raise cuda_error
     
     return tabpfn_model, cuts, train_class_counts
 
@@ -285,8 +345,24 @@ def confusion_matrix_analysis(tabpfn_model, x_test_imputed, y_test, times, cuts,
     X_gt = pd.DataFrame(X_gt, columns=list(x_test_imputed.columns) + ["eval_time"])
     y_true = np.array(y_true)
     
+    # Clear CUDA cache before prediction
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print_gpu_memory_info()
+    
     # Predict using TabPFN
-    probs_gt = tabpfn_model.predict_proba(X_gt)
+    try:
+        probs_gt = tabpfn_model.predict_proba(X_gt)
+        if torch.cuda.is_available():
+            print_gpu_memory_info()
+    except Exception as pred_error:
+        print(f"      Prediction failed: {str(pred_error)}")
+        if torch.cuda.is_available():
+            print("      Clearing CUDA cache and retrying prediction...")
+            torch.cuda.empty_cache()
+            print_gpu_memory_info()
+        probs_gt = tabpfn_model.predict_proba(X_gt)
+    
     y_pred = np.argmax(probs_gt, axis=1)
     
     print("Ground truth class counts:", np.bincount(y_true, minlength=4))
@@ -506,6 +582,11 @@ def analyze_confusion_matrix_nbins(dataset_name, n_bins_range=[3, 5, 10, 15, 20,
     
     for n_bins in n_bins_range:
         print(f"  Training with n_bins={n_bins}...")
+        
+        # Clear CUDA cache before each iteration
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         try:
             # Train TabPFN model
             tabpfn_model, cuts, train_class_counts = train_tabpfn_for_confusion_analysis(
@@ -523,7 +604,9 @@ def analyze_confusion_matrix_nbins(dataset_name, n_bins_range=[3, 5, 10, 15, 20,
             
         except Exception as e:
             print(f"    Failed: {e}")
-            import traceback
+            # Clear CUDA cache after failure
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             traceback.print_exc()
             continue
     
