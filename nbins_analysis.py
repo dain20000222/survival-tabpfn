@@ -34,6 +34,9 @@ import os
 import random
 import torch
 
+# Set CUDA_LAUNCH_BLOCKING for better CUDA error debugging
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
 # Set matplotlib font sizes
 plt.rcParams.update({
     'font.size': 14,
@@ -271,6 +274,34 @@ def get_worst_datasets():
     
     return worst_datasets['dataset'].tolist()
 
+def print_gpu_memory_info():
+    """Print current GPU memory usage for debugging."""
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1024**3  # GB
+        reserved = torch.cuda.memory_reserved() / 1024**3    # GB
+        print(f"      GPU Memory - Allocated: {allocated:.2f}GB, Reserved: {reserved:.2f}GB")
+
+def check_and_subsample_if_needed(X_tabpfn_train, y_tabpfn_train, max_samples=50000):
+    """
+    Check if TabPFN training set is too large and subsample if needed.
+    TabPFN can struggle with very large datasets, especially on GPU.
+    """
+    n_samples = X_tabpfn_train.shape[0]
+    
+    if n_samples > max_samples:
+        print(f"      Dataset too large ({n_samples} samples), subsampling to {max_samples}")
+        # Stratified subsampling to maintain class distribution
+        from sklearn.model_selection import train_test_split
+        X_sub, _, y_sub, _ = train_test_split(
+            X_tabpfn_train, y_tabpfn_train, 
+            train_size=max_samples, 
+            stratify=y_tabpfn_train,
+            random_state=SEED
+        )
+        return X_sub, y_sub
+    
+    return X_tabpfn_train, y_tabpfn_train
+
 def train_tabpfn_with_nbins(x_trainval_imputed, y_trainval, x_test_filtered, y_test_filtered, 
                            df, time_col, event_col, times, n_bins):
     """Train TabPFN with specified n_bins and return survival predictions and metrics."""
@@ -309,16 +340,61 @@ def train_tabpfn_with_nbins(x_trainval_imputed, y_trainval, x_test_filtered, y_t
     # Train TabPFN
     X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(x_trainval_imputed, y_trainval_model, cuts)
     
-    tabpfn_model = TabPFNClassifier(
-        device= "cuda" if torch.cuda.is_available() else "cpu",
-        ignore_pretraining_limits=True
-    )
-    tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+    print(f"      TabPFN training set size: {X_tabpfn_train.shape[0]} samples, {X_tabpfn_train.shape[1]} features")
+    
+    # Check and subsample if dataset is too large
+    X_tabpfn_train, y_tabpfn_train = check_and_subsample_if_needed(X_tabpfn_train, y_tabpfn_train)
+    
+    # Clear CUDA cache before training
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print_gpu_memory_info()
+    
+    # Try CUDA first, stop if CUDA fails (don't fallback to CPU as it won't be effective)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. TabPFN requires GPU acceleration for effective training.")
+    
+    try:
+        tabpfn_model = TabPFNClassifier(
+            device=device,
+            ignore_pretraining_limits=True
+        )
+        tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+        print(f"      Successfully trained on {device.upper()}")
+        if torch.cuda.is_available():
+            print_gpu_memory_info()
+    except Exception as cuda_error:
+        print(f"      CUDA training failed: {str(cuda_error)}")
+        print("      Cannot fallback to CPU as TabPFN requires GPU acceleration.")
+        # Clear CUDA cache and raise the error to stop this n_bins iteration
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            print_gpu_memory_info()
+        raise cuda_error
     
     # Predict with TabPFN
     unique_bins, inv = np.unique(times_eval, return_inverse=True)
     X_tabpfn_test, test_patient_ids = construct_tabpfn_testset(x_test_filtered, cuts[unique_bins])
-    probs = tabpfn_model.predict_proba(X_tabpfn_test)
+    
+    print(f"      TabPFN test set size: {X_tabpfn_test.shape[0]} samples")
+    
+    # Clear CUDA cache before prediction
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print_gpu_memory_info()
+    
+    try:
+        probs = tabpfn_model.predict_proba(X_tabpfn_test)
+        if torch.cuda.is_available():
+            print_gpu_memory_info()
+    except Exception as pred_error:
+        print(f"      Prediction failed: {str(pred_error)}")
+        if torch.cuda.is_available():
+            print("      Clearing CUDA cache and retrying prediction...")
+            torch.cuda.empty_cache()
+            print_gpu_memory_info()
+        probs = tabpfn_model.predict_proba(X_tabpfn_test)
     
     # Convert to hazards and survival
     def hazards_from_probs(X_test, pids, probs, unique_cut_values, eps=1e-12):
@@ -441,6 +517,11 @@ def analyze_nbins_effect(dataset_name, n_bins_range=[3, 5, 10, 15, 20, 25, 30]):
     
     for n_bins in n_bins_range:
         print(f"  Training with n_bins={n_bins}...")
+        
+        # Clear CUDA cache before each iteration
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         try:
             S_tabpfn, metrics = train_tabpfn_with_nbins(
                 x_trainval_imputed, y_trainval, x_test_filtered, y_test_filtered,
@@ -450,6 +531,9 @@ def analyze_nbins_effect(dataset_name, n_bins_range=[3, 5, 10, 15, 20, 25, 30]):
             print(f"    IBS: {metrics['ibs']:.4f}, C-index: {metrics['c_index']:.4f}, Mean AUC: {metrics['mean_auc']:.4f}")
         except Exception as e:
             print(f"    Failed: {e}")
+            # Clear CUDA cache after failure
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             continue
     
     if not results:
@@ -646,11 +730,3 @@ if __name__ == "__main__":
         print(f"  figures/nbins_analysis/{dataset_name}_time_specific_brier_nbins.png (time-specific Brier)")
     if len(all_results) > 1:
         print(f"  figures/nbins_analysis/summary_nbins_analysis.png")
-    
-    print(f"\n{'='*60}")
-    print("Key Insights:")
-    print("- Calibration (IBS, Brier scores): Should improve with more bins (finer discretization)")
-    print("- Discrimination (C-index, AUC): Should remain relatively stable across n_bins")
-    print("- Optimal n_bins may differ between calibration and discrimination metrics")
-    print("- Trade-off between calibration improvement and computational complexity")
-    print(f"{'='*60}")
