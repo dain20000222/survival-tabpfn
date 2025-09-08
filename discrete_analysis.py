@@ -356,8 +356,8 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
 
 def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     """Analyze the impact of discretization on survival estimation."""
-    # Create single figure with two subplots side by side
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    # Create single figure with two subplots side by side (2/3 and 1/3 width ratio)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), gridspec_kw={'width_ratios': [2, 1]})
     
     # Plot KM curve
     sfe = SurvivalFunctionEstimator().fit(y_trainval)
