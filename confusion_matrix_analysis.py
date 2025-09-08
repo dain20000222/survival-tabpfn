@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 import random
 from sksurv.nonparametric import SurvivalFunctionEstimator 
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
-os.makedirs("confusion_matrices", exist_ok=True)
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+os.makedirs("figures/figures/confusion_matrix_analysis", exist_ok=True)
 warnings.filterwarnings("ignore")
 
 SEED = 42
@@ -36,7 +36,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = False
 
 # Directory containing the datasets
-data_dir = os.path.join("test")
+data_dir = os.path.join("test1")
 
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
@@ -331,27 +331,31 @@ def create_confusion_matrix(tabpfn_model, x_test_imputed, y_test, cuts, dataset_
     cm = confusion_matrix(y_true, y_pred, labels=[0,1,2,3])
     cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     
+    # Calculate precision and recall for each class
+    precision, recall, _, _ = precision_recall_fscore_support(y_true, y_pred, labels=[0,1,2,3], average=None, zero_division=0)
+    accuracy = np.mean(y_true == y_pred)
+    
     # Create figure with two equal-sized subplots
     fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(12, 5))
     
     # Left subplot: Confusion matrix with both counts and percentages
     im1 = ax_left.imshow(cm_norm, interpolation='nearest', cmap='Blues')
-    ax_left.set_title(f'Confusion Matrix\nm={n_bins}, Acc: {np.mean(y_true == y_pred):.3f}')
+    ax_left.set_title(f'Confusion Matrix\nm={n_bins}, Acc: {accuracy:.3f}', fontsize=16)
     
     class_names = ["A", "B", "C", "D"]
     # Add text annotations to confusion matrix
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             text = f"{cm[i,j]}\n({cm_norm[i,j]:.2f})"
-            ax_left.text(j, i, text, ha="center", va="center",
+            ax_left.text(j, i, text, ha="center", va="center", fontsize=12,
                         color="white" if cm_norm[i,j] > 0.5 else "black")
     
     ax_left.set_xticks(range(4))
     ax_left.set_yticks(range(4))
-    ax_left.set_xticklabels(class_names)
-    ax_left.set_yticklabels(class_names)
-    ax_left.set_xlabel('Predicted')
-    ax_left.set_ylabel('True')
+    ax_left.set_xticklabels(class_names, fontsize=14)
+    ax_left.set_yticklabels(class_names, fontsize=14)
+    ax_left.set_xlabel('Predicted', fontsize=14)
+    ax_left.set_ylabel('True', fontsize=14)
     
     # Right subplot: Average probabilities by predicted class
     avg_probs_by_pred = []
@@ -366,36 +370,36 @@ def create_confusion_matrix(tabpfn_model, x_test_imputed, y_test, cuts, dataset_
     avg_probs_by_pred = np.array(avg_probs_by_pred)
     
     im2 = ax_right.imshow(avg_probs_by_pred, cmap='Blues', aspect='auto', vmin=0, vmax=1)
-    ax_right.set_title('Average Probabilities\nby Predicted Class')
+    ax_right.set_title('Average Probabilities\nby Predicted Class', fontsize=16)
     
     # Add text annotations to probability matrix
     for i in range(4):
         for j in range(4):
             text = f"{avg_probs_by_pred[i,j]:.3f}"
-            ax_right.text(j, i, text, ha="center", va="center",
+            ax_right.text(j, i, text, ha="center", va="center", fontsize=12,
                          color="white" if avg_probs_by_pred[i,j] > 0.5 else "black")
     
     ax_right.set_xticks(range(4))
     ax_right.set_yticks(range(4))
-    ax_right.set_xticklabels(class_names)
-    ax_right.set_yticklabels(class_names)
-    ax_right.set_xlabel('Probability for Class')
-    ax_right.set_ylabel('Predicted Class')
+    ax_right.set_xticklabels(class_names, fontsize=14)
+    ax_right.set_yticklabels(class_names, fontsize=14)
+    ax_right.set_xlabel('Probability for Class', fontsize=14)
+    ax_right.set_ylabel('Predicted Class', fontsize=14)
     
     plt.colorbar(im2, ax=ax_right)
-    
-    plt.suptitle(f'{dataset_name}: Confusion Matrix and Average Probabilities (m={n_bins})')
     plt.tight_layout()
     
     # Save plot
-    plt.savefig(f'confusion_matrices/{dataset_name}_nbins_{n_bins}.png', bbox_inches='tight', dpi=300)
+    plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_nbins_{n_bins}.png', bbox_inches='tight', dpi=300)
     plt.close()
     
     return {
         'confusion_matrix': cm,
         'normalized_confusion_matrix': cm_norm,
         'average_probabilities': avg_probs_by_pred,
-        'accuracy': np.mean(y_true == y_pred)
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall
     }
 
 
@@ -406,12 +410,90 @@ def plot_accuracy_vs_nbins(dataset_name, accuracies_dict):
     
     plt.figure(figsize=(10, 6))
     plt.plot(n_bins_values, accuracies, 'o-', linewidth=2, markersize=8, color='purple')
-    plt.xlabel('Number of Bins (m)', fontsize=14)
-    plt.ylabel('Classification Accuracy', fontsize=14)
-    plt.title(f'{dataset_name}: TabPFN Classification Accuracy vs m', fontsize=16)
+    plt.xlabel('Number of Grid Points (m)', fontsize=16)
+    plt.ylabel('Classification Accuracy', fontsize=16)
+    plt.title(f'{dataset_name}: TabPFN Classification Accuracy vs m', fontsize=18)
     plt.grid(True, alpha=0.3)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
     plt.tight_layout()
-    plt.savefig(f'confusion_matrices/{dataset_name}_accuracy_vs_m.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_accuracy_vs_m.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def plot_precision_vs_nbins(dataset_name, precision_dict):
+    """Plot per-class precision vs number of bins."""
+    n_bins_values = sorted(precision_dict.keys())
+    class_names = ['A', 'B', 'C', 'D']
+    class_colors = ['skyblue', 'lightcoral', 'lightgreen', 'gold']
+    
+    plt.figure(figsize=(12, 6))
+    
+    for i, (class_name, color) in enumerate(zip(class_names, class_colors)):
+        precisions = [precision_dict[n][i] for n in n_bins_values]
+        plt.plot(n_bins_values, precisions, 'o-', linewidth=2, markersize=8, 
+                label=f'Class {class_name}', color=color)
+    
+    plt.xlabel('Number of Grid Points (m)', fontsize=16)
+    plt.ylabel('Precision', fontsize=16)
+    plt.title(f'{dataset_name}: TabPFN Per-Class Precision vs m', fontsize=18)
+    plt.grid(True, alpha=0.3)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
+    plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_precision_vs_m.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def plot_recall_vs_nbins(dataset_name, recall_dict):
+    """Plot per-class recall vs number of bins."""
+    n_bins_values = sorted(recall_dict.keys())
+    class_names = ['A', 'B', 'C', 'D']
+    class_colors = ['skyblue', 'lightcoral', 'lightgreen', 'gold']
+    
+    plt.figure(figsize=(12, 6))
+    
+    for i, (class_name, color) in enumerate(zip(class_names, class_colors)):
+        recalls = [recall_dict[n][i] for n in n_bins_values]
+        plt.plot(n_bins_values, recalls, 'o-', linewidth=2, markersize=8, 
+                label=f'Class {class_name}', color=color)
+    
+    plt.xlabel('Number of Grid Points (m)', fontsize=16)
+    plt.ylabel('Recall', fontsize=16)
+    plt.title(f'{dataset_name}: TabPFN Per-Class Recall vs m', fontsize=18)
+    plt.grid(True, alpha=0.3)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
+    plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_recall_vs_m.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def plot_macro_precision_recall_vs_nbins(dataset_name, precision_dict, recall_dict):
+    """Plot macro-averaged precision and recall vs number of bins."""
+    n_bins_values = sorted(precision_dict.keys())
+    
+    # Calculate macro averages
+    macro_precisions = [np.mean(precision_dict[n]) for n in n_bins_values]
+    macro_recalls = [np.mean(recall_dict[n]) for n in n_bins_values]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(n_bins_values, macro_precisions, 'o-', linewidth=2, markersize=8, 
+             color='blue', label='Macro Precision')
+    plt.plot(n_bins_values, macro_recalls, 's-', linewidth=2, markersize=8, 
+             color='red', label='Macro Recall')
+    
+    plt.xlabel('Number of Grid Points (m)', fontsize=16)
+    plt.ylabel('Score', fontsize=16)
+    plt.title(f'{dataset_name}: TabPFN Macro Precision & Recall vs m', fontsize=18)
+    plt.grid(True, alpha=0.3)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
+    plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_macro_precision_recall_vs_m.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 
@@ -440,16 +522,17 @@ def plot_class_distribution(dataset_name, class_distributions):
         values = [percentages[n][cls] for n in n_bins_values]
         plt.bar(x + i*width - width*1.5, values, width, label=f'Class {cls}', color=color)
     
-    plt.xlabel('Number of Bins (m)', fontsize=12)
-    plt.ylabel('Percentage (%)', fontsize=12)
-    plt.title(f'{dataset_name}: Training Set Class Distribution vs m', fontsize=14)
-    plt.xticks(x, n_bins_values)
+    plt.xlabel('Number of Bins (m)', fontsize=14)
+    plt.ylabel('Percentage (%)', fontsize=14)
+    plt.title(f'{dataset_name}: Training Set Class Distribution vs m', fontsize=16)
+    plt.xticks(x, n_bins_values, fontsize=12)
+    plt.yticks(fontsize=12)
     plt.grid(True, alpha=0.3, axis='y')
-    plt.legend()
+    plt.legend(fontsize=12)
     plt.tight_layout()
     
     # Save plot
-    plt.savefig(f'confusion_matrices/{dataset_name}_class_distribution.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/figures/confusion_matrix_analysis/{dataset_name}_class_distribution.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 for file_name in dataset_files:
@@ -521,6 +604,8 @@ for file_name in dataset_files:
         y_test_orig = y_test_filtered
 
         accuracies = {}
+        precisions = {}
+        recalls = {}
         class_distributions = {}
 
         for n_bins in bin_sizes:
@@ -577,8 +662,10 @@ for file_name in dataset_files:
                     cuts, dataset_name, n_bins
                 )
 
-                # Store accuracy
+                # Store accuracy, precision, and recall
                 accuracies[n_bins] = confusion_metrics['accuracy']
+                precisions[n_bins] = confusion_metrics['precision']
+                recalls[n_bins] = confusion_metrics['recall']
 
             except Exception as e:
                 print(f"Error with n_bins={n_bins}: {str(e)}")
@@ -586,6 +673,9 @@ for file_name in dataset_files:
 
         # Create accuracy plot after all n_bins are processed
         plot_accuracy_vs_nbins(dataset_name, accuracies)
+        plot_precision_vs_nbins(dataset_name, precisions)
+        plot_recall_vs_nbins(dataset_name, recalls)
+        plot_macro_precision_recall_vs_nbins(dataset_name, precisions, recalls)
         plot_class_distribution(dataset_name, class_distributions)
 
     except Exception as e:
