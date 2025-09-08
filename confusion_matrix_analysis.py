@@ -521,8 +521,8 @@ def plot_class_distribution(dataset_name, class_distributions):
     for i, (cls, color) in enumerate(zip(class_names, class_colors)):
         values = [percentages[n][cls] for n in n_bins_values]
         plt.bar(x + i*width - width*1.5, values, width, label=f'Class {cls}', color=color)
-    
-    plt.xlabel('Number of Bins (m)', fontsize=14)
+
+    plt.xlabel('Number of Grid Points (m)', fontsize=14)
     plt.ylabel('Percentage (%)', fontsize=14)
     plt.title(f'{dataset_name}: Training Set Class Distribution vs m', fontsize=16)
     plt.xticks(x, n_bins_values, fontsize=12)
@@ -532,7 +532,7 @@ def plot_class_distribution(dataset_name, class_distributions):
     plt.tight_layout()
     
     # Save plot
-    plt.savefig(f'figures/figures/confusion_matrix_analysis/{dataset_name}_class_distribution.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_class_distribution.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 for file_name in dataset_files:
