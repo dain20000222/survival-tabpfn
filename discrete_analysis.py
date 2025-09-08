@@ -356,8 +356,8 @@ def plot_survival_curves_comparison(S_tabpfn, S_baselines, baseline_names, times
 
 def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     """Analyze the impact of discretization on survival estimation."""
-    # Create KM curve plot
-    fig1, ax1 = plt.subplots(1, 1, figsize=(10, 6))
+    # Create single figure with two subplots side by side
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
     
     # Plot KM curve
     sfe = SurvivalFunctionEstimator().fit(y_trainval)
@@ -414,13 +414,7 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     ax1.legend(fontsize=10, loc='upper right')
     ax1.grid(True, alpha=0.3)
     
-    plt.tight_layout()
-    plt.savefig(f'figures/discrete_analysis/{dataset_name}_discretization_analysis.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # Create separate censoring rate figure
-    fig2, ax2 = plt.subplots(1, 1, figsize=(8, 5))
-    
+    # Create censoring rate bar chart
     x_pos = np.arange(len(censoring_rates))
     bars = ax2.bar(x_pos, censoring_rates, color=colors[:len(censoring_rates)], alpha=0.7, edgecolor='black')
     
@@ -438,7 +432,7 @@ def plot_discretization_analysis(cuts, y_trainval, dataset_name):
     ax2.grid(True, alpha=0.3, axis='y')
     
     plt.tight_layout()
-    plt.savefig(f'figures/discrete_analysis/{dataset_name}_censoring_rates.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'figures/discrete_analysis/{dataset_name}_discretization_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 def plot_brier_score_decomposition(S_tabpfn, S_baselines, baseline_names, y_test, y_trainval, times, dataset_name):
