@@ -310,7 +310,7 @@ def train_tabpfn_with_nbins(x_trainval_imputed, y_trainval, x_test_filtered, y_t
     X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(x_trainval_imputed, y_trainval_model, cuts)
     
     tabpfn_model = TabPFNClassifier(
-        device= 'cpu',
+        device= "cuda" if torch.cuda.is_available() else "cpu",
         ignore_pretraining_limits=True
     )
     tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
@@ -478,23 +478,23 @@ def plot_nbins_analysis(dataset_name, results, times, n_bins_range):
     
     # IBS plot
     axes_metrics[0].plot(n_bins_values, ibs_values, 'o-', linewidth=2, markersize=8, color='red')
-    axes_metrics[0].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes_metrics[0].set_xlabel('Number of Bins (m)', fontsize=14)
     axes_metrics[0].set_ylabel('Integrated Brier Score (IBS)', fontsize=14)
-    axes_metrics[0].set_title('IBS vs n_bins', fontsize=16)
+    axes_metrics[0].set_title('IBS vs m', fontsize=16)
     axes_metrics[0].grid(True, alpha=0.3)
     
     # C-index plot
     axes_metrics[1].plot(n_bins_values, c_index_values, 'o-', linewidth=2, markersize=8, color='blue')
-    axes_metrics[1].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes_metrics[1].set_xlabel('Number of Bins (m)', fontsize=14)
     axes_metrics[1].set_ylabel('C-index', fontsize=14)
-    axes_metrics[1].set_title('C-index vs n_bins', fontsize=16)
+    axes_metrics[1].set_title('C-index vs m', fontsize=16)
     axes_metrics[1].grid(True, alpha=0.3)
     
     # Mean AUC plot
     axes_metrics[2].plot(n_bins_values, mean_auc_values, 'o-', linewidth=2, markersize=8, color='green')
-    axes_metrics[2].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes_metrics[2].set_xlabel('Number of Bins (m)', fontsize=14)
     axes_metrics[2].set_ylabel('Mean AUC', fontsize=14)
-    axes_metrics[2].set_title('Mean AUC vs n_bins', fontsize=16)
+    axes_metrics[2].set_title('Mean AUC vs m', fontsize=16)
     axes_metrics[2].grid(True, alpha=0.3)
     
     plt.tight_layout()
@@ -506,12 +506,12 @@ def plot_nbins_analysis(dataset_name, results, times, n_bins_range):
     colors = plt.cm.viridis(np.linspace(0, 1, len(n_bins_values)))
     for i, n_bins in enumerate(n_bins_values):
         brier_scores = results[n_bins]['brier_scores']
-        plt.plot(times, brier_scores, 'o-', label=f'n_bins={n_bins}', 
+        plt.plot(times, brier_scores, 'o-', label=f'm={n_bins}', 
                 color=colors[i], linewidth=2, markersize=6)
     
     plt.xlabel('Time', fontsize=14)
     plt.ylabel('Brier Score', fontsize=14)
-    plt.title(f'{dataset_name}: Time-specific Brier Scores for Different n_bins', fontsize=16)
+    plt.title(f'{dataset_name}: Time-specific Brier Scores for Different m', fontsize=16)
     plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -550,21 +550,21 @@ def create_summary_plots(all_results, dataset_names, n_bins_range):
         axes[2].plot(n_bins_values, mean_auc_values, 'o-', label=dataset_name, 
                     color=colors[i], linewidth=2, markersize=6)
     
-    axes[0].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes[0].set_xlabel('Number of Bins (m)', fontsize=14)
     axes[0].set_ylabel('Integrated Brier Score (IBS)', fontsize=14)
-    axes[0].set_title('IBS vs n_bins (All Datasets)', fontsize=16)
+    axes[0].set_title('IBS vs m (All Datasets)', fontsize=16)
     axes[0].legend(fontsize=12)
     axes[0].grid(True, alpha=0.3)
     
-    axes[1].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes[1].set_xlabel('Number of Bins (m)', fontsize=14)
     axes[1].set_ylabel('C-index', fontsize=14)
-    axes[1].set_title('C-index vs n_bins (All Datasets)', fontsize=16)
+    axes[1].set_title('C-index vs m (All Datasets)', fontsize=16)
     axes[1].legend(fontsize=12)
     axes[1].grid(True, alpha=0.3)
     
-    axes[2].set_xlabel('Number of Bins (n_bins)', fontsize=14)
+    axes[2].set_xlabel('Number of Bins (m)', fontsize=14)
     axes[2].set_ylabel('Mean AUC', fontsize=14)
-    axes[2].set_title('Mean AUC vs n_bins (All Datasets)', fontsize=16)
+    axes[2].set_title('Mean AUC vs m (All Datasets)', fontsize=16)
     axes[2].legend(fontsize=12)
     axes[2].grid(True, alpha=0.3)
     
