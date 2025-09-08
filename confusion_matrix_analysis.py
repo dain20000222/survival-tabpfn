@@ -340,22 +340,22 @@ def create_confusion_matrix(tabpfn_model, x_test_imputed, y_test, cuts, dataset_
     
     # Left subplot: Confusion matrix with both counts and percentages
     im1 = ax_left.imshow(cm_norm, interpolation='nearest', cmap='Blues')
-    ax_left.set_title(f'Confusion Matrix\nm={n_bins}, Acc: {accuracy:.3f}', fontsize=16)
+    ax_left.set_title(f'Confusion Matrix\nm={n_bins}, Acc: {accuracy:.3f}', fontsize=18)
     
     class_names = ["A", "B", "C", "D"]
     # Add text annotations to confusion matrix
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             text = f"{cm[i,j]}\n({cm_norm[i,j]:.2f})"
-            ax_left.text(j, i, text, ha="center", va="center", fontsize=12,
+            ax_left.text(j, i, text, ha="center", va="center", fontsize=14,
                         color="white" if cm_norm[i,j] > 0.5 else "black")
     
     ax_left.set_xticks(range(4))
     ax_left.set_yticks(range(4))
-    ax_left.set_xticklabels(class_names, fontsize=14)
-    ax_left.set_yticklabels(class_names, fontsize=14)
-    ax_left.set_xlabel('Predicted', fontsize=14)
-    ax_left.set_ylabel('True', fontsize=14)
+    ax_left.set_xticklabels(class_names, fontsize=16)
+    ax_left.set_yticklabels(class_names, fontsize=16)
+    ax_left.set_xlabel('Predicted', fontsize=16)
+    ax_left.set_ylabel('True', fontsize=16)
     
     # Right subplot: Average probabilities by predicted class
     avg_probs_by_pred = []
@@ -370,21 +370,21 @@ def create_confusion_matrix(tabpfn_model, x_test_imputed, y_test, cuts, dataset_
     avg_probs_by_pred = np.array(avg_probs_by_pred)
     
     im2 = ax_right.imshow(avg_probs_by_pred, cmap='Blues', aspect='auto', vmin=0, vmax=1)
-    ax_right.set_title('Average Probabilities\nby Predicted Class', fontsize=16)
+    ax_right.set_title('Average Probabilities\nby Predicted Class', fontsize=18)
     
     # Add text annotations to probability matrix
     for i in range(4):
         for j in range(4):
             text = f"{avg_probs_by_pred[i,j]:.3f}"
-            ax_right.text(j, i, text, ha="center", va="center", fontsize=12,
+            ax_right.text(j, i, text, ha="center", va="center", fontsize=14,
                          color="white" if avg_probs_by_pred[i,j] > 0.5 else "black")
     
     ax_right.set_xticks(range(4))
     ax_right.set_yticks(range(4))
-    ax_right.set_xticklabels(class_names, fontsize=14)
-    ax_right.set_yticklabels(class_names, fontsize=14)
-    ax_right.set_xlabel('Probability for Class', fontsize=14)
-    ax_right.set_ylabel('Predicted Class', fontsize=14)
+    ax_right.set_xticklabels(class_names, fontsize=16)
+    ax_right.set_yticklabels(class_names, fontsize=16)
+    ax_right.set_xlabel('Probability for Class', fontsize=16)
+    ax_right.set_ylabel('Predicted Class', fontsize=16)
     
     plt.colorbar(im2, ax=ax_right)
     plt.tight_layout()
@@ -410,12 +410,12 @@ def plot_accuracy_vs_nbins(dataset_name, accuracies_dict):
     
     plt.figure(figsize=(10, 6))
     plt.plot(n_bins_values, accuracies, 'o-', linewidth=2, markersize=8, color='purple')
-    plt.xlabel('Number of Grid Points (m)', fontsize=16)
-    plt.ylabel('Classification Accuracy', fontsize=16)
-    plt.title(f'{dataset_name}: TabPFN Classification Accuracy vs m', fontsize=18)
+    plt.xlabel('Number of Grid Points (m)', fontsize=18)
+    plt.ylabel('Classification Accuracy', fontsize=18)
+    plt.title(f'{dataset_name}: TabPFN Classification Accuracy vs m', fontsize=20)
     plt.grid(True, alpha=0.3)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.tight_layout()
     plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_accuracy_vs_m.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -434,13 +434,13 @@ def plot_precision_vs_nbins(dataset_name, precision_dict):
         plt.plot(n_bins_values, precisions, 'o-', linewidth=2, markersize=8, 
                 label=f'Class {class_name}', color=color)
     
-    plt.xlabel('Number of Grid Points (m)', fontsize=16)
-    plt.ylabel('Precision', fontsize=16)
-    plt.title(f'{dataset_name}: TabPFN Per-Class Precision vs m', fontsize=18)
+    plt.xlabel('Number of Grid Points (m)', fontsize=18)
+    plt.ylabel('Precision', fontsize=18)
+    plt.title(f'{dataset_name}: TabPFN Per-Class Precision vs m', fontsize=20)
     plt.grid(True, alpha=0.3)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.legend(fontsize=12)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=14, loc='upper right')
     plt.tight_layout()
     plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_precision_vs_m.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -459,13 +459,13 @@ def plot_recall_vs_nbins(dataset_name, recall_dict):
         plt.plot(n_bins_values, recalls, 'o-', linewidth=2, markersize=8, 
                 label=f'Class {class_name}', color=color)
     
-    plt.xlabel('Number of Grid Points (m)', fontsize=16)
-    plt.ylabel('Recall', fontsize=16)
-    plt.title(f'{dataset_name}: TabPFN Per-Class Recall vs m', fontsize=18)
+    plt.xlabel('Number of Grid Points (m)', fontsize=18)
+    plt.ylabel('Recall', fontsize=18)
+    plt.title(f'{dataset_name}: TabPFN Per-Class Recall vs m', fontsize=20)
     plt.grid(True, alpha=0.3)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.legend(fontsize=12)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=14, loc='upper right')
     plt.tight_layout()
     plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_recall_vs_m.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -485,13 +485,13 @@ def plot_macro_precision_recall_vs_nbins(dataset_name, precision_dict, recall_di
     plt.plot(n_bins_values, macro_recalls, 's-', linewidth=2, markersize=8, 
              color='red', label='Macro Recall')
     
-    plt.xlabel('Number of Grid Points (m)', fontsize=16)
-    plt.ylabel('Score', fontsize=16)
-    plt.title(f'{dataset_name}: TabPFN Macro Precision & Recall vs m', fontsize=18)
+    plt.xlabel('Number of Grid Points (m)', fontsize=18)
+    plt.ylabel('Score', fontsize=18)
+    plt.title(f'{dataset_name}: TabPFN Macro Precision & Recall vs m', fontsize=20)
     plt.grid(True, alpha=0.3)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.legend(fontsize=12)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=14, loc='upper right')
     plt.tight_layout()
     plt.savefig(f'figures/confusion_matrix_analysis/{dataset_name}_macro_precision_recall_vs_m.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -522,13 +522,13 @@ def plot_class_distribution(dataset_name, class_distributions):
         values = [percentages[n][cls] for n in n_bins_values]
         plt.bar(x + i*width - width*1.5, values, width, label=f'Class {cls}', color=color)
 
-    plt.xlabel('Number of Grid Points (m)', fontsize=14)
-    plt.ylabel('Percentage (%)', fontsize=14)
-    plt.title(f'{dataset_name}: Training Set Class Distribution vs m', fontsize=16)
-    plt.xticks(x, n_bins_values, fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.xlabel('Number of Grid Points (m)', fontsize=18)
+    plt.ylabel('Percentage (%)', fontsize=16)
+    plt.title(f'{dataset_name}: Training Set Class Distribution vs m', fontsize=18)
+    plt.xticks(x, n_bins_values, fontsize=14)
+    plt.yticks(fontsize=14)
     plt.grid(True, alpha=0.3, axis='y')
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=14, loc='upper right')
     plt.tight_layout()
     
     # Save plot
