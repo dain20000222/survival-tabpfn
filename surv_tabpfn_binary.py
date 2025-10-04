@@ -69,7 +69,10 @@ def km_quantile_cuts(durations: np.ndarray, events: np.ndarray, num: int, min_=0
 def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
     """
     Construct TabPFN training dataset using binary classification approach.
-    Include patient's own horizon in addition to KM cuts.
+    Include patient's own horizon in addition to provided time points.
+    
+    Args:
+        cuts: Time points to evaluate at (can be KM cuts or eval_times)
     """
     # Extract event/censoring times and status
     T = y_train["time"]
@@ -84,7 +87,7 @@ def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
         delta_i = delta[i]
         x_i = x_train_imputed.iloc[i].values
         
-        # Add subject's own time to KM cuts
+        # Add subject's own time to provided time points
         horizons = np.append(cuts.copy(), T_i)
         horizons.sort()
         
@@ -221,9 +224,9 @@ for file_name in dataset_files:
                     print(f"⚠️ Skipping n_bins={n_bins}: non-unique KM cuts.")
                     continue
 
-                # Train binary model
+                # Train binary model using eval_times (unified with test)
                 X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
-                    x_train_imputed, y_train, cuts=cuts
+                    x_train_imputed, y_train, cuts=eval_times
                 )
                 
                 tabpfn_model = TabPFNClassifier(
@@ -250,8 +253,9 @@ for file_name in dataset_files:
                 S = 1 - F
                 S = np.minimum.accumulate(S, axis=1)
                 
-                # Calculate risk scores using cumulative hazard
+                # Calculate time-dependent risk scores using cumulative hazard
                 H = -np.log(S)
+                # Use last time point for validation ranking
                 risk_scores = H[:, -1]
 
                 # Validation C-index
@@ -309,9 +313,9 @@ for file_name in dataset_files:
             dtype="float64",
         )
 
-        # Train final binary model using best configuration
+        # Train final binary model using eval_times (unified with test)
         X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
-            x_trainval_imputed, y_trainval, cuts=cuts
+            x_trainval_imputed, y_trainval, cuts=eval_times
         )
 
         tabpfn_model = TabPFNClassifier(
@@ -338,19 +342,21 @@ for file_name in dataset_files:
         S = 1 - F
         S = np.minimum.accumulate(S, axis=1)
 
-        # Calculate risk scores
+        # Calculate time-dependent risk scores using cumulative hazard
         H = -np.log(S)
-        risk_scores = H[:, -1]
+        # For C-index, use the last time point for ranking
+        risk_scores_ranking = H[:, -1]
 
         # Final metrics on test set
         c_index, *_ = concordance_index_censored(
             y_test_filtered["event"], 
             y_test_filtered["time"], 
-            risk_scores
+            risk_scores_ranking
         )
         ibs = integrated_brier_score(y_trainval, y_test_filtered, S, eval_times)
+        # For AUC, use time-dependent risk scores (2D array: n_samples x n_times)
         _, mean_auc = cumulative_dynamic_auc(
-            y_trainval, y_test_filtered, risk_scores, eval_times
+            y_trainval, y_test_filtered, H, eval_times
         )
 
         best_row = {
