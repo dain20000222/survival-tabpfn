@@ -2,550 +2,349 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import wilcoxon
+from scipy import stats
+import warnings
+warnings.filterwarnings("ignore")
 
-def load_and_prepare_data():
-    """Load baseline and TabPFN results and prepare for comparison."""
-    # Load baseline results
-    baseline_df = pd.read_csv('baseline_evaluation.csv')
-    
-    # Load TabPFN results
-    tabpfn_df = pd.read_csv('tabpfn_evaluation.csv')
-    
-    # Rename columns to be consistent
-    tabpfn_df = tabpfn_df.rename(columns={
-        'dataset': 'dataset_name',
-        'c_index': 'tabpfn_c_index',
-        'ibs': 'tabpfn_ibs',
-        'mean_auc': 'tabpfn_mean_auc'
-    })
-    
-    # Merge datasets on dataset name
-    merged_df = pd.merge(baseline_df, tabpfn_df[['dataset_name', 'tabpfn_c_index', 'tabpfn_ibs', 'tabpfn_mean_auc']], 
-                        on='dataset_name', how='inner')
-    
-    print(f"Successfully merged {len(merged_df)} datasets")
-    return merged_df
+def load_and_clean_data(binary_file="tabpfn_binary_evaluation.csv", 
+                       multiclass_file="tabpfn_evaluation.csv"):
+    """Load and clean the evaluation results from both approaches."""
+    try:
+        # Load the CSV files
+        binary_df = pd.read_csv(binary_file)
+        multiclass_df = pd.read_csv(multiclass_file)
+        
+        # Add approach column
+        binary_df['approach'] = 'Binary'
+        multiclass_df['approach'] = 'Multi-class (A/B/C/D)'
+        
+        # Merge on dataset name to ensure we compare the same datasets
+        merged = pd.merge(binary_df, multiclass_df, on='dataset', suffixes=('_binary', '_multiclass'))
+        
+        print(f"Loaded data for {len(merged)} datasets")
+        print(f"Binary approach datasets: {len(binary_df)}")
+        print(f"Multi-class approach datasets: {len(multiclass_df)}")
+        print(f"Common datasets for comparison: {len(merged)}")
+        
+        return binary_df, multiclass_df, merged
+        
+    except FileNotFoundError as e:
+        print(f"Error: Could not find file {e}")
+        return None, None, None
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return None, None, None
 
-def create_evaluation_metrics_table(df):
-    """Create comprehensive evaluation metrics table for all models per dataset."""
-    # Select relevant columns and rename for clarity
-    eval_columns = ['dataset_name']
-    
-    # Add baseline model columns with proper names
-    model_mapping = {
-        'rsf': 'RSF',
-        'cph': 'CoxPH', 
-        'dh': 'DeepHit',
-        'ds': 'DeepSurv'
-    }
+def statistical_comparison(merged_df):
+    """Perform statistical comparison between approaches."""
+    print("\n" + "="*60)
+    print("STATISTICAL COMPARISON")
+    print("="*60)
     
     metrics = ['c_index', 'ibs', 'mean_auc']
-    
-    # Reorganize data for better readability
-    results = []
-    for idx, row in df.iterrows():
-        dataset = row['dataset_name']
-        
-        # Create base row
-        base_row = {'dataset': dataset}
-        
-        # Add baseline models
-        for model_key, model_name in model_mapping.items():
-            for metric in metrics:
-                col_name = f"{model_key}_{metric}"
-                if col_name in df.columns:
-                    base_row[f"{model_name}_{metric}"] = row[col_name]
-        
-        # Add TabPFN
-        for metric in metrics:
-            tabpfn_col = f"tabpfn_{metric}"
-            if tabpfn_col in df.columns:
-                base_row[f"TabPFN_{metric}"] = row[tabpfn_col]
-        
-        results.append(base_row)
-    
-    return pd.DataFrame(results)
-
-def rank_models_per_dataset(df):
-    """Rank models for each dataset and metric."""
-    results = []
-    
-    # Define metrics and their optimization direction (True = higher is better, False = lower is better)
-    metrics = {
-        'c_index': True,     # Higher is better
-        'ibs': False,        # Lower is better  
-        'mean_auc': True     # Higher is better
-    }
-    
-    # Define baseline models with proper names
-    baseline_models = {
-        'rsf': 'RSF',
-        'cph': 'CoxPH', 
-        'dh': 'DeepHit',
-        'ds': 'DeepSurv'
-    }
-    
-    for idx, row in df.iterrows():
-        dataset_name = row['dataset_name']
-        
-        for metric, higher_is_better in metrics.items():
-            # Collect values for all models
-            model_values = {}
-            
-            # Baseline models
-            for model_key, model_name in baseline_models.items():
-                col_name = f"{model_key}_{metric}"
-                if col_name in df.columns:
-                    model_values[model_name] = row[col_name]
-            
-            # TabPFN model
-            tabpfn_col = f"tabpfn_{metric}"
-            if tabpfn_col in df.columns:
-                model_values['TabPFN'] = row[tabpfn_col]
-            
-            # Rank models (1 = best, 5 = worst for 5 models)
-            if higher_is_better:
-                # Sort descending (highest value gets rank 1)
-                sorted_models = sorted(model_values.items(), key=lambda x: x[1], reverse=True)
-            else:
-                # Sort ascending (lowest value gets rank 1)
-                sorted_models = sorted(model_values.items(), key=lambda x: x[1])
-            
-            # Assign ranks
-            for rank, (model, value) in enumerate(sorted_models, 1):
-                results.append({
-                    'dataset': dataset_name,
-                    'metric': metric,
-                    'model': model,
-                    'value': value,
-                    'rank': rank
-                })
-    
-    return pd.DataFrame(results)
-
-def create_ranking_table_per_dataset(rankings_df):
-    """Create ranking table showing ranks for all models per dataset."""
-    # Pivot the rankings to show models as columns
-    ranking_results = []
-    
-    datasets = rankings_df['dataset'].unique()
-    metrics = rankings_df['metric'].unique()
-    models = rankings_df['model'].unique()
-    
-    for dataset in datasets:
-        for metric in metrics:
-            metric_data = rankings_df[(rankings_df['dataset'] == dataset) & 
-                                    (rankings_df['metric'] == metric)]
-            
-            row = {'dataset': dataset, 'metric': metric}
-            for _, model_row in metric_data.iterrows():
-                row[f"{model_row['model']}_rank"] = model_row['rank']
-                row[f"{model_row['model']}_value"] = round(model_row['value'], 4)
-            
-            ranking_results.append(row)
-    
-    return pd.DataFrame(ranking_results)
-
-def calculate_average_ranks(rankings_df):
-    """Calculate average rank for each model across all datasets for each metric."""
-    avg_ranks = rankings_df.groupby(['metric', 'model'])['rank'].agg(['mean', 'std', 'count']).round(3)
-    avg_ranks.columns = ['avg_rank', 'std_rank', 'count']
-    avg_ranks = avg_ranks.reset_index()
-    
-    return avg_ranks
-
-def perform_wilcoxon_tests(df):
-    """Perform Wilcoxon signed-rank tests comparing TabPFN vs baseline models."""
-    baseline_models = {
-        'rsf': 'RSF',
-        'cph': 'CoxPH', 
-        'dh': 'DeepHit',
-        'ds': 'DeepSurv'
-    }
-    metrics = ['c_index', 'ibs', 'mean_auc']
-    
-    wilcoxon_results = []
+    results = {}
     
     for metric in metrics:
-        higher_is_better = metric != 'ibs'  # IBS: lower is better
+        binary_values = merged_df[f'{metric}_binary']
+        multiclass_values = merged_df[f'{metric}_multiclass']
         
-        for baseline_key, baseline_name in baseline_models.items():
-            # Get paired values (remove NaN pairs)
-            tabpfn_vals = []
-            baseline_vals = []
-            
-            for idx, row in df.iterrows():
-                tabpfn_val = row[f'tabpfn_{metric}']
-                baseline_val = row[f'{baseline_key}_{metric}']
-                
-                if not (pd.isna(tabpfn_val) or pd.isna(baseline_val)):
-                    tabpfn_vals.append(tabpfn_val)
-                    baseline_vals.append(baseline_val)
-            
-            if len(tabpfn_vals) < 5:  # Need at least 5 pairs for meaningful test
-                wilcoxon_results.append({
-                    'metric': metric,
-                    'baseline_model': baseline_name,
-                    'n_pairs': len(tabpfn_vals),
-                    'statistic': np.nan,
-                    'p_value': np.nan,
-                    'effect_size': np.nan,
-                    'interpretation': 'Insufficient data'
-                })
-                continue
-            
-            tabpfn_vals = np.array(tabpfn_vals)
-            baseline_vals = np.array(baseline_vals)
-            
-            # For IBS (lower is better), we want to test if TabPFN < baseline
-            # For other metrics (higher is better), we want to test if TabPFN > baseline
-            if higher_is_better:
-                differences = tabpfn_vals - baseline_vals  # Positive = TabPFN better
-            else:
-                differences = baseline_vals - tabpfn_vals  # Positive = TabPFN better
-            
-            # Perform Wilcoxon signed-rank test
-            try:
-                statistic, p_value = wilcoxon(differences, alternative='greater')
-                
-                # Calculate effect size (r = Z / sqrt(N))
-                # Z-score approximation for large samples
-                n = len(differences)
-                mean_rank = n * (n + 1) / 4
-                var_rank = n * (n + 1) * (2 * n + 1) / 24
-                z_score = (statistic - mean_rank) / np.sqrt(var_rank)
-                effect_size = abs(z_score) / np.sqrt(n)
-                
-                # Interpretation
-                if p_value < 0.001:
-                    significance = "***"
-                elif p_value < 0.01:
-                    significance = "**"
-                elif p_value < 0.05:
-                    significance = "*"
-                elif p_value < 0.1:
-                    significance = "."
-                else:
-                    significance = ""
-                
-                if p_value < 0.05:
-                    if higher_is_better:
-                        interpretation = f"TabPFN significantly better {significance}"
-                    else:
-                        interpretation = f"TabPFN significantly better {significance}"
-                else:
-                    interpretation = f"No significant difference {significance}"
-                
-            except ValueError as e:
-                # Handle case where all differences are zero
-                statistic = np.nan
-                p_value = 1.0
-                effect_size = 0.0
-                interpretation = "No differences"
-            
-            wilcoxon_results.append({
-                'metric': metric,
-                'baseline_model': baseline_name,
-                'n_pairs': len(tabpfn_vals),
-                'statistic': statistic,
-                'p_value': p_value,
-                'effect_size': effect_size,
-                'interpretation': interpretation,
-                'median_diff': np.median(differences),
-                'mean_diff': np.mean(differences)
-            })
+        # Paired t-test (since we're comparing same datasets)
+        statistic, p_value = stats.ttest_rel(binary_values, multiclass_values)
+        
+        # Wilcoxon signed-rank test (non-parametric alternative)
+        w_statistic, w_p_value = stats.wilcoxon(binary_values, multiclass_values, alternative='two-sided')
+        
+        # Effect size (Cohen's d for paired samples)
+        diff = binary_values - multiclass_values
+        pooled_std = np.sqrt((binary_values.var() + multiclass_values.var()) / 2)
+        cohens_d = diff.mean() / pooled_std if pooled_std > 0 else 0
+        
+        # Count wins
+        binary_wins = (binary_values > multiclass_values).sum()
+        multiclass_wins = (multiclass_values > binary_values).sum()
+        ties = (binary_values == multiclass_values).sum()
+        
+        # For IBS, lower is better, so flip the comparison
+        if metric == 'ibs':
+            binary_wins = (binary_values < multiclass_values).sum()
+            multiclass_wins = (multiclass_values < binary_values).sum()
+            better_approach = "Binary" if diff.mean() < 0 else "Multi-class"
+        else:
+            better_approach = "Binary" if diff.mean() > 0 else "Multi-class"
+        
+        results[metric] = {
+            'binary_mean': binary_values.mean(),
+            'multiclass_mean': multiclass_values.mean(),
+            'difference_mean': diff.mean(),
+            'difference_std': diff.std(),
+            't_statistic': statistic,
+            'p_value': p_value,
+            'w_statistic': w_statistic,
+            'w_p_value': w_p_value,
+            'cohens_d': cohens_d,
+            'binary_wins': binary_wins,
+            'multiclass_wins': multiclass_wins,
+            'ties': ties,
+            'better_approach': better_approach
+        }
+        
+        print(f"\n{metric.upper()} (Higher is better{'*' if metric != 'ibs' else ' - LOWER IS BETTER*'}):")
+        print(f"  Binary mean:      {binary_values.mean():.4f} ± {binary_values.std():.4f}")
+        print(f"  Multi-class mean: {multiclass_values.mean():.4f} ± {multiclass_values.std():.4f}")
+        print(f"  Difference:       {diff.mean():.4f} ± {diff.std():.4f}")
+        print(f"  Better approach:  {better_approach}")
+        print(f"  Wins: Binary={binary_wins}, Multi-class={multiclass_wins}, Ties={ties}")
+        print(f"  Paired t-test:    t={statistic:.3f}, p={p_value:.4f}")
+        print(f"  Wilcoxon test:    W={w_statistic:.1f}, p={w_p_value:.4f}")
+        print(f"  Effect size (d):  {cohens_d:.3f}")
+        
+        # Interpret effect size
+        if abs(cohens_d) < 0.2:
+            effect_interpretation = "negligible"
+        elif abs(cohens_d) < 0.5:
+            effect_interpretation = "small"
+        elif abs(cohens_d) < 0.8:
+            effect_interpretation = "medium"
+        else:
+            effect_interpretation = "large"
+        print(f"  Effect size:      {effect_interpretation}")
     
-    return pd.DataFrame(wilcoxon_results)
+    return results
 
-def plot_wilcoxon_results(wilcoxon_df):
-    """Create visualization of Wilcoxon signed-rank test results."""
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-    metrics = ['c_index', 'ibs', 'mean_auc']
-    metric_titles = ['C-Index', 'IBS', 'Mean AUC']
-    
-    # Define consistent model colors and order
-    model_order = ['CoxPH', 'RSF', 'DeepHit', 'DeepSurv']  # Only baseline models for Wilcoxon
-    model_colors = {
-        'RSF': '#D79B00',
-        'CoxPH': '#82B366', 
-        'DeepHit': '#B85450',
-        'DeepSurv': '#9673A6',
-        'TabPFN': '#6C8EBF'
-    }
-    
-    for i, (metric, title) in enumerate(zip(metrics, metric_titles)):
-        data = wilcoxon_df[wilcoxon_df['metric'] == metric].copy()
-        
-        # Reorder data according to model_order
-        data['baseline_model'] = pd.Categorical(data['baseline_model'], categories=model_order, ordered=True)
-        data = data.sort_values('baseline_model')
-        
-        # Use model-specific colors
-        colors = []
-        for _, row in data.iterrows():
-            baseline_model = row['baseline_model']
-            colors.append(model_colors.get(baseline_model, 'gray'))
-        
-        # Plot -log10(p-value) for better visualization
-        log_p_values = [-np.log10(p) if not pd.isna(p) and p > 0 else 0 for p in data['p_value']]
-        
-        bars = axes[i].bar(data['baseline_model'], log_p_values, color=colors)
-        axes[i].set_title(f'Wilcoxon Test Results\n{title}', fontsize=18, fontweight='bold')
-        axes[i].set_ylabel('-log10(p-value)', fontsize=16)
-        axes[i].set_xlabel('Baseline Model', fontsize=16)
-        
-        # Add significance lines
-        axes[i].axhline(y=-np.log10(0.05), color='black', linestyle='--', alpha=0.7, label='p=0.05')
-        axes[i].axhline(y=-np.log10(0.01), color='black', linestyle=':', alpha=0.7, label='p=0.01')
-        
-        # Set y-axis limits to accommodate text labels
-        max_height = max(log_p_values) if log_p_values else 1
-        axes[i].set_ylim(0, max_height * 1.3)  # Add 30% padding for text labels
-        
-        # Add value labels on bars with adjusted positioning
-        for bar, p_val, interpretation in zip(bars, data['p_value'], data['interpretation']):
-            if not pd.isna(p_val):
-                # Position text inside the bar if it's tall, otherwise above
-                text_y = min(bar.get_height() * 0.9, bar.get_height() - 0.1) if bar.get_height() > max_height * 0.7 else bar.get_height() + max_height * 0.05
-                text_color = 'white' if bar.get_height() > max_height * 0.7 else 'black'
-                
-                axes[i].text(bar.get_x() + bar.get_width()/2, text_y,
-                           f'p={p_val:.3f}', ha='center', va='center' if bar.get_height() > max_height * 0.7 else 'bottom', 
-                           fontsize=12, rotation=0, color=text_color, fontweight='bold')
-        
-        axes[i].legend(fontsize=14)
-        axes[i].tick_params(axis='x', rotation=45, labelsize=14)
-        axes[i].tick_params(axis='y', labelsize=14)
-    
-    plt.tight_layout()
-    plt.savefig('./figures/wilcoxon_test_results.png', dpi=300, bbox_inches='tight')
-    plt.show()
-
-def plot_effect_sizes(wilcoxon_df):
-    """Create visualization of effect sizes from Wilcoxon tests."""
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-    metrics = ['c_index', 'ibs', 'mean_auc']
-    metric_titles = ['C-Index', 'IBS', 'Mean AUC']
-    
-    # Define consistent model colors and order
-    model_order = ['CoxPH', 'RSF', 'DeepHit', 'DeepSurv']  # Only baseline models for Wilcoxon
-    model_colors = {
-        'RSF': '#D79B00',
-        'CoxPH': '#82B366', 
-        'DeepHit': '#B85450',
-        'DeepSurv': '#9673A6',
-        'TabPFN': '#6C8EBF'
-    }
-    
-    for i, (metric, title) in enumerate(zip(metrics, metric_titles)):
-        data = wilcoxon_df[wilcoxon_df['metric'] == metric].copy()
-        
-        # Reorder data according to model_order
-        data['baseline_model'] = pd.Categorical(data['baseline_model'], categories=model_order, ordered=True)
-        data = data.sort_values('baseline_model')
-        
-        # Use model-specific colors
-        colors = []
-        for _, row in data.iterrows():
-            baseline_model = row['baseline_model']
-            colors.append(model_colors.get(baseline_model, 'gray'))
-        
-        bars = axes[i].bar(data['baseline_model'], data['effect_size'], color=colors)
-        axes[i].set_title(f'Effect Sizes (r)\n{title}', fontsize=18, fontweight='bold')
-        axes[i].set_ylabel('Effect Size (r)', fontsize=16)
-        axes[i].set_xlabel('Baseline Model', fontsize=16)
-        
-        # Add effect size interpretation lines
-        axes[i].axhline(y=0.1, color='gray', linestyle='--', alpha=0.7, label='Small (0.1)')
-        axes[i].axhline(y=0.3, color='gray', linestyle='--', alpha=0.7, label='Medium (0.3)')
-        axes[i].axhline(y=0.5, color='gray', linestyle='--', alpha=0.7, label='Large (0.5)')
-        
-        # Add value labels on bars
-        for bar, effect_size in zip(bars, data['effect_size']):
-            if not pd.isna(effect_size):
-                axes[i].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                           f'{effect_size:.3f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
-        
-        axes[i].legend(fontsize=14)
-        axes[i].tick_params(axis='x', rotation=45, labelsize=14)
-        axes[i].tick_params(axis='y', labelsize=14)
-        axes[i].set_ylim(0, max(0.6, data['effect_size'].max() * 1.1) if not data['effect_size'].isna().all() else 0.6)
-    
-    plt.tight_layout()
-    plt.savefig('./figures/wilcoxon_effect_sizes.png', dpi=300, bbox_inches='tight')
-    plt.show()
-
-def plot_average_ranks(avg_ranks_df):
-    """Create visualization of average ranks with standard deviations and save each metric separately."""
-    metrics = ['c_index', 'ibs', 'mean_auc']
-    metric_titles = ['C-Index', 'IBS', 'Mean AUC']
-    
-    # Define model order and colors with specified hex codes
-    model_order = ['CoxPH', 'RSF', 'DeepHit', 'DeepSurv', 'TabPFN']
-    model_colors = {
-        'RSF': '#D79B00',
-        'CoxPH': '#82B366', 
-        'DeepHit': '#B85450',
-        'DeepSurv': '#9673A6',
-        'TabPFN': '#6C8EBF'
-    }
-    
-    # Create individual plots for each metric
-    for i, (metric, title) in enumerate(zip(metrics, metric_titles)):
-        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-        
-        data = avg_ranks_df[avg_ranks_df['metric'] == metric].copy()
-        data['model'] = pd.Categorical(data['model'], categories=model_order, ordered=True)
-        data = data.sort_values('model')
-        
-        # Use consistent model colors
-        colors = [model_colors.get(model, 'gray') for model in data['model']]
-        
-        # Create bars with error bars (standard deviations)
-        bars = ax.bar(data['model'], data['avg_rank'], 
-                     yerr=data['std_rank'], 
-                     color=colors, 
-                     alpha=0.7,
-                     capsize=5,
-                     error_kw={'ecolor': 'black', 'capthick': 2})
-        
-        ax.set_title(f'{title} - Average Rank ± Standard Deviation', fontsize=20, fontweight='bold')
-        ax.set_ylabel('Average Rank', fontsize=18)
-        ax.set_xlabel('Model', fontsize=18)
-        ax.tick_params(axis='x', rotation=45, labelsize=16)
-        ax.tick_params(axis='y', labelsize=16)
-        
-        # Add value labels on bars with std dev
-        for bar, avg_rank, std_rank in zip(bars, data['avg_rank'], data['std_rank']):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + std_rank + 0.1,
-                   f'{avg_rank:.2f}±{std_rank:.2f}', ha='center', va='bottom', 
-                   fontweight='bold', fontsize=14)
-        
-        # Add horizontal line at rank 3 (middle rank for 5 models)
-        ax.axhline(y=3, color='gray', linestyle='--', alpha=0.7, label='Middle Rank (3.0)')
-        ax.legend(fontsize=16)
-        ax.set_ylim(0, 6.0)  # Increased to accommodate error bars
-        
-        plt.tight_layout()
-        plt.savefig(f'./figures/{metric}_ranking.png', dpi=300, bbox_inches='tight')
-        plt.close()
-
-def main():
-    print("Loading and preparing data...")
-    df = load_and_prepare_data()
-    
-    print("\nCreating evaluation metrics table...")
-    eval_metrics_df = create_evaluation_metrics_table(df)
-    
-    print("\nRanking models for each dataset and metric...")
-    rankings_df = rank_models_per_dataset(df)
-    
-    print("\nCreating ranking table per dataset...")
-    ranking_table_df = create_ranking_table_per_dataset(rankings_df)
-    
-    print("\nCalculating average ranks...")
-    avg_ranks = calculate_average_ranks(rankings_df)
-    
-    # Save the two main result files requested
-    print("\nSaving main result files...")
-    eval_metrics_df.to_csv('evaluation_results.csv', index=False)
-    ranking_table_df.to_csv('ranking_results.csv', index=False)
-
-    print("\n" + "="*60)
-    print("AVERAGE RANKS BY MODEL AND METRIC")
-    print("="*60)
-    
-    for metric in ['c_index', 'ibs', 'mean_auc']:
-        print(f"\n{metric.upper()} Rankings:")
-        metric_data = avg_ranks[avg_ranks['metric'] == metric].sort_values('avg_rank')
-        print(metric_data.to_string(index=False))
-    
-    print("\n" + "="*60)
-    print("WILCOXON SIGNED-RANK TEST RESULTS")
-    print("="*60)
-    
-    wilcoxon_df = perform_wilcoxon_tests(df)
-    
-    for metric in ['c_index', 'ibs', 'mean_auc']:
-        print(f"\n{metric.upper()}:")
-        metric_data = wilcoxon_df[wilcoxon_df['metric'] == metric]
-        display_cols = ['baseline_model', 'n_pairs', 'p_value', 'effect_size', 'median_diff', 'interpretation']
-        print(metric_data[display_cols].to_string(index=False))
-    
-    print("\n" + "="*60)
-    print("STATISTICAL SIGNIFICANCE SUMMARY")
-    print("="*60)
-    
-    # Count significant results
-    sig_results = wilcoxon_df[wilcoxon_df['p_value'] < 0.05]
-    print(f"\nSignificant results (p < 0.05): {len(sig_results)}/{len(wilcoxon_df)}")
-    
-    if len(sig_results) > 0:
-        print("\nSignificant comparisons:")
-        for _, row in sig_results.iterrows():
-            print(f"  {row['metric']} - TabPFN vs {row['baseline_model']}: "
-                  f"p={row['p_value']:.4f}, effect size={row['effect_size']:.3f}")
-    
-    # Effect size summary
-    print(f"\nEffect size summary:")
-    print(f"  Large effects (r ≥ 0.5): {len(wilcoxon_df[wilcoxon_df['effect_size'] >= 0.5])}")
-    print(f"  Medium effects (0.3 ≤ r < 0.5): {len(wilcoxon_df[(wilcoxon_df['effect_size'] >= 0.3) & (wilcoxon_df['effect_size'] < 0.5)])}")
-    print(f"  Small effects (0.1 ≤ r < 0.3): {len(wilcoxon_df[(wilcoxon_df['effect_size'] >= 0.1) & (wilcoxon_df['effect_size'] < 0.3)])}")
-    print(f"  Negligible effects (r < 0.1): {len(wilcoxon_df[wilcoxon_df['effect_size'] < 0.1])}")
-    
+def summary_statistics(binary_df, multiclass_df, merged_df):
+    """Print summary statistics for both approaches."""
     print("\n" + "="*60)
     print("SUMMARY STATISTICS")
     print("="*60)
     
-    # Overall ranking summary with standard deviations
-    overall_avg_rank = avg_ranks.groupby('model').agg({
-        'avg_rank': 'mean',
-        'std_rank': 'mean'
-    }).round(3)
-    overall_avg_rank = overall_avg_rank.sort_values('avg_rank')
+    print("\nBinary Classification Approach:")
+    print(binary_df[['c_index', 'ibs', 'mean_auc']].describe())
     
-    print("\nOverall Average Rank Across All Metrics (Mean ± Std):")
-    for model, stats in overall_avg_rank.iterrows():
-        print(f"{model:10s}: {stats['avg_rank']:.3f} ± {stats['std_rank']:.3f}")
+    print("\nMulti-class (A/B/C/D) Classification Approach:")
+    print(multiclass_df[['c_index', 'ibs', 'mean_auc']].describe())
     
-    # Best performing model for each metric with confidence
-    print("\nBest Model by Metric (lowest average rank ± std):")
+    print(f"\nHyperparameter Selection (n_bins):")
+    print("Binary approach n_bins distribution:")
+    print(binary_df['n_bins'].value_counts().sort_index())
+    print("\nMulti-class approach n_bins distribution:")
+    print(multiclass_df['n_bins'].value_counts().sort_index())
+
+def create_visualizations(merged_df, save_plots=True):
+    """Create visualization plots comparing the approaches."""
+    print("\n" + "="*60)
+    print("CREATING VISUALIZATIONS")
+    print("="*60)
+    
+    # Set up the plotting style
+    plt.style.use('default')
+    sns.set_palette("husl")
+    
+    # 1. Paired comparison plots
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig.suptitle('Performance Comparison: Binary vs Multi-class Classification', fontsize=16, fontweight='bold')
+    
+    metrics = ['c_index', 'ibs', 'mean_auc']
+    titles = ['C-Index (Higher is Better)', 'Integrated Brier Score (Lower is Better)', 'Mean AUC (Higher is Better)']
+    
+    # Scatter plots
+    for i, (metric, title) in enumerate(zip(metrics, titles)):
+        ax = axes[i//2, i%2]
+        
+        x = merged_df[f'{metric}_multiclass']
+        y = merged_df[f'{metric}_binary']
+        
+        ax.scatter(x, y, alpha=0.7, s=60)
+        
+        # Add diagonal line (equal performance)
+        min_val = min(x.min(), y.min())
+        max_val = max(x.max(), y.max())
+        ax.plot([min_val, max_val], [min_val, max_val], 'r--', alpha=0.7, label='Equal Performance')
+        
+        ax.set_xlabel(f'Multi-class {metric.replace("_", " ").title()}')
+        ax.set_ylabel(f'Binary {metric.replace("_", " ").title()}')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Add dataset labels for extreme points
+        diff = y - x
+        if metric == 'ibs':  # For IBS, we want lowest values
+            extreme_idx = diff.abs().nlargest(3).index
+        else:  # For C-index and AUC, we want highest values
+            extreme_idx = diff.abs().nlargest(3).index
+        
+        for idx in extreme_idx:
+            ax.annotate(merged_df.loc[idx, 'dataset'], 
+                       (x.loc[idx], y.loc[idx]), 
+                       xytext=(5, 5), textcoords='offset points', 
+                       fontsize=8, alpha=0.8)
+    
+    # 4. Distribution comparison
+    ax = axes[1, 1]
+    
+    # Create difference plot
+    differences = []
+    for metric in metrics:
+        diff = merged_df[f'{metric}_binary'] - merged_df[f'{metric}_multiclass']
+        if metric == 'ibs':  # For IBS, negative difference means binary is better
+            diff = -diff
+        differences.extend(diff.tolist())
+        
+    metric_labels = []
+    for metric in metrics:
+        metric_labels.extend([metric.replace('_', ' ').title()] * len(merged_df))
+    
+    diff_df = pd.DataFrame({
+        'Difference (Binary - Multi-class)': differences,
+        'Metric': metric_labels
+    })
+    
+    sns.boxplot(data=diff_df, x='Metric', y='Difference (Binary - Multi-class)', ax=ax)
+    ax.axhline(y=0, color='r', linestyle='--', alpha=0.7)
+    ax.set_title('Performance Differences Distribution')
+    ax.tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig('performance_comparison_scatter.png', dpi=300, bbox_inches='tight')
+        print("Saved: performance_comparison_scatter.png")
+    plt.show()
+    
+    # 2. Dataset-wise comparison
+    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    
+    # Calculate overall score for ranking
+    merged_df_viz = merged_df.copy()
+    
+    # Normalize metrics for fair comparison (0-1 scale)
+    for approach in ['binary', 'multiclass']:
+        merged_df_viz[f'c_index_norm_{approach}'] = merged_df_viz[f'c_index_{approach}']
+        merged_df_viz[f'mean_auc_norm_{approach}'] = merged_df_viz[f'mean_auc_{approach}']
+        # For IBS, lower is better, so we invert it
+        merged_df_viz[f'ibs_norm_{approach}'] = 1 - (merged_df_viz[f'ibs_{approach}'] - merged_df_viz[f'ibs_{approach}'].min()) / (merged_df_viz[f'ibs_{approach}'].max() - merged_df_viz[f'ibs_{approach}'].min())
+    
+    # Calculate composite scores
+    merged_df_viz['score_binary'] = (merged_df_viz['c_index_norm_binary'] + 
+                                   merged_df_viz['mean_auc_norm_binary'] + 
+                                   merged_df_viz['ibs_norm_binary']) / 3
+    
+    merged_df_viz['score_multiclass'] = (merged_df_viz['c_index_norm_multiclass'] + 
+                                       merged_df_viz['mean_auc_norm_multiclass'] + 
+                                       merged_df_viz['ibs_norm_multiclass']) / 3
+    
+    merged_df_viz['score_diff'] = merged_df_viz['score_binary'] - merged_df_viz['score_multiclass']
+    merged_df_viz_sorted = merged_df_viz.sort_values('score_diff')
+    
+    colors = ['red' if x < 0 else 'blue' for x in merged_df_viz_sorted['score_diff']]
+    
+    bars = ax.barh(range(len(merged_df_viz_sorted)), merged_df_viz_sorted['score_diff'], color=colors, alpha=0.7)
+    ax.set_yticks(range(len(merged_df_viz_sorted)))
+    ax.set_yticklabels(merged_df_viz_sorted['dataset'], fontsize=8)
+    ax.set_xlabel('Composite Score Difference (Binary - Multi-class)')
+    ax.set_title('Dataset-wise Performance Comparison\n(Positive: Binary Better, Negative: Multi-class Better)')
+    ax.axvline(x=0, color='black', linestyle='-', alpha=0.8)
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig('dataset_wise_comparison.png', dpi=300, bbox_inches='tight')
+        print("Saved: dataset_wise_comparison.png")
+    plt.show()
+
+def detailed_analysis(merged_df):
+    """Provide detailed analysis of specific cases."""
+    print("\n" + "="*60)
+    print("DETAILED ANALYSIS")
+    print("="*60)
+    
+    # Find datasets where one approach significantly outperforms the other
+    metrics = ['c_index', 'ibs', 'mean_auc']
+    
+    print("\nDatasets where Binary Classification significantly outperforms Multi-class:")
+    for metric in metrics:
+        diff = merged_df[f'{metric}_binary'] - merged_df[f'{metric}_multiclass']
+        if metric == 'ibs':  # For IBS, lower is better
+            diff = -diff
+        
+        # Find top 3 improvements
+        top_improvements = diff.nlargest(3)
+        print(f"\n{metric.upper()}:")
+        for idx in top_improvements.index:
+            dataset = merged_df.loc[idx, 'dataset']
+            binary_val = merged_df.loc[idx, f'{metric}_binary']
+            multi_val = merged_df.loc[idx, f'{metric}_multiclass']
+            improvement = top_improvements.loc[idx]
+            print(f"  {dataset}: Binary={binary_val:.4f}, Multi-class={multi_val:.4f}, Diff={improvement:.4f}")
+    
+    print("\nDatasets where Multi-class Classification significantly outperforms Binary:")
+    for metric in metrics:
+        diff = merged_df[f'{metric}_multiclass'] - merged_df[f'{metric}_binary']
+        if metric == 'ibs':  # For IBS, lower is better
+            diff = -diff
+        
+        # Find top 3 improvements
+        top_improvements = diff.nlargest(3)
+        print(f"\n{metric.upper()}:")
+        for idx in top_improvements.index:
+            dataset = merged_df.loc[idx, 'dataset']
+            binary_val = merged_df.loc[idx, f'{metric}_binary']
+            multi_val = merged_df.loc[idx, f'{metric}_multiclass']
+            improvement = top_improvements.loc[idx]
+            print(f"  {dataset}: Binary={binary_val:.4f}, Multi-class={multi_val:.4f}, Diff={improvement:.4f}")
+
+def main():
+    """Main function to run the complete comparison analysis."""
+    print("="*60)
+    print("TABPFN SURVIVAL ANALYSIS: BINARY vs MULTI-CLASS COMPARISON")
+    print("="*60)
+    
+    # Load data
+    binary_df, multiclass_df, merged_df = load_and_clean_data()
+    
+    if merged_df is None or len(merged_df) == 0:
+        print("Error: Could not load or merge data. Please check that both CSV files exist.")
+        return
+    
+    # Run analyses
+    summary_statistics(binary_df, multiclass_df, merged_df)
+    statistical_results = statistical_comparison(merged_df)
+    detailed_analysis(merged_df)
+    create_visualizations(merged_df, save_plots=True)
+    
+    # Final summary
+    print("\n" + "="*60)
+    print("FINAL SUMMARY")
+    print("="*60)
+    
+    binary_wins = 0
+    multiclass_wins = 0
+    
     for metric in ['c_index', 'ibs', 'mean_auc']:
-        metric_data = avg_ranks[avg_ranks['metric'] == metric]
-        best_idx = metric_data['avg_rank'].idxmin()
-        best_model = metric_data.loc[best_idx]
-        print(f"{metric:12s}: {best_model['model']} (avg rank: {best_model['avg_rank']:.3f} ± {best_model['std_rank']:.3f})")
+        if statistical_results[metric]['better_approach'] == 'Binary':
+            binary_wins += 1
+        else:
+            multiclass_wins += 1
     
-    # Ranking consistency analysis
-    print("\nRanking Consistency (Lower Std = More Consistent):")
-    consistency = avg_ranks.groupby('model')['std_rank'].mean().sort_values()
-    for model, std in consistency.items():
-        print(f"{model:10s}: {std:.3f}")
+    print(f"\nOverall Performance Summary:")
+    print(f"  Binary approach wins:     {binary_wins}/3 metrics")
+    print(f"  Multi-class approach wins: {multiclass_wins}/3 metrics")
     
-    # Statistical significance summary with confidence intervals
-    print(f"\nWilcoxon Test Summary:")
-    print(f"  Total comparisons: {len(wilcoxon_df)}")
-    print(f"  Significant results (p < 0.05): {len(sig_results)}")
-    print(f"  Highly significant (p < 0.01): {len(wilcoxon_df[wilcoxon_df['p_value'] < 0.01])}")
-    print(f"  Very highly significant (p < 0.001): {len(wilcoxon_df[wilcoxon_df['p_value'] < 0.001])}")
+    if binary_wins > multiclass_wins:
+        print(f"\n🏆 WINNER: Binary Classification Approach")
+    elif multiclass_wins > binary_wins:
+        print(f"\n🏆 WINNER: Multi-class (A/B/C/D) Classification Approach")
+    else:
+        print(f"\n🤝 RESULT: Both approaches perform similarly overall")
     
-    # Effect size distribution
-    valid_effects = wilcoxon_df['effect_size'].dropna()
-    if len(valid_effects) > 0:
-        print(f"\nEffect Size Distribution:")
-        print(f"  Mean effect size: {valid_effects.mean():.3f} ± {valid_effects.std():.3f}")
-        print(f"  Median effect size: {valid_effects.median():.3f}")
-        print(f"  Range: {valid_effects.min():.3f} - {valid_effects.max():.3f}")
+    print(f"\nKey Insights:")
+    print(f"- Total datasets compared: {len(merged_df)}")
+    print(f"- Statistical significance should be interpreted considering p-values")
+    print(f"- Effect sizes indicate practical significance of differences")
+    print(f"- Individual dataset performance may vary significantly")
     
-    print("\nCreating visualizations...")
-    plot_average_ranks(avg_ranks)
-    plot_wilcoxon_results(wilcoxon_df)
-    plot_effect_sizes(wilcoxon_df)
-    
-    # Save additional analysis files
-    avg_ranks.to_csv('average_rankings.csv', index=False)
-    wilcoxon_df.to_csv('wilcoxon_test_results.csv', index=False)
+    # Save comparison results
+    merged_df.to_csv('binary_vs_multiclass_comparison.csv', index=False)
+    print(f"\nComparison results saved to: binary_vs_multiclass_comparison.csv")
 
 if __name__ == "__main__":
     main()

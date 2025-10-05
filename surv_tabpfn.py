@@ -33,7 +33,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = False
 
 # Directory containing the datasets
-data_dir = os.path.join("test")
+data_dir = os.path.join("test1")
 
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
@@ -568,13 +568,16 @@ for file_name in dataset_files:
         S_full = cdi_interpolate(times, bin_t_grid, S_unique)
         S_full = np.minimum.accumulate(S_full, axis=1)
 
+        # Calculate time-dependent risk scores using cumulative hazard
+        H = -np.log(S_full + 1e-8)  # Add small epsilon to avoid log(0)
         # Risk for ranking: probability of event by horizon
-        risk_scores = 1.0 - S_full[:, -1]
+        risk_scores_ranking = 1.0 - S_full[:, -1]
 
         # Final metrics on test set
-        c_index, *_ = concordance_index_censored(y_test_orig["event"], y_test_orig["time"], risk_scores)
+        c_index, *_ = concordance_index_censored(y_test_orig["event"], y_test_orig["time"], risk_scores_ranking)
         ibs = integrated_brier_score(y_trainval, y_test_orig, S_full, times)
-        _, mean_auc = cumulative_dynamic_auc(y_trainval, y_test_orig, risk_scores, times=times)
+        # For AUC, use time-dependent risk scores (2D array: n_samples x n_times)
+        _, mean_auc = cumulative_dynamic_auc(y_trainval, y_test_orig, H, times=times)
 
         best_row = {
             "dataset": dataset_name,
