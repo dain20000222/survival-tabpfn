@@ -1,4 +1,4 @@
-dataset,n_bins,score,c_index,ibs,mean_auc
+dataset,n_eval_times,score,c_index,ibs,mean_auc
 GBSG2,9,0.6573,0.7511,0.1536,0.797
 Melanoma,9,0.697,0.6736,0.2146,0.6519
 Unemployment,8,0.5677,0.5151,0.2188,0.6203

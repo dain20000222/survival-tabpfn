@@ -1,0 +1,592 @@
+==================================================
+
+Processing dataset: GBSG2
+Dataset shape: (686, 10)
+Percentage of censored data: 56.41399416909621%
+Evaluation time points: [ 336.4  498.8  635.   800.6 1043.  1277.6 1516.8 1754.8 2013.4]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 336.4  498.8  635.   800.6 1043.  1277.6 1516.8 1754.8 2013.4]
+Validation C-index: 0.6363
+Using evaluation times as cuts: [ 336.4  498.8  635.   800.6 1043.  1277.6 1516.8 1754.8 2013.4]
+==================================================
+Final test results for dataset GBSG2:
+Number of eval time points: 9
+Validation C-index (Score): 0.6363
+Test C-index: 0.6104
+Test interval Brier Score (IBS): 0.1886
+Test mean AUC: 0.6765
+==================================================
+
+Processing dataset: Melanoma
+Dataset shape: (205, 7)
+Percentage of censored data: 72.1951219512195%
+Evaluation time points: [ 682.3 1213.6 1624.8 1788.2 1956.5 2107.2 2495.8 3188.8 3623.8]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 682.3 1213.6 1624.8 1788.2 1956.5 2107.2 2495.8 3188.8 3623.8]
+Validation C-index: 0.7172
+Using evaluation times as cuts: [ 682.3 1213.6 1624.8 1788.2 1956.5 2107.2 2495.8 3188.8 3623.8]
+==================================================
+Final test results for dataset Melanoma:
+Number of eval time points: 9
+Validation C-index (Score): 0.7172
+Test C-index: 0.5959
+Test interval Brier Score (IBS): 0.2954
+Test mean AUC: 0.5665
+==================================================
+
+Processing dataset: Unemployment
+Dataset shape: (452, 7)
+Percentage of censored data: 43.36283185840708%
+Evaluation time points: [ 3.   4.   7.  10.  13.  19.1 29.  52. ]
+Training TabPFN with fixed evaluation times...
+Using 8 cuts based on evaluation times.
+Using evaluation times as cuts: [ 3.   4.   7.  10.  13.  19.1 29.  52. ]
+Validation C-index: 0.5745
+Using evaluation times as cuts: [ 3.   4.   7.  10.  13.  19.1 29.  52. ]
+==================================================
+Final test results for dataset Unemployment:
+Number of eval time points: 8
+Validation C-index (Score): 0.5745
+Test C-index: 0.5855
+Test interval Brier Score (IBS): 0.2075
+Test mean AUC: 0.6887
+==================================================
+
+Processing dataset: breast
+Dataset shape: (100, 6)
+Percentage of censored data: 74.0%
+Evaluation time points: [32.6578946 48.1776314 61.6578946]
+Training TabPFN with fixed evaluation times...
+Using 3 cuts based on evaluation times.
+Using evaluation times as cuts: [32.6578946 48.1776314 61.6578946]
+Validation C-index: 0.7000
+Using evaluation times as cuts: [32.6578946 48.1776314 61.6578946]
+==================================================
+Final test results for dataset breast:
+Number of eval time points: 3
+Validation C-index (Score): 0.7000
+Test C-index: 0.7632
+Test interval Brier Score (IBS): 0.1892
+Test mean AUC: 0.7885
+==================================================
+
+Processing dataset: burn
+Dataset shape: (154, 13)
+Percentage of censored data: 68.83116883116884%
+Evaluation time points: [ 5.   8.  11.  14.  17.  21.  27.3 32.2 43.3]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 5.   8.  11.  14.  17.  21.  27.3 32.2 43.3]
+Validation C-index: 0.4468
+Using evaluation times as cuts: [ 5.   8.  11.  14.  17.  21.  27.3 32.2 43.3]
+==================================================
+Final test results for dataset burn:
+Number of eval time points: 9
+Validation C-index (Score): 0.4468
+Test C-index: 0.4318
+Test interval Brier Score (IBS): 0.2990
+Test mean AUC: 0.3018
+==================================================
+
+Processing dataset: cancer
+Dataset shape: (228, 10)
+Percentage of censored data: 27.631578947368425%
+Evaluation time points: [ 79.4 136.  181.  210.8 259.  292.2 353.  443.2 587. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 79.4 136.  181.  210.8 259.  292.2 353.  443.2 587. ]
+Validation C-index: 0.4806
+Using evaluation times as cuts: [ 79.4 136.  181.  210.8 259.  292.2 353.  443.2 587. ]
+==================================================
+Final test results for dataset cancer:
+Number of eval time points: 9
+Validation C-index (Score): 0.4806
+Test C-index: 0.6390
+Test interval Brier Score (IBS): 0.1994
+Test mean AUC: 0.6738
+==================================================
+
+Processing dataset: cgd
+Dataset shape: (128, 12)
+Percentage of censored data: 65.625%
+Evaluation time points: [ 83.8 165.8 207.  253.6 269.  276.  293.9 317.2 337.6]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 83.8 165.8 207.  253.6 269.  276.  293.9 317.2 337.6]
+Validation C-index: 0.4182
+Using evaluation times as cuts: [ 83.8 165.8 207.  253.6 269.  276.  293.9 317.2 337.6]
+==================================================
+Final test results for dataset cgd:
+Number of eval time points: 9
+Validation C-index (Score): 0.4182
+Test C-index: 0.7619
+Test interval Brier Score (IBS): 0.1457
+Test mean AUC: 0.8161
+==================================================
+
+Processing dataset: colon
+Dataset shape: (929, 11)
+Percentage of censored data: 51.34553283100107%
+Evaluation time points: [ 389.8  642.6  961.  1426.  1971.  2164.  2277.6 2481.4 2695.8]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 389.8  642.6  961.  1426.  1971.  2164.  2277.6 2481.4 2695.8]
+Validation C-index: 0.5682
+Using evaluation times as cuts: [ 389.8  642.6  961.  1426.  1971.  2164.  2277.6 2481.4 2695.8]
+==================================================
+Final test results for dataset colon:
+Number of eval time points: 9
+Validation C-index (Score): 0.5682
+Test C-index: 0.5589
+Test interval Brier Score (IBS): 0.2228
+Test mean AUC: 0.5650
+==================================================
+
+Processing dataset: cost
+Dataset shape: (518, 15)
+Percentage of censored data: 22.00772200772201%
+Evaluation time points: [  90.   376.8  833.4 1357.8 1821.5 2198.  2810.6 3725.  3938.6]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [  90.   376.8  833.4 1357.8 1821.5 2198.  2810.6 3725.  3938.6]
+Validation C-index: 0.6734
+Using evaluation times as cuts: [  90.   376.8  833.4 1357.8 1821.5 2198.  2810.6 3725.  3938.6]
+==================================================
+Final test results for dataset cost:
+Number of eval time points: 9
+Validation C-index (Score): 0.6734
+Test C-index: 0.6045
+Test interval Brier Score (IBS): 0.2296
+Test mean AUC: 0.6307
+==================================================
+
+Processing dataset: d.oropha.rec
+Dataset shape: (192, 14)
+Percentage of censored data: 27.604166666666668%
+Evaluation time points: [0.35835616 0.56493151 0.74958904 0.9369863  1.22191781 1.49369863
+ 1.92657534 2.50246575 3.40767123]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [0.35835616 0.56493151 0.74958904 0.9369863  1.22191781 1.49369863
+ 1.92657534 2.50246575 3.40767123]
+Validation C-index: 0.6187
+Using evaluation times as cuts: [0.35835616 0.56493151 0.74958904 0.9369863  1.22191781 1.49369863
+ 1.92657534 2.50246575 3.40767123]
+==================================================
+Final test results for dataset d.oropha.rec:
+Number of eval time points: 9
+Validation C-index (Score): 0.6187
+Test C-index: 0.6045
+Test interval Brier Score (IBS): 0.2009
+Test mean AUC: 0.6718
+==================================================
+
+Processing dataset: dataOvarian1
+Dataset shape: (912, 162)
+Percentage of censored data: 40.35087719298245%
+Evaluation time points: [ 133.   234.6  293.2  360.   450.   547.8  688.   935.4 1380. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 133.   234.6  293.2  360.   450.   547.8  688.   935.4 1380. ]
+Validation C-index: 0.6206
+Using evaluation times as cuts: [ 133.   234.6  293.2  360.   450.   547.8  688.   935.4 1380. ]
+==================================================
+Final test results for dataset dataOvarian1:
+Number of eval time points: 9
+Validation C-index (Score): 0.6206
+Test C-index: 0.6194
+Test interval Brier Score (IBS): 0.1787
+Test mean AUC: 0.6897
+==================================================
+
+Processing dataset: diabetes
+Dataset shape: (394, 6)
+Percentage of censored data: 60.659898477157356%
+Evaluation time points: [ 5.71426051 10.71096943 19.03137065 30.24842288 38.77760938 42.74651846
+ 50.03401072 56.69281437 63.84877228]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 5.71426051 10.71096943 19.03137065 30.24842288 38.77760938 42.74651846
+ 50.03401072 56.69281437 63.84877228]
+Validation C-index: 0.6112
+Using evaluation times as cuts: [ 5.71426051 10.71096943 19.03137065 30.24842288 38.77760938 42.74651846
+ 50.03401072 56.69281437 63.84877228]
+==================================================
+Final test results for dataset diabetes:
+Number of eval time points: 9
+Validation C-index (Score): 0.6112
+Test C-index: 0.6943
+Test interval Brier Score (IBS): 0.1748
+Test mean AUC: 0.7606
+==================================================
+
+Processing dataset: e1684
+Dataset shape: (284, 5)
+Percentage of censored data: 30.985915492957744%
+Evaluation time points: [0.15342 0.28767 0.46027 0.8274  1.48767 2.31507 4.45205 6.13699 7.63836]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [0.15342 0.28767 0.46027 0.8274  1.48767 2.31507 4.45205 6.13699 7.63836]
+Validation C-index: 0.5713
+Using evaluation times as cuts: [0.15342 0.28767 0.46027 0.8274  1.48767 2.31507 4.45205 6.13699 7.63836]
+==================================================
+Final test results for dataset e1684:
+Number of eval time points: 9
+Validation C-index (Score): 0.5713
+Test C-index: 0.4678
+Test interval Brier Score (IBS): 0.2678
+Test mean AUC: 0.4974
+==================================================
+
+Processing dataset: follic
+Dataset shape: (541, 7)
+Percentage of censored data: 35.67467652495379%
+Evaluation time points: [ 0.57604381  1.41711157  2.3266256   3.74537988  5.46475017  6.99301848
+  9.11047228 12.92922656 18.0752909 ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 0.57604381  1.41711157  2.3266256   3.74537988  5.46475017  6.99301848
+  9.11047228 12.92922656 18.0752909 ]
+Validation C-index: 0.4983
+Using evaluation times as cuts: [ 0.57604381  1.41711157  2.3266256   3.74537988  5.46475017  6.99301848
+  9.11047228 12.92922656 18.0752909 ]
+==================================================
+Final test results for dataset follic:
+Number of eval time points: 9
+Validation C-index (Score): 0.4983
+Test C-index: 0.5657
+Test interval Brier Score (IBS): 0.2589
+Test mean AUC: 0.5133
+==================================================
+
+Processing dataset: glioma
+Dataset shape: (37, 6)
+Percentage of censored data: 37.83783783783784%
+Evaluation time points: [15. 28. 36. 48. 51.]
+Training TabPFN with fixed evaluation times...
+Using 5 cuts based on evaluation times.
+Using evaluation times as cuts: [15. 28. 36. 48. 51.]
+Validation C-index: 0.7857
+Using evaluation times as cuts: [15. 28. 36. 48. 51.]
+==================================================
+Final test results for dataset glioma:
+Number of eval time points: 5
+Validation C-index (Score): 0.7857
+Test C-index: 0.9286
+Test interval Brier Score (IBS): 0.1477
+Test mean AUC: 0.9444
+==================================================
+
+Processing dataset: hepatoCellular
+Dataset shape: (227, 45)
+Percentage of censored data: 57.268722466960355%
+Evaluation time points: [ 9.  13.  20.  29.  36.5 44.  50.  61.  67.9]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 9.  13.  20.  29.  36.5 44.  50.  61.  67.9]
+Validation C-index: 0.6385
+Using evaluation times as cuts: [ 9.  13.  20.  29.  36.5 44.  50.  61.  67.9]
+==================================================
+Final test results for dataset hepatoCellular:
+Number of eval time points: 9
+Validation C-index (Score): 0.6385
+Test C-index: 0.6821
+Test interval Brier Score (IBS): 0.1739
+Test mean AUC: 0.7566
+==================================================
+
+Processing dataset: mgus
+Dataset shape: (241, 11)
+Percentage of censored data: 6.639004149377594%
+Evaluation time points: [  757.3  1766.6  2675.3  3581.2  4923.5  5927.4  6761.8  9043.8 11416. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [  757.3  1766.6  2675.3  3581.2  4923.5  5927.4  6761.8  9043.8 11416. ]
+Validation C-index: 0.7508
+Using evaluation times as cuts: [  757.3  1766.6  2675.3  3581.2  4923.5  5927.4  6761.8  9043.8 11416. ]
+==================================================
+Final test results for dataset mgus:
+Number of eval time points: 9
+Validation C-index (Score): 0.7508
+Test C-index: 0.7391
+Test interval Brier Score (IBS): 0.1313
+Test mean AUC: 0.8168
+==================================================
+
+Processing dataset: nki70
+Dataset shape: (144, 77)
+Percentage of censored data: 66.66666666666666%
+Evaluation time points: [ 2.23052704  3.48199863  5.31937029  6.15468857  6.99520876  7.83353867
+  9.06502396 10.74934976 12.56153319]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 2.23052704  3.48199863  5.31937029  6.15468857  6.99520876  7.83353867
+  9.06502396 10.74934976 12.56153319]
+Validation C-index: 0.7931
+Using evaluation times as cuts: [ 2.23052704  3.48199863  5.31937029  6.15468857  6.99520876  7.83353867
+  9.06502396 10.74934976 12.56153319]
+==================================================
+Final test results for dataset nki70:
+Number of eval time points: 9
+Validation C-index (Score): 0.7931
+Test C-index: 0.7840
+Test interval Brier Score (IBS): 0.2158
+Test mean AUC: 0.7872
+==================================================
+
+Processing dataset: ova
+Dataset shape: (358, 7)
+Percentage of censored data: 25.69832402234637%
+Evaluation time points: [ 162.8  280.4  442.3  582.4  754.5 1047.6 1542.1 1824.4 2068.4]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 162.8  280.4  442.3  582.4  754.5 1047.6 1542.1 1824.4 2068.4]
+Validation C-index: 0.6285
+Using evaluation times as cuts: [ 162.8  280.4  442.3  582.4  754.5 1047.6 1542.1 1824.4 2068.4]
+==================================================
+Final test results for dataset ova:
+Number of eval time points: 9
+Validation C-index (Score): 0.6285
+Test C-index: 0.6892
+Test interval Brier Score (IBS): 0.1819
+Test mean AUC: 0.7652
+==================================================
+
+Processing dataset: ovarian
+Dataset shape: (26, 6)
+Percentage of censored data: 53.84615384615385%
+Evaluation time points: [390.2 437.8 469.5 528.6 769.7]
+Training TabPFN with fixed evaluation times...
+Using 5 cuts based on evaluation times.
+Using evaluation times as cuts: [390.2 437.8 469.5 528.6 769.7]
+Validation C-index: 0.8000
+Using evaluation times as cuts: [390.2 437.8 469.5 528.6 769.7]
+==================================================
+Final test results for dataset ovarian:
+Number of eval time points: 5
+Validation C-index (Score): 0.8000
+Test C-index: 1.0000
+Test interval Brier Score (IBS): 0.1499
+Test mean AUC: 1.0000
+==================================================
+
+Processing dataset: pbc
+Dataset shape: (312, 8)
+Percentage of censored data: 59.93589743589743%
+Evaluation time points: [ 575.6 1024.  1320.2 1573.2 1882.  2262.4 2561.6 3072.4 3693. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 575.6 1024.  1320.2 1573.2 1882.  2262.4 2561.6 3072.4 3693. ]
+Validation C-index: 0.7868
+Using evaluation times as cuts: [ 575.6 1024.  1320.2 1573.2 1882.  2262.4 2561.6 3072.4 3693. ]
+==================================================
+Final test results for dataset pbc:
+Number of eval time points: 9
+Validation C-index (Score): 0.7868
+Test C-index: 0.8090
+Test interval Brier Score (IBS): 0.1194
+Test mean AUC: 0.8047
+==================================================
+
+Processing dataset: phpl04K8a
+Dataset shape: (442, 23)
+Percentage of censored data: 46.60633484162896%
+Evaluation time points: [0.87166667 1.63166667 2.42666667 3.17166667 3.99166667 4.81133333
+ 5.7535     6.74333333 8.11333333]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [0.87166667 1.63166667 2.42666667 3.17166667 3.99166667 4.81133333
+ 5.7535     6.74333333 8.11333333]
+Validation C-index: 0.6771
+Using evaluation times as cuts: [0.87166667 1.63166667 2.42666667 3.17166667 3.99166667 4.81133333
+ 5.7535     6.74333333 8.11333333]
+==================================================
+Final test results for dataset phpl04K8a:
+Number of eval time points: 9
+Validation C-index (Score): 0.6771
+Test C-index: 0.4984
+Test interval Brier Score (IBS): 0.2327
+Test mean AUC: 0.5942
+==================================================
+
+Processing dataset: prostate
+Dataset shape: (502, 17)
+Percentage of censored data: 29.482071713147413%
+Evaluation time points: [ 5. 12. 19. 26. 33. 46. 53. 60. 67.]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 5. 12. 19. 26. 33. 46. 53. 60. 67.]
+Validation C-index: 0.5529
+Using evaluation times as cuts: [ 5. 12. 19. 26. 33. 46. 53. 60. 67.]
+==================================================
+Final test results for dataset prostate:
+Number of eval time points: 9
+Validation C-index (Score): 0.5529
+Test C-index: 0.5331
+Test interval Brier Score (IBS): 0.2329
+Test mean AUC: 0.5406
+==================================================
+
+Processing dataset: retinopathy
+Dataset shape: (394, 9)
+Percentage of censored data: 60.659898477157356%
+Evaluation time points: [ 5.688 10.66  18.99  30.24  38.73  42.716 49.996 56.662 63.8  ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 5.688 10.66  18.99  30.24  38.73  42.716 49.996 56.662 63.8  ]
+Validation C-index: 0.5671
+Using evaluation times as cuts: [ 5.688 10.66  18.99  30.24  38.73  42.716 49.996 56.662 63.8  ]
+==================================================
+Final test results for dataset retinopathy:
+Number of eval time points: 9
+Validation C-index (Score): 0.5671
+Test C-index: 0.6446
+Test interval Brier Score (IBS): 0.2043
+Test mean AUC: 0.7696
+==================================================
+
+Processing dataset: stagec
+Dataset shape: (146, 9)
+Percentage of censored data: 63.013698630136986%
+Evaluation time points: [ 1.93  3.32  4.49  5.24  5.9   6.5   7.31  8.9  11.61]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 1.93  3.32  4.49  5.24  5.9   6.5   7.31  8.9  11.61]
+Validation C-index: 0.4320
+Using evaluation times as cuts: [ 1.93  3.32  4.49  5.24  5.9   6.5   7.31  8.9  11.61]
+==================================================
+Final test results for dataset stagec:
+Number of eval time points: 9
+Validation C-index (Score): 0.4320
+Test C-index: 0.4961
+Test interval Brier Score (IBS): 0.2124
+Test mean AUC: 0.6346
+==================================================
+
+Processing dataset: uis
+Dataset shape: (628, 10)
+Percentage of censored data: 19.10828025477707%
+Evaluation time points: [ 26.4  59.   90.  122.8 168.  218.4 296.4 501.6 555. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 26.4  59.   90.  122.8 168.  218.4 296.4 501.6 555. ]
+Validation C-index: 0.5175
+Using evaluation times as cuts: [ 26.4  59.   90.  122.8 168.  218.4 296.4 501.6 555. ]
+==================================================
+Final test results for dataset uis:
+Number of eval time points: 9
+Validation C-index (Score): 0.5175
+Test C-index: 0.5273
+Test interval Brier Score (IBS): 0.2155
+Test mean AUC: 0.5436
+==================================================
+
+Processing dataset: veteran
+Dataset shape: (137, 8)
+Percentage of censored data: 6.569343065693431%
+Evaluation time points: [ 10.5  19.   30.5  51.   76.5  99.  120.  162.  285. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 10.5  19.   30.5  51.   76.5  99.  120.  162.  285. ]
+Validation C-index: 0.6768
+Using evaluation times as cuts: [ 10.5  19.   30.5  51.   76.5  99.  120.  162.  285. ]
+==================================================
+Final test results for dataset veteran:
+Number of eval time points: 9
+Validation C-index (Score): 0.6768
+Test C-index: 0.6587
+Test interval Brier Score (IBS): 0.1996
+Test mean AUC: 0.7114
+==================================================
+
+Processing dataset: vlbw
+Dataset shape: (617, 24)
+Percentage of censored data: 82.6580226904376%
+Evaluation time points: [  6.   14.6  23.   31.   39.   47.   59.   75.  102. ]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [  6.   14.6  23.   31.   39.   47.   59.   75.  102. ]
+Validation C-index: 0.8958
+Using evaluation times as cuts: [  6.   14.6  23.   31.   39.   47.   59.   75.  102. ]
+==================================================
+Final test results for dataset vlbw:
+Number of eval time points: 9
+Validation C-index (Score): 0.8958
+Test C-index: 0.9336
+Test interval Brier Score (IBS): 0.0795
+Test mean AUC: 0.9263
+==================================================
+
+Processing dataset: whas500
+Dataset shape: (461, 18)
+Percentage of censored data: 61.82212581344903%
+Evaluation time points: [ 101.  343.  437.  532.  903. 1187. 1320. 1579. 2009.]
+Training TabPFN with fixed evaluation times...
+Using 9 cuts based on evaluation times.
+Using evaluation times as cuts: [ 101.  343.  437.  532.  903. 1187. 1320. 1579. 2009.]
+Validation C-index: 0.6872
+Using evaluation times as cuts: [ 101.  343.  437.  532.  903. 1187. 1320. 1579. 2009.]
+==================================================
+Final test results for dataset whas500:
+Number of eval time points: 9
+Validation C-index (Score): 0.6872
+Test C-index: 0.7628
+Test interval Brier Score (IBS): 0.1948
+Test mean AUC: 0.8372
+==================================================
+
+Processing dataset: zinc
+Dataset shape: (431, 15)
+Percentage of censored data: 81.20649651972158%
+Evaluation time points: [1072.5 2557.  3872.  4897. ]
+Training TabPFN with fixed evaluation times...
+Using 4 cuts based on evaluation times.
+Using evaluation times as cuts: [1072.5 2557.  3872.  4897. ]
+Validation C-index: 0.7639
+Using evaluation times as cuts: [1072.5 2557.  3872.  4897. ]
+==================================================
+Final test results for dataset zinc:
+Number of eval time points: 4
+Validation C-index (Score): 0.7639
+Test C-index: 0.6845
+Test interval Brier Score (IBS): 0.1974
+Test mean AUC: 0.6826
+==================================================
+
+Processing dataset: grace
+Dataset shape: (1000, 7)
+Percentage of censored data: 67.60000000000001%
+Evaluation time points: [  3.    7.   15.   80.  176.5]
+Training TabPFN with fixed evaluation times...
+Using 5 cuts based on evaluation times.
+Using evaluation times as cuts: [  3.    7.   15.   80.  176.5]
+Validation C-index: 0.7125
+Using evaluation times as cuts: [  3.    7.   15.   80.  176.5]
+==================================================
+Final test results for dataset grace:
+Number of eval time points: 5
+Validation C-index (Score): 0.7125
+Test C-index: 0.6085
+Test interval Brier Score (IBS): 0.2747
+Test mean AUC: 0.6361
+==================================================
+
+Processing dataset: pharmacoSmoking
+Dataset shape: (125, 13)
+Percentage of censored data: 28.799999999999997%
+Evaluation time points: [ 1.  4. 14. 28. 56. 77.]
+Training TabPFN with fixed evaluation times...
+Using 6 cuts based on evaluation times.
+Using evaluation times as cuts: [ 1.  4. 14. 28. 56. 77.]
+Validation C-index: 0.5097
+Using evaluation times as cuts: [ 1.  4. 14. 28. 56. 77.]
+==================================================
+Final test results for dataset pharmacoSmoking:
+Number of eval time points: 6
+Validation C-index (Score): 0.5097
+Test C-index: 0.6512
+Test interval Brier Score (IBS): 0.2827
+Test mean AUC: 0.8171
+Total runtime: 0h 0m 40s

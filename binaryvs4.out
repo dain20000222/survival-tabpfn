@@ -33,8 +33,8 @@ min     0.431800   0.079500   0.301800
 max     1.000000   0.299000   1.000000
 
 Evaluation Configuration:
-Binary approach n_bins distribution:
-n_bins
+Binary approach n_eval_times distribution:
+n_eval_times
 3     1
 4     1
 5     3
@@ -146,11 +146,10 @@ Overall Performance Summary:
 
 Key Insights:
 - Total datasets compared: 32
-- Binary approach: Uses hyperparameter tuning for n_bins
-- Multi-class approach: Uses fixed evaluation time points (n_eval_times)
+- Both approaches now use fixed evaluation time points (n_eval_times)
 - Statistical significance should be interpreted considering p-values
 - Effect sizes indicate practical significance of differences
 - Individual dataset performance may vary significantly
 
 Comparison results saved to: binary_vs_multiclass_comparison.csv
-Total runtime: 0h 0m 5s
+Total runtime: 0h 0m 4s

@@ -163,36 +163,6 @@ def discretize(x: np.ndarray, cuts: np.ndarray, side: str = "right", error_on_la
     vals[left_bins == -1] = -np.inf
     return vals
 
-def km_quantile_cuts(durations: np.ndarray, events: np.ndarray, num: int, min_=0., dtype="float64") -> np.ndarray:
-    """
-    pycox.preprocessing.cuts_quantiles replicated with sksurv:
-    Build `num` right-cuts (sorted), with equal drop in KM survival between min and max observed time.
-    Ensures cuts[0] = min_ (or durations.min() if min_=None) and cuts[-1] = durations.max().
-    """
-    sfe = SurvivalFunctionEstimator().fit(
-        Surv.from_arrays(event=events.astype(bool), time=durations.astype(float))
-    )
-    t_sorted = np.sort(np.unique(durations.astype(float)))
-    if t_sorted.size < 2:
-        return np.array([t_sorted.min(), t_sorted.max()], dtype=dtype)
-
-    S_hat = sfe.predict_proba(t_sorted)
-    # pycox line: s_cuts = linspace(km.values.min(), km.values.max(), num)
-    s_cuts = np.linspace(S_hat.min(), S_hat.max(), num)
-
-    # pycox logic on reversed arrays
-    cuts_idx = np.searchsorted(S_hat[::-1], s_cuts)[::-1]
-    cuts = t_sorted[::-1][cuts_idx]
-    cuts = np.unique(cuts)
-    if cuts.size != num:
-        warnings.warn(f"cuts are not unique, continue with {cuts.size} cuts instead of {num}")
-    # first cut: durations.min() if min_ is None else min_
-    cuts = cuts.astype(dtype)
-    cuts[0] = durations.min() if min_ is None else min_
-    # pycox asserts last cut equals durations.max()
-    cuts[-1] = durations.max()
-    return cuts
-
 def discretize_unknown_c(duration: np.ndarray,
                          event: np.ndarray,
                          cuts: np.ndarray,

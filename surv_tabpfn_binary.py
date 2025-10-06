@@ -41,36 +41,13 @@ dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 # CSV path
 csv_path = "tabpfn_binary_evaluation.csv"
 
-def km_quantile_cuts(durations: np.ndarray, events: np.ndarray, num: int, min_=0., dtype="float64") -> np.ndarray:
-    """
-    Build KM quantile cuts for binary classification approach.
-    """
-    sfe = SurvivalFunctionEstimator().fit(
-        Surv.from_arrays(event=events.astype(bool), time=durations.astype(float))
-    )
-    t_sorted = np.sort(np.unique(durations.astype(float)))
-    if t_sorted.size < 2:
-        return np.array([t_sorted.min(), t_sorted.max()], dtype=dtype)
-
-    S_hat = sfe.predict_proba(t_sorted)
-    s_cuts = np.linspace(S_hat.min(), S_hat.max(), num)
-    cuts_idx = np.searchsorted(S_hat[::-1], s_cuts)[::-1]
-    cuts = t_sorted[::-1][cuts_idx]
-    cuts = np.unique(cuts)
-    if cuts.size != num:
-        warnings.warn(f"cuts are not unique, continue with {cuts.size} cuts instead of {num}")
-    cuts = cuts.astype(dtype)
-    cuts[0] = durations.min() if min_ is None else min_
-    cuts[-1] = durations.max()
-    return cuts
-
 def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
     """
     Construct TabPFN training dataset using binary classification approach.
     Include patient's own horizon in addition to provided time points.
     
     Args:
-        cuts: Time points to evaluate at (can be KM cuts or eval_times)
+        cuts: Time points to evaluate at
     """
     # Extract event/censoring times and status
     T = y_train["time"]
@@ -102,6 +79,11 @@ def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
     feature_cols = list(x_train_imputed.columns) + ["eval_time"]
     X_tabpfn = pd.DataFrame(dataset_rows, columns=feature_cols)
     y_tabpfn = pd.Series(binary_labels)
+
+    print(f"[DEBUG] Number of training samples for TabPFN: {X_tabpfn.shape[0]}")
+    print(f"[DEBUG] Number of features (including eval_time): {X_tabpfn.shape[1]}")
+    print(f"[DEBUG] Sample of features:\n{X_tabpfn.head()}")
+    print(f"[DEBUG] Sample of labels:\n{y_tabpfn.head()}")
     
     # Print class distribution
     n_ones = sum(binary_labels)
@@ -122,7 +104,7 @@ def construct_tabpfn_binary_testset(x_test_imputed, eval_times):
     
     for i in range(n_test):
         x_i = x_test_imputed.iloc[i].values
-        for t in eval_times:  # Use eval_times instead of cuts
+        for t in eval_times:  
             row = np.concatenate([x_i, [t]])
             test_rows.append(row)
             patient_ids.append(i)
@@ -268,7 +250,7 @@ for file_name in dataset_files:
             (eval_times < y_test_filtered["time"].max())
         ]
         
-        # Train final binary model using eval_times (no KM cuts needed)
+        # Train final binary model using eval_times
         X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
             x_trainval_imputed, y_trainval, cuts=eval_times
         )
@@ -299,6 +281,13 @@ for file_name in dataset_files:
 
         # Calculate time-dependent risk scores using cumulative hazard
         H = -np.log(S)
+        
+        print(f"[DEBUG] Survival probabilities shape: {S.shape}")
+        print(f"[DEBUG] Sample of survival probabilities:\n{S[:5, :]}")
+
+        print(f"[DEBUG] Cumulative hazard shape: {H.shape}")
+        print(f"[DEBUG] Sample of cumulative hazard:\n{H[:5, :]}")
+
         # For C-index, use the last time point for ranking
         risk_scores_ranking = H[:, -1]
 
@@ -308,15 +297,16 @@ for file_name in dataset_files:
             y_test_filtered["time"], 
             risk_scores_ranking
         )
+
         ibs = integrated_brier_score(y_trainval, y_test_filtered, S, eval_times)
-        # For AUC, use time-dependent risk scores (2D array: n_samples x n_times)
+        
         _, mean_auc = cumulative_dynamic_auc(
             y_trainval, y_test_filtered, H, eval_times
         )
 
         best_row = {
             "dataset": dataset_name,
-            "n_bins": len(eval_times),  # Use number of evaluation time points
+            "n_eval_times": len(eval_times),  # Use number of evaluation time points
             "score": round(float(val_c_index), 4),
             "c_index": round(float(c_index), 4),
             "ibs": round(float(ibs), 4),
@@ -325,7 +315,7 @@ for file_name in dataset_files:
         
         print("="*50)
         print(f"Final test results for dataset {dataset_name}:")
-        print(f"Number of eval time points: {best_row['n_bins']}")
+        print(f"Number of eval time points: {best_row['n_eval_times']}")
         print(f"Validation C-index: {best_row['score']:.4f}")
         print(f"Test C-index: {best_row['c_index']:.4f}")
         print(f"Test interval Brier Score (IBS): {best_row['ibs']:.4f}")
@@ -335,7 +325,7 @@ for file_name in dataset_files:
         if best_row is not None:
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["dataset", "n_bins", "score", "c_index", "ibs", "mean_auc"])
+                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "score", "c_index", "ibs", "mean_auc"])
                 if not file_exists:
                     writer.writeheader()
                 writer.writerow(best_row)

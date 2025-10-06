@@ -14,10 +14,8 @@ def load_and_clean_data(binary_file="tabpfn_binary_evaluation.csv",
         binary_df = pd.read_csv(binary_file)
         multiclass_df = pd.read_csv(multiclass_file)
         
-        # Standardize column names for easier comparison
-        # Binary uses 'n_bins', Multi-class now uses 'n_eval_times'
-        if 'n_eval_times' in multiclass_df.columns and 'n_bins' not in multiclass_df.columns:
-            multiclass_df['n_bins'] = multiclass_df['n_eval_times']  # For backward compatibility
+        # Both approaches now use 'n_eval_times' column name
+        # No column standardization needed since both use the same column name
         
         # Add approach column
         binary_df['approach'] = 'Binary'
@@ -129,15 +127,17 @@ def summary_statistics(binary_df, multiclass_df, merged_df):
     print(multiclass_df[['c_index', 'ibs', 'mean_auc']].describe())
     
     print(f"\nEvaluation Configuration:")
-    print("Binary approach n_bins distribution:")
-    print(binary_df['n_bins'].value_counts().sort_index())
+    print("Binary approach n_eval_times distribution:")
+    if 'n_eval_times' in binary_df.columns:
+        print(binary_df['n_eval_times'].value_counts().sort_index())
+    else:
+        print("n_eval_times column not found in binary results")
+    
     print("\nMulti-class approach n_eval_times distribution:")
     if 'n_eval_times' in multiclass_df.columns:
         print(multiclass_df['n_eval_times'].value_counts().sort_index())
-    elif 'n_bins' in multiclass_df.columns:
-        print(multiclass_df['n_bins'].value_counts().sort_index())
     else:
-        print("No evaluation time configuration found")
+        print("n_eval_times column not found in multiclass results")
 
 def create_visualizations(merged_df, save_plots=True):
     """Create visualization plots comparing the approaches."""
@@ -348,8 +348,7 @@ def main():
     
     print(f"\nKey Insights:")
     print(f"- Total datasets compared: {len(merged_df)}")
-    print(f"- Binary approach: Uses hyperparameter tuning for n_bins")
-    print(f"- Multi-class approach: Uses fixed evaluation time points (n_eval_times)")
+    print(f"- Both approaches now use fixed evaluation time points (n_eval_times)")
     print(f"- Statistical significance should be interpreted considering p-values")
     print(f"- Effect sizes indicate practical significance of differences")
     print(f"- Individual dataset performance may vary significantly")
