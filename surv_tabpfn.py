@@ -38,7 +38,7 @@ data_dir = os.path.join("test1")
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
-bin_sizes = [3, 5, 7, 10, 15, 20, 25, 30]
+# No longer need bin_sizes since we use fixed evaluation times
 
 # CSV path
 csv_path = "tabpfn_evaluation.csv"
@@ -230,7 +230,18 @@ def duration_to_index_map(cuts: np.ndarray):
     uniq = np.unique(cuts)
     order = np.argsort(uniq)
     idx_map = {float(uniq[o]): int(o) for o in order}
-    return np.vectorize(idx_map.get, otypes=[int])
+    
+    def safe_map(x):
+        if x is None or np.isnan(x):
+            return 0  # Default to first index
+        result = idx_map.get(float(x))
+        if result is None:
+            # Find closest cut point
+            closest_idx = np.searchsorted(uniq, float(x))
+            return min(closest_idx, len(uniq) - 1)
+        return result
+    
+    return np.vectorize(safe_map, otypes=[int])
 
 
 def cdi_interpolate(eval_times, grid_times, S_grid):
@@ -362,117 +373,78 @@ for file_name in dataset_files:
         y_train_orig = y_train
         y_test_orig = y_test_filtered
 
-        # ========================= n_bins sweep (hyperparameter tuning on validation set) =========================
-        print("Running hyperparameter tuning on validation set...")
-        best_val_cindex = -1.0
-        best_n_bins = None
+        # ========================= Train on fixed evaluation times =========================
+        print("Training TabPFN with fixed evaluation times...")
         
-        for n_bins in bin_sizes:
-            try:
-                print(f"Using KM-based discretization with {n_bins} cuts.")
-                # 1) Build KM-quantile right-cuts using only training data (no data leakage)
-                cuts = km_quantile_cuts(
-                    durations=df.loc[x_train.index, time_col].to_numpy(),
-                    events=df.loc[x_train.index, event_col].to_numpy(),
-                    num=n_bins,
-                    min_=df[time_col].min(),
-                    dtype="float64",
-                )
-                if (np.diff(cuts) == 0).any():
-                    print(f"⚠️ Skipping n_bins={n_bins}: non-unique KM cuts.")
-                    continue
+        # Use fixed number of cuts based on evaluation times
+        n_bins = len(times)
+        print(f"Using {n_bins} cuts based on evaluation times.")
 
-                # 2) Discretize TRAIN (pycox §4.1): events -> right edge, censor -> left edge; right-censor beyond last cut
-                t_tr = df.loc[x_train.index, time_col].to_numpy()
-                e_tr = df.loc[x_train.index, event_col].astype(bool).to_numpy()
-                td_tr, e_tr_adj = discretize_unknown_c(t_tr, e_tr, cuts, right_censor=True, censor_side="left")
+        # ========== First train on train set and validate ==========
+        # Use evaluation times directly as cuts for discretization
+        cuts = times.copy()
+        print(f"Using evaluation times as cuts: {cuts}")
 
-                # 3) Discretize VAL the same way (using TRAIN cuts!)
-                t_val = df.loc[x_val.index, time_col].to_numpy()
-                e_val = df.loc[x_val.index, event_col].astype(bool).to_numpy()
-                td_val, e_val_adj = discretize_unknown_c(t_val, e_val, cuts, right_censor=True, censor_side="left")
+        # Discretize TRAIN
+        t_tr = df.loc[x_train.index, time_col].to_numpy()
+        e_tr = df.loc[x_train.index, event_col].astype(bool).to_numpy()
+        td_tr, e_tr_adj = discretize_unknown_c(t_tr, e_tr, cuts, right_censor=True, censor_side="left")
 
-                # 4) Map discrete cut-values -> integer indices 0..len(cuts)-1
-                to_idx = duration_to_index_map(cuts)
-                t_train_bin = to_idx(td_tr)
-                t_val_bin = to_idx(td_val)
+        # Discretize VAL
+        t_val = df.loc[x_val.index, time_col].to_numpy()
+        e_val = df.loc[x_val.index, event_col].astype(bool).to_numpy()
+        td_val, e_val_adj = discretize_unknown_c(t_val, e_val, cuts, right_censor=True, censor_side="left")
 
-                # 5) Build Surv objects in *model time* (indices)
-                y_train_model = Surv.from_arrays(event=e_tr_adj, time=t_train_bin)
-                y_val_model = Surv.from_arrays(event=e_val_adj, time=t_val_bin)
+        # Map discrete cut-values -> integer indices
+        to_idx = duration_to_index_map(cuts)
+        t_train_bin = to_idx(td_tr)
+        t_val_bin = to_idx(td_val)
 
-                # 6) Map continuous evaluation 'times' -> model indices via right rounding (like events)
-                times_eval = bin_numerical(times, cuts, error_on_larger=False)  # 0..len(cuts) ; clip to last valid index
-                times_eval = np.clip(times_eval, 0, len(cuts) - 1).astype(int)
-                
-                # Train set uses model-time (binned)
-                X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(
-                    x_train_imputed, y_train_model, cuts
-                )
+        # Build Surv objects in model time (indices)
+        y_train_model = Surv.from_arrays(event=e_tr_adj, time=t_train_bin)
+        y_val_model = Surv.from_arrays(event=e_val_adj, time=t_val_bin)
 
-                tabpfn_model = TabPFNClassifier(
-                    device='cuda' if torch.cuda.is_available() else 'cpu',
-                    ignore_pretraining_limits=True
-                )
-                tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+        # Train TabPFN on train data
+        X_tabpfn_train, y_tabpfn_train = construct_tabpfn_trainset(
+            x_train_imputed, y_train_model, cuts
+        )
 
-                # Work on unique evaluation bins to avoid duplicate counting
-                unique_bins, inv = np.unique(times_eval, return_inverse=True)
+        tabpfn_model = TabPFNClassifier(
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            ignore_pretraining_limits=True
+        )
+        tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
 
-                # Predict on unique bins only for validation
-                X_tabpfn_val, val_patient_ids = construct_tabpfn_testset(x_val_imputed, cuts[unique_bins])
-                probs = tabpfn_model.predict_proba(X_tabpfn_val)
+        # Predict on validation set
+        X_tabpfn_val, val_patient_ids = construct_tabpfn_testset(x_val_imputed, cuts)
+        probs = tabpfn_model.predict_proba(X_tabpfn_val)
 
-                # Convert A/B/C/D -> discrete hazards per unique bin
-                def hazards_from_probs(X_test, pids, probs, unique_cut_values, eps=1e-12):
-                    n_patients = pids.max() + 1
-                    m = len(unique_cut_values)
-                    h = np.zeros((n_patients, m), dtype=float)
-                    for j, t in enumerate(unique_cut_values):
-                        idx_at_t = np.where(np.isclose(X_test["eval_time"], t))[0]
-                        for idx in idx_at_t:
-                            pid = pids[idx]
-                            pA, pB, pC, pD = probs[idx]
-                            denom = pB + pC + pD + eps   # at-risk at t
-                            h[pid, j] = pD / denom
-                    return np.clip(h, 0.0, 1.0)
+        # Convert A/B/C/D -> discrete hazards
+        def hazards_from_probs(X_test, pids, probs, cut_values, eps=1e-12):
+            n_patients = pids.max() + 1
+            m = len(cut_values)
+            h = np.zeros((n_patients, m), dtype=float)
+            for j, t in enumerate(cut_values):
+                idx_at_t = np.where(np.isclose(X_test["eval_time"], t))[0]
+                for idx in idx_at_t:
+                    pid = pids[idx]
+                    pA, pB, pC, pD = probs[idx]
+                    denom = pB + pC + pD + eps   # at-risk at t
+                    h[pid, j] = pD / denom
+            return np.clip(h, 0.0, 1.0)
 
-                h_unique = hazards_from_probs(X_tabpfn_val, val_patient_ids, probs, cuts[unique_bins])
+        h_val = hazards_from_probs(X_tabpfn_val, val_patient_ids, probs, cuts)
 
-                # Build survival on the model's native grid
-                S_unique = np.clip(np.cumprod(1.0 - h_unique, axis=1), 0.0, 1.0)   # (n_val, len(unique_bins))
+        # Build survival function
+        S_val = np.clip(np.cumprod(1.0 - h_val, axis=1), 0.0, 1.0)
+        S_val = np.minimum.accumulate(S_val, axis=1)
 
-                # Interpolate to ORIGINAL 'times' grid using CDI
-                bin_t_grid = cuts[unique_bins]  # <-- use KM right cuts
-                S_full = cdi_interpolate(times, bin_t_grid, S_unique)
-                S_full = np.minimum.accumulate(S_full, axis=1)
+        # Risk for ranking: probability of event by horizon
+        risk_scores_val = 1.0 - S_val[:, -1]
 
-                # Risk for ranking: probability of event by horizon
-                risk_scores = 1.0 - S_full[:, -1]
-
-                # Validation C-index
-                c_index, *_ = concordance_index_censored(y_val["event"], y_val["time"], risk_scores)
-                
-                print(f"n_bins={n_bins}: val_c_index={c_index:.4f}")
-                
-                if c_index > best_val_cindex:
-                    best_val_cindex = c_index
-                    best_n_bins = n_bins
-                        
-            except Exception as e:
-                print(f"Error with n_bins={n_bins}: {e}")
-                continue
-        
-        print(f"Best validation n_bins: {best_n_bins}, val_c_index={best_val_cindex:.4f}")
-        
-        # Fallback if no valid parameters found
-        if best_n_bins is None:
-            print("No valid hyperparameters found, using default")
-            best_n_bins = 10
-        
-        # ========================= Final evaluation on test set with best params =========================
-        print("Evaluating on test set with best hyperparameters...")
-        n_bins = best_n_bins
+        # Validation C-index
+        val_c_index, *_ = concordance_index_censored(y_val["event"], y_val["time"], risk_scores_val)
+        print(f"Validation C-index: {val_c_index:.4f}")
 
         # ========== Retrain on train+val, evaluate on test (same as baseline.py) ==========
         # OHE and impute trainval/test
@@ -490,15 +462,9 @@ for file_name in dataset_files:
         x_test_filtered = x_test_imputed[test_mask]
         times = times[(times > y_test_filtered["time"].min()) & (times < y_test_filtered["time"].max())]
         
-        print(f"Using KM-based discretization with {n_bins} cuts.")
-        # 1) Build KM-quantile right-cuts using trainval data
-        cuts = km_quantile_cuts(
-            durations=df.loc[x_trainval.index, time_col].to_numpy(),
-            events=df.loc[x_trainval.index, event_col].to_numpy(),
-            num=n_bins,
-            min_=df[time_col].min(),
-            dtype="float64",
-        )
+        # Use evaluation times directly as cuts for discretization
+        cuts = times.copy()
+        print(f"Using evaluation times as cuts: {cuts}")
 
         # 2) Discretize TRAINVAL
         t_trainval = df.loc[x_trainval.index, time_col].to_numpy()
@@ -581,8 +547,8 @@ for file_name in dataset_files:
 
         best_row = {
             "dataset": dataset_name,
-            "n_bins": n_bins,
-            "score": round(float(best_val_cindex), 4),
+            "n_eval_times": len(times),
+            "score": round(float(val_c_index), 4),
             "c_index": round(float(c_index), 4),
             "ibs": round(float(ibs), 4),
             "mean_auc": round(float(mean_auc), 4),
@@ -590,7 +556,7 @@ for file_name in dataset_files:
         
         print("="*50)
         print(f"Final test results for dataset {dataset_name}:")
-        print(f"Best n_bins: {best_row['n_bins']}")
+        print(f"Number of eval time points: {best_row['n_eval_times']}")
         print(f"Validation C-index (Score): {best_row['score']:.4f}")
         print(f"Test C-index: {best_row['c_index']:.4f}")
         print(f"Test interval Brier Score (IBS): {best_row['ibs']:.4f}")
@@ -600,7 +566,7 @@ for file_name in dataset_files:
         if best_row is not None:
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["dataset", "n_bins", "score", "c_index", "ibs", "mean_auc"])
+                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "score", "c_index", "ibs", "mean_auc"])
                 if not file_exists:
                     writer.writeheader()
                 writer.writerow(best_row)

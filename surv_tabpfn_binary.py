@@ -38,8 +38,6 @@ data_dir = os.path.join("test1")
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
-bin_sizes = [3, 5, 7, 10, 15, 20, 25, 30]
-
 # CSV path
 csv_path = "tabpfn_binary_evaluation.csv"
 
@@ -204,85 +202,52 @@ for file_name in dataset_files:
         ]
         print(f"Evaluation time points: {eval_times}")
 
-        # ========================= n_bins sweep (hyperparameter tuning on validation set) =========================
-        print("Running hyperparameter tuning on validation set...")
-        best_val_cindex = -1.0
-        best_n_bins = None
+        # ========================= Train and evaluate using eval_times =========================
+        print("Training binary TabPFN model using evaluation time points...")
         
-        for n_bins in bin_sizes:
-            try:
-                print(f"Using KM-based discretization with {n_bins} cuts.")
-                # Build KM-quantile cuts using only training data (no data leakage)
-                cuts = km_quantile_cuts(
-                    durations=df.loc[x_train.index, time_col].to_numpy(),
-                    events=df.loc[x_train.index, event_col].to_numpy(),
-                    num=n_bins,
-                    min_=df[time_col].min(),
-                    dtype="float64",
-                )
-                if (np.diff(cuts) == 0).any():
-                    print(f"⚠️ Skipping n_bins={n_bins}: non-unique KM cuts.")
-                    continue
+        # Train binary model using eval_times
+        X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
+            x_train_imputed, y_train, cuts=eval_times
+        )
+        
+        tabpfn_model = TabPFNClassifier(
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            ignore_pretraining_limits=True
+        )
+        tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
+        
+        # Evaluate on validation set using eval_times
+        X_tabpfn_val, val_patient_ids = construct_tabpfn_binary_testset(
+            x_val_imputed, eval_times
+        )
+        probs = tabpfn_model.predict_proba(X_tabpfn_val)
+        
+        # Process predictions directly at evaluation times
+        event_probs = probs[:, 1]
+        n_patients = len(x_val_imputed)
+        F = np.zeros((n_patients, len(eval_times)))
+        
+        for i, t in enumerate(eval_times):
+            mask = np.isclose(X_tabpfn_val["eval_time"], t)
+            F[val_patient_ids[mask], i] = event_probs[mask]
+        
+        S = 1 - F
+        S = np.minimum.accumulate(S, axis=1)
+        
+        # Calculate time-dependent risk scores using cumulative hazard
+        H = -np.log(S)
+        # Use last time point for validation ranking
+        risk_scores = H[:, -1]
 
-                # Train binary model using eval_times (unified with test)
-                X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
-                    x_train_imputed, y_train, cuts=eval_times
-                )
-                
-                tabpfn_model = TabPFNClassifier(
-                    device='cuda' if torch.cuda.is_available() else 'cpu',
-                    ignore_pretraining_limits=True
-                )
-                tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
-                
-                # Evaluate on validation set using eval_times
-                X_tabpfn_val, val_patient_ids = construct_tabpfn_binary_testset(
-                    x_val_imputed, eval_times
-                )
-                probs = tabpfn_model.predict_proba(X_tabpfn_val)
-                
-                # Process predictions directly at evaluation times
-                event_probs = probs[:, 1]
-                n_patients = len(x_val_imputed)
-                F = np.zeros((n_patients, len(eval_times)))
-                
-                for i, t in enumerate(eval_times):
-                    mask = np.isclose(X_tabpfn_val["eval_time"], t)
-                    F[val_patient_ids[mask], i] = event_probs[mask]
-                
-                S = 1 - F
-                S = np.minimum.accumulate(S, axis=1)
-                
-                # Calculate time-dependent risk scores using cumulative hazard
-                H = -np.log(S)
-                # Use last time point for validation ranking
-                risk_scores = H[:, -1]
-
-                # Validation C-index
-                c_index, *_ = concordance_index_censored(
-                    y_val["event"], y_val["time"], risk_scores
-                )
-                
-                print(f"n_bins={n_bins}: val_c_index={c_index:.4f}")
-                
-                if c_index > best_val_cindex:
-                    best_val_cindex = c_index
-                    best_n_bins = n_bins
-                        
-            except Exception as e:
-                print(f"Error with n_bins={n_bins}: {e}")
-                continue
+        # Validation C-index
+        val_c_index, *_ = concordance_index_censored(
+            y_val["event"], y_val["time"], risk_scores
+        )
         
-        print(f"Best validation n_bins: {best_n_bins}, val_c_index={best_val_cindex:.4f}")
+        print(f"Validation C-index: {val_c_index:.4f}")
         
-        # Fallback if no valid parameters found
-        if best_n_bins is None:
-            print("No valid hyperparameters found, using default")
-            best_n_bins = 10
-        
-        # ========================= Final evaluation on test set with best params =========================
-        print("Evaluating on test set with best hyperparameters...")
-        n_bins = best_n_bins
+        # ========================= Final evaluation on test set =========================
+        print("Evaluating on test set...")
 
         # ========== Retrain on train+val, evaluate on test (same as baseline.py) ==========
         # OHE and impute trainval/test
@@ -303,17 +268,7 @@ for file_name in dataset_files:
             (eval_times < y_test_filtered["time"].max())
         ]
         
-        print(f"Using KM-based discretization with {n_bins} cuts.")
-        # Build KM-quantile cuts using trainval data
-        cuts = km_quantile_cuts(
-            durations=df.loc[x_trainval.index, time_col].to_numpy(),
-            events=df.loc[x_trainval.index, event_col].to_numpy(),
-            num=n_bins,
-            min_=df[time_col].min(),
-            dtype="float64",
-        )
-
-        # Train final binary model using eval_times (unified with test)
+        # Train final binary model using eval_times (no KM cuts needed)
         X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
             x_trainval_imputed, y_trainval, cuts=eval_times
         )
@@ -361,8 +316,8 @@ for file_name in dataset_files:
 
         best_row = {
             "dataset": dataset_name,
-            "n_bins": n_bins,
-            "score": round(float(best_val_cindex), 4),
+            "n_bins": len(eval_times),  # Use number of evaluation time points
+            "score": round(float(val_c_index), 4),
             "c_index": round(float(c_index), 4),
             "ibs": round(float(ibs), 4),
             "mean_auc": round(float(mean_auc), 4),
@@ -370,8 +325,8 @@ for file_name in dataset_files:
         
         print("="*50)
         print(f"Final test results for dataset {dataset_name}:")
-        print(f"Best n_bins: {best_row['n_bins']}")
-        print(f"Validation C-index (Score): {best_row['score']:.4f}")
+        print(f"Number of eval time points: {best_row['n_bins']}")
+        print(f"Validation C-index: {best_row['score']:.4f}")
         print(f"Test C-index: {best_row['c_index']:.4f}")
         print(f"Test interval Brier Score (IBS): {best_row['ibs']:.4f}")
         print(f"Test mean AUC: {best_row['mean_auc']:.4f}")

@@ -24,30 +24,33 @@ max     0.932700   0.275400   0.895900
 Multi-class (A/B/C/D) Classification Approach:
          c_index        ibs   mean_auc
 count  32.000000  32.000000  32.000000
-mean    0.657975   0.220241   0.643750
-std     0.093998   0.056521   0.085221
-min     0.500000   0.086900   0.500000
-25%     0.605850   0.192550   0.589500
-50%     0.640550   0.220850   0.626000
-75%     0.698250   0.248875   0.697425
-max     0.900400   0.359900   0.825100
+mean    0.660425   0.203272   0.700269
+std     0.134321   0.050679   0.144848
+min     0.431800   0.079500   0.301800
+25%     0.580550   0.177725   0.621575
+50%     0.641800   0.200250   0.689200
+75%     0.744800   0.230375   0.792550
+max     1.000000   0.299000   1.000000
 
-Hyperparameter Selection (n_bins):
+Evaluation Configuration:
 Binary approach n_bins distribution:
 n_bins
-3    32
+3     1
+4     1
+5     3
+6     1
+8     1
+9    25
 Name: count, dtype: int64
 
-Multi-class approach n_bins distribution:
-n_bins
-3     13
-5      7
-7      3
-10     2
-15     1
-20     1
-25     1
-30     4
+Multi-class approach n_eval_times distribution:
+n_eval_times
+3     1
+4     1
+5     3
+6     1
+8     1
+9    25
 Name: count, dtype: int64
 
 ============================================================
@@ -56,36 +59,36 @@ STATISTICAL COMPARISON
 
 C_INDEX (Higher is better*):
   Binary mean:      0.6398 ± 0.1419
-  Multi-class mean: 0.6580 ± 0.0940
-  Difference:       -0.0182 ± 0.0862
+  Multi-class mean: 0.6604 ± 0.1343
+  Difference:       -0.0206 ± 0.1534
   Better approach:  Multi-class
-  Wins: Binary=10, Multi-class=20, Ties=2
-  Paired t-test:    t=-1.193, p=0.2419
-  Wilcoxon test:    W=160.0, p=0.1359
-  Effect size (d):  -0.151
+  Wins: Binary=14, Multi-class=16, Ties=2
+  Paired t-test:    t=-0.761, p=0.4525
+  Wilcoxon test:    W=223.0, p=0.8451
+  Effect size (d):  -0.149
   Effect size:      negligible
 
 IBS (Higher is better - LOWER IS BETTER*):
   Binary mean:      0.2014 ± 0.0464
-  Multi-class mean: 0.2202 ± 0.0565
-  Difference:       -0.0188 ± 0.0459
+  Multi-class mean: 0.2033 ± 0.0507
+  Difference:       -0.0019 ± 0.0335
   Better approach:  Binary
-  Wins: Binary=25, Multi-class=7, Ties=0
-  Paired t-test:    t=-2.318, p=0.0272
-  Wilcoxon test:    W=115.5, p=0.0055
-  Effect size (d):  -0.364
-  Effect size:      small
+  Wins: Binary=14, Multi-class=16, Ties=2
+  Paired t-test:    t=-0.313, p=0.7566
+  Wilcoxon test:    W=211.5, p=0.6658
+  Effect size (d):  -0.038
+  Effect size:      negligible
 
 MEAN_AUC (Higher is better*):
   Binary mean:      0.6782 ± 0.1681
-  Multi-class mean: 0.6438 ± 0.0852
-  Difference:       0.0345 ± 0.1344
-  Better approach:  Binary
-  Wins: Binary=24, Multi-class=8, Ties=0
-  Paired t-test:    t=1.451, p=0.1568
-  Wilcoxon test:    W=132.0, p=0.0125
-  Effect size (d):  0.259
-  Effect size:      small
+  Multi-class mean: 0.7003 ± 0.1448
+  Difference:       -0.0220 ± 0.1610
+  Better approach:  Multi-class
+  Wins: Binary=16, Multi-class=16, Ties=0
+  Paired t-test:    t=-0.774, p=0.4445
+  Wilcoxon test:    W=241.0, p=0.6780
+  Effect size (d):  -0.141
+  Effect size:      negligible
 
 ============================================================
 DETAILED ANALYSIS
@@ -94,36 +97,36 @@ DETAILED ANALYSIS
 Datasets where Binary Classification significantly outperforms Multi-class:
 
 C_INDEX:
-  cgd: Binary=0.7619, Multi-class=0.5714, Diff=0.1905
-  glioma: Binary=0.8571, Multi-class=0.7143, Diff=0.1428
-  diabetes: Binary=0.6773, Multi-class=0.5894, Diff=0.0879
+  stagec: Binary=0.6744, Multi-class=0.4961, Diff=0.1783
+  GBSG2: Binary=0.7511, Multi-class=0.6104, Diff=0.1407
+  Melanoma: Binary=0.6736, Multi-class=0.5959, Diff=0.0777
 
 IBS:
-  pharmacoSmoking: Binary=0.2358, Multi-class=0.3599, Diff=0.1241
-  ova: Binary=0.1782, Multi-class=0.2717, Diff=0.0935
-  ovarian: Binary=0.2715, Multi-class=0.3592, Diff=0.0877
+  Melanoma: Binary=0.2146, Multi-class=0.2954, Diff=0.0808
+  pharmacoSmoking: Binary=0.2358, Multi-class=0.2827, Diff=0.0469
+  cost: Binary=0.1885, Multi-class=0.2296, Diff=0.0411
 
 MEAN_AUC:
-  vlbw: Binary=0.8959, Multi-class=0.6823, Diff=0.2136
-  glioma: Binary=0.8582, Multi-class=0.6469, Diff=0.2113
-  nki70: Binary=0.8819, Multi-class=0.6927, Diff=0.1892
+  GBSG2: Binary=0.7970, Multi-class=0.6765, Diff=0.1205
+  prostate: Binary=0.6364, Multi-class=0.5406, Diff=0.0958
+  nki70: Binary=0.8819, Multi-class=0.7872, Diff=0.0947
 
 Datasets where Multi-class Classification significantly outperforms Binary:
 
 C_INDEX:
-  ovarian: Binary=0.2000, Multi-class=0.5000, Diff=0.3000
-  burn: Binary=0.4318, Multi-class=0.6250, Diff=0.1932
-  cost: Binary=0.5780, Multi-class=0.6815, Diff=0.1035
+  ovarian: Binary=0.2000, Multi-class=1.0000, Diff=0.8000
+  hepatoCellular: Binary=0.5978, Multi-class=0.6821, Diff=0.0843
+  cancer: Binary=0.5605, Multi-class=0.6390, Diff=0.0785
 
 IBS:
-  burn: Binary=0.2668, Multi-class=0.1699, Diff=0.0969
-  e1684: Binary=0.2754, Multi-class=0.2064, Diff=0.0690
-  follic: Binary=0.2638, Multi-class=0.2021, Diff=0.0617
+  ovarian: Binary=0.2715, Multi-class=0.1499, Diff=0.1216
+  cancer: Binary=0.2355, Multi-class=0.1994, Diff=0.0361
+  colon: Binary=0.2582, Multi-class=0.2228, Diff=0.0354
 
 MEAN_AUC:
-  burn: Binary=0.2087, Multi-class=0.6091, Diff=0.4004
-  ovarian: Binary=0.1667, Multi-class=0.5000, Diff=0.3333
-  hepatoCellular: Binary=0.6838, Multi-class=0.8251, Diff=0.1413
+  ovarian: Binary=0.1667, Multi-class=1.0000, Diff=0.8333
+  cancer: Binary=0.4882, Multi-class=0.6738, Diff=0.1856
+  burn: Binary=0.2087, Multi-class=0.3018, Diff=0.0931
 
 ============================================================
 CREATING VISUALIZATIONS
@@ -136,13 +139,15 @@ FINAL SUMMARY
 ============================================================
 
 Overall Performance Summary:
-  Binary approach wins:     2/3 metrics
-  Multi-class approach wins: 1/3 metrics
+  Binary approach wins:     1/3 metrics
+  Multi-class approach wins: 2/3 metrics
 
-🏆 WINNER: Binary Classification Approach
+🏆 WINNER: Multi-class (A/B/C/D) Classification Approach
 
 Key Insights:
 - Total datasets compared: 32
+- Binary approach: Uses hyperparameter tuning for n_bins
+- Multi-class approach: Uses fixed evaluation time points (n_eval_times)
 - Statistical significance should be interpreted considering p-values
 - Effect sizes indicate practical significance of differences
 - Individual dataset performance may vary significantly
