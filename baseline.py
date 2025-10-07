@@ -110,17 +110,49 @@ def compute_ibs(model, x_test, y_test, y_train, times, is_deephit=False, is_deep
 
 def compute_mean_auc(model, x_test, y_test, y_train, times, is_deephit=False, is_deepsurv=False):
     """
-    Compute mean time-dependent AUC across `times`.
+    Compute mean time-dependent AUC across `times` using time-dependent risk scores.
     """
     if is_deephit:
-        deephit_pmf = model.predict_pmf(x_test).detach().cpu().numpy()
-        time_bins = np.arange(1, deephit_pmf.shape[1] + 1)  
-        expected_time = np.sum(deephit_pmf * time_bins, axis=1)
-        risk_scores = -expected_time
+        # Get survival probabilities and convert to time-dependent risk scores
+        # Convert x_test to tensor if it's not already
+        if not isinstance(x_test, torch.Tensor):
+            device = next(model.net.parameters()).device
+            x_test_tensor = torch.tensor(x_test.values if hasattr(x_test, 'values') else x_test, 
+                                       dtype=torch.float32, device=device)
+        else:
+            x_test_tensor = x_test
+            
+        deephit_surv_probs = model.predict_surv_df(x_test_tensor).T.values
+        # Interpolate survival probabilities at evaluation times
+        surv_at_times = np.array([np.interp(times, model.duration_index, sp) for sp in deephit_surv_probs])
+        # Convert to risk scores: risk = 1 - survival_probability
+        risk_scores = 1 - surv_at_times  # shape: (n_samples, n_times)
     elif is_deepsurv:
-        risk_scores = model.predict(x_test).flatten().cpu().numpy()
+        # Get survival functions and convert to time-dependent risk scores
+        # Ensure baseline hazards are computed
+        if not hasattr(model, 'baseline_hazards_') or model.baseline_hazards_ is None:
+            model.compute_baseline_hazards()
+        
+        # Convert x_test to tensor if it's not already
+        if not isinstance(x_test, torch.Tensor):
+            device = next(model.net.parameters()).device
+            x_test_tensor = torch.tensor(x_test.values if hasattr(x_test, 'values') else x_test, 
+                                       dtype=torch.float32, device=device)
+        else:
+            x_test_tensor = x_test
+            
+        deepsurv_surv = model.predict_surv_df(x_test_tensor)
+        deepsurv_surv_probs = deepsurv_surv.T.values
+        # Interpolate survival probabilities at evaluation times
+        surv_at_times = np.array([np.interp(times, deepsurv_surv.index, sp) for sp in deepsurv_surv_probs])
+        # Convert to risk scores: risk = 1 - survival_probability
+        risk_scores = 1 - surv_at_times  # shape: (n_samples, n_times)
     else:
-        risk_scores = model.predict(x_test)
+        # For RSF and CoxPH, get survival functions and convert to time-dependent risk scores
+        surv_funcs = model.predict_survival_function(x_test)
+        surv_at_times = np.row_stack([sf(times) for sf in surv_funcs])
+        # Convert to risk scores: risk = 1 - survival_probability
+        risk_scores = 1 - surv_at_times  # shape: (n_samples, n_times)
 
     _, mean_auc = cumulative_dynamic_auc(y_train, y_test, risk_scores, times)
     return mean_auc
