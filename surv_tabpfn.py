@@ -256,7 +256,7 @@ for file_name in dataset_files:
         x_test_filtered = x_test_imputed[test_mask]
         eval_times = eval_times[(eval_times > y_test_filtered["time"].min()) & (eval_times < y_test_filtered["time"].max())]
 
-        # Use evaluation times directly as cuts for discretization
+        # Use evaluation times directly as cuts
         cuts = eval_times.copy()
         print(f"Using evaluation times as cuts: {cuts}")
         
