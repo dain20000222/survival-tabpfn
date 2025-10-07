@@ -35,7 +35,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = False
 
 # Directory containing the datasets
-data_dir = os.path.join("test")
+data_dir = os.path.join("test1")
 
 # List all CSV files in the directory
 dataset_files = sorted([f for f in os.listdir(data_dir) if f.endswith(".csv")])
