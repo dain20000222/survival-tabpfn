@@ -20,11 +20,11 @@ import random
 import warnings
 warnings.filterwarnings("ignore")
 
-# --- Pandas 2.x compatibility shim for scikit-survival ---
+# Pandas 2.x compatibility shim for scikit-survival
 if not hasattr(pd.DataFrame, "iteritems"):
     pd.DataFrame.iteritems = pd.DataFrame.items
-# ---------------------------------------------------------
 
+# Set random seeds for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
@@ -35,7 +35,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = False
 
 # Directory containing the datasets
-data_dir = os.path.join("test1")
+data_dir = os.path.join("data")
 
 # List all CSV files in the directory
 dataset_files = sorted([f for f in os.listdir(data_dir) if f.endswith(".csv")])
@@ -68,15 +68,27 @@ deepsurv_grid = {
 def censored_c_index(model, x_test, y_test, is_deephit=False, is_deepsurv=False):
     """
     Compute concordance index.
+
+    Parameters
+    - model : The survival model to evaluate.
+    - x_test : array-like, shape (n_samples, n_features)
+    - y_test : structured array, shape (n_samples,)
+    - is_deephit : bool, optional
+    - is_deepsurv : bool, optional
+
+    Returns
+    - c_index: float
+        The concordance index.
     """
     if is_deephit:
-        # Use expected time as risk proxy (lower expected time => higher risk)
         deephit_pmf = model.predict_pmf(x_test)
         time_bins = np.arange(1, deephit_pmf.shape[1] + 1)
         expected_time = np.sum(deephit_pmf * time_bins, axis=1)
         risk_scores = -expected_time
+
     elif is_deepsurv:
         risk_scores = model.predict(x_test).flatten()
+
     else:
         risk_scores = model.predict(x_test)
 
@@ -89,6 +101,21 @@ def censored_c_index(model, x_test, y_test, is_deephit=False, is_deepsurv=False)
 def compute_ibs(model, x_test, y_test, y_train, times, is_deephit=False, is_deepsurv=False, labtrans=None):
     """
     Compute IBS at fixed `times`.
+
+    Parameters
+    - model : The survival model to evaluate.
+    - x_test : array-like, shape (n_samples, n_features)
+    - y_test : structured array, shape (n_samples,)
+    - y_train : structured array, shape (n_samples,)
+    - times : array-like, shape (n_times,)
+        Time points at which to evaluate the Brier score.
+    - is_deephit : bool, optional
+    - is_deepsurv : bool, optional
+    - labtrans : LabTransDiscreteTime, required if is_deephit is True
+
+    Returns
+    - ibs: float
+        The integrated Brier score.
     """
     if is_deephit:
         deephit_surv_probs = model.predict_surv_df(x_test).T.values
@@ -111,9 +138,20 @@ def compute_ibs(model, x_test, y_test, y_train, times, is_deephit=False, is_deep
 def compute_mean_auc(model, x_test, y_test, y_train, times, is_deephit=False, is_deepsurv=False):
     """
     Compute mean time-dependent AUC across `times` using time-dependent risk scores.
+
+    Parameters
+    - model : The survival model to evaluate.
+    - x_test : array-like, shape (n_samples, n_features)
+    - y_test : structured array, shape (n_samples,)
+    - y_train : structured array, shape (n_samples,)
+    - times : array-like, shape (n_times,)
+    - is_deephit : bool, optional
+    - is_deepsurv : bool, optional
+
+    Returns
+    - mean_auc: float
     """
     if is_deephit:
-        # Get survival probabilities and convert to time-dependent risk scores
         # Convert x_test to tensor if it's not already
         if not isinstance(x_test, torch.Tensor):
             device = next(model.net.parameters()).device
@@ -123,12 +161,12 @@ def compute_mean_auc(model, x_test, y_test, y_train, times, is_deephit=False, is
             x_test_tensor = x_test
             
         deephit_surv_probs = model.predict_surv_df(x_test_tensor).T.values
-        # Interpolate survival probabilities at evaluation times
         surv_at_times = np.array([np.interp(times, model.duration_index, sp) for sp in deephit_surv_probs])
-        # Convert to risk scores: risk = 1 - survival_probability
-        risk_scores = 1 - surv_at_times  # shape: (n_samples, n_times)
+
+        # Convert to risk scores: risk = 1 - survival_probability at each time
+        risk_scores = 1 - surv_at_times
+
     elif is_deepsurv:
-        # Get survival functions and convert to time-dependent risk scores
         # Ensure baseline hazards are computed
         if not hasattr(model, 'baseline_hazards_') or model.baseline_hazards_ is None:
             model.compute_baseline_hazards()
@@ -143,23 +181,37 @@ def compute_mean_auc(model, x_test, y_test, y_train, times, is_deephit=False, is
             
         deepsurv_surv = model.predict_surv_df(x_test_tensor)
         deepsurv_surv_probs = deepsurv_surv.T.values
-        # Interpolate survival probabilities at evaluation times
         surv_at_times = np.array([np.interp(times, deepsurv_surv.index, sp) for sp in deepsurv_surv_probs])
-        # Convert to risk scores: risk = 1 - survival_probability
-        risk_scores = 1 - surv_at_times  # shape: (n_samples, n_times)
+
+        # Convert to risk scores: risk = 1 - survival_probability at each time
+        risk_scores = 1 - surv_at_times
     else:
-        # For RSF and CoxPH, get survival functions and convert to time-dependent risk scores
         surv_funcs = model.predict_survival_function(x_test)
         surv_at_times = np.row_stack([sf(times) for sf in surv_funcs])
-        # Convert to risk scores: risk = 1 - survival_probability
-        risk_scores = 1 - surv_at_times  # shape: (n_samples, n_times)
+
+        # Convert to risk scores: risk = 1 - survival_probability at each time
+        risk_scores = 1 - surv_at_times
 
     _, mean_auc = cumulative_dynamic_auc(y_train, y_test, risk_scores, times)
+
     return mean_auc
 
 def evaluate_model_fold(model, x_test, y_test, y_train, times, model_type='standard', **kwargs):
     """
     Evaluate a single model on a single fold .
+
+    Parameters
+    - model : The survival model to evaluate.
+    - x_test : array-like, shape (n_samples, n_features)
+    - y_test : structured array, shape (n_samples,)
+    - y_train : structured array, shape (n_samples,)
+    - times : array-like, shape (n_times,)
+    - model_type : str, one of {'standard', 'deephit', 'deepsurv'}
+    - kwargs : additional arguments for specific model types
+
+    Returns
+    - results: dict
+        Dictionary containing 'c_index', 'ibs', and 'mean_auc'.
     """
     results = {}
 
@@ -167,10 +219,12 @@ def evaluate_model_fold(model, x_test, y_test, y_train, times, model_type='stand
         c_index = censored_c_index(model, x_test.cpu().numpy(), y_test, is_deephit=True)
         ibs = compute_ibs(model, x_test, y_test, y_train, times, is_deephit=True, labtrans=kwargs.get('labtrans'))
         mean_auc = compute_mean_auc(model, x_test, y_test, y_train, times, is_deephit=True)
+
     elif model_type == 'deepsurv':
         c_index = censored_c_index(model, x_test.cpu().numpy(), y_test, is_deepsurv=True)
         ibs = compute_ibs(model, x_test, y_test, y_train, times, is_deepsurv=True)
         mean_auc = compute_mean_auc(model, x_test, y_test, y_train, times, is_deepsurv=True)
+
     else:
         c_index = censored_c_index(model, x_test, y_test)
         ibs = compute_ibs(model, x_test, y_test, y_train, times)
@@ -182,6 +236,23 @@ def evaluate_model_fold(model, x_test, y_test, y_train, times, model_type='stand
     return results
 
 def grid_search_cph(x_train, y_train, x_val, y_val, param_grid):
+    """
+    Grid search for CoxPH hyperparameters.
+
+    Parameters
+    - x_train : array-like, shape (n_samples, n_features)
+    - y_train : structured array, shape (n_samples,)
+    - x_val : array-like, shape (n_samples, n_features)
+    - y_val : structured array, shape (n_samples,)
+    - param_grid : dict
+        Dictionary containing hyperparameters to search over.
+
+    Returns
+    - best_params: dict
+        Best hyperparameters found.
+    - best_score: float
+        Best score achieved with the best hyperparameters.
+    """
     best_score = -np.inf
     best_params = None
     
@@ -206,6 +277,23 @@ def grid_search_cph(x_train, y_train, x_val, y_val, param_grid):
     return best_params, best_score
 
 def grid_search_rsf(x_train, y_train, x_val, y_val, param_grid):
+    """
+    Grid search for Random Survival Forest hyperparameters.
+
+    Parameters
+    - x_train : array-like, shape (n_samples, n_features)
+    - y_train : structured array, shape (n_samples,)
+    - x_val : array-like, shape (n_samples, n_features)
+    - y_val : structured array, shape (n_samples,)
+    - param_grid : dict
+        Dictionary containing hyperparameters to search over.
+
+    Returns
+    - best_params: dict
+        Best hyperparameters found.
+    - best_score: float
+        Best score achieved with the best hyperparameters.
+    """
     best_score = -np.inf
     best_params = None
     
@@ -234,6 +322,24 @@ def grid_search_rsf(x_train, y_train, x_val, y_val, param_grid):
     return best_params, best_score
 
 def grid_search_deephit(x_train, y_train, x_val, y_val, times, param_grid):
+    """
+    Grid search for DeepHit hyperparameters.
+
+    Parameters
+    - x_train : array-like, shape (n_samples, n_features)
+    - y_train : structured array, shape (n_samples,)
+    - x_val : array-like, shape (n_samples, n_features)
+    - y_val : structured array, shape (n_samples,)
+    - times : array-like, shape (n_times,)
+    - param_grid : dict
+        Dictionary containing hyperparameters to search over.
+
+    Returns 
+    - best_params: dict
+        Best hyperparameters found.
+    - best_score: float
+        Best score achieved with the best hyperparameters.
+    """
     best_score = -np.inf
     best_params = None
     
@@ -285,6 +391,23 @@ def grid_search_deephit(x_train, y_train, x_val, y_val, times, param_grid):
     return best_params, best_score
 
 def grid_search_deepsurv(x_train, y_train, x_val, y_val, param_grid):
+    """
+    Grid search for DeepSurv hyperparameters.
+
+    Parameters
+    - x_train : array-like, shape (n_samples, n_features)
+    - y_train : structured array, shape (n_samples,)
+    - x_val : array-like, shape (n_samples, n_features)
+    - y_val : structured array, shape (n_samples,)
+    - param_grid : dict
+        Dictionary containing hyperparameters to search over.
+
+    Returns
+    - best_params: dict
+        Best hyperparameters found.
+    - best_score: float
+        Best score achieved with the best hyperparameters.
+    """
     best_score = -np.inf
     best_params = None
     
@@ -358,49 +481,58 @@ for file_name in dataset_files:
         x = df[covariates].copy()
         y = Surv.from_arrays(event=df[event_col].astype(bool), time=df[time_col])
 
-        # --------------- 70-15-15 Split ---------------
+        # Split into train/val/test (70%/15%/15%) with stratification on event
         x_trainval, x_test, y_trainval, y_test = train_test_split(
             x, y, test_size=0.15, stratify=y["event"], random_state=SEED
         )
+
         x_train, x_val, y_train, y_val = train_test_split(
             x_trainval, y_trainval, test_size=0.1765, stratify=y_trainval["event"], random_state=SEED
         )
-        # 0.1765 * 0.85 ≈ 0.15, so test/val are both 15%
-
-        # One-hot encode using get_dummies (fit on TRAIN only!)
+        
+        # One-hot encode using get_dummies (fit on train only)
         x_train_ohe = pd.get_dummies(x_train, drop_first=True)
         x_val_ohe   = pd.get_dummies(x_val, drop_first=True)
         x_test_ohe  = pd.get_dummies(x_test, drop_first=True)
 
-        # Align columns so train/val/test match
+        # Align columns so train/val/test match (add missing columns with 0s)
         x_train_ohe, x_val_ohe = x_train_ohe.align(x_val_ohe, join="left", axis=1, fill_value=0)
         x_train_ohe, x_test_ohe = x_train_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
 
         covariates_ohe = x_train_ohe.columns  # all columns are covariates after OHE
 
-        # Impute missing values 
+        # Impute missing values in covariates (fit on train only) 
         imputer = SimpleImputer().fit(x_train_ohe.loc[:, covariates_ohe.tolist()])
+
         x_train_imputed = imputer.transform(x_train_ohe.loc[:, covariates_ohe.tolist()])
         x_train_imputed = pd.DataFrame(x_train_imputed, columns=covariates_ohe, index=x_train.index)
+
         x_val_imputed = imputer.transform(x_val_ohe.loc[:, covariates_ohe.tolist()])
         x_val_imputed = pd.DataFrame(x_val_imputed, columns=covariates_ohe, index=x_val.index)
+
         x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
         x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
 
-        # Evaluation time points (use train+val)
-        times = np.percentile(y_trainval["time"], np.arange(10, 100, 10))
-        times = np.unique(times)
+        # Determine evaluation time points (eval_times)
+        # Use percentiles from 10th to 90th of train + val times
+        eval_times = np.percentile(y_trainval["time"], np.arange(10, 100, 10))
+        eval_times = np.unique(eval_times)
+
+        # Filter test set to only include times within the range of train+val
         max_trainval_time = y_trainval["time"].max()
-        times = times[times < max_trainval_time]
         test_mask = y_test["time"] < max_trainval_time
         y_test_filtered = y_test[test_mask]
         x_test_filtered = x_test_imputed[test_mask]
-        times = times[(times > y_test_filtered["time"].min()) & (times < y_test_filtered["time"].max())]
-        print(f"Evaluation time points: {times}")
 
-        # --------------- Hyperparameter Tuning using Grid Search ---------------
+        # Further filter eval_times to be within the range of the filtered test set
+        eval_times = eval_times[
+            (eval_times > y_test_filtered["time"].min()) & 
+            (eval_times < y_test_filtered["time"].max())
+        ]
+        print(f"Evaluation time points: {eval_times}")
+
+        # Hyperparameter Tuning using Grid Search 
         # Grid search for CoxPH
-        print("Running Grid Search for CoxPH...")
         best_params_cph, best_score_cph = grid_search_cph(x_train_imputed, y_train, x_val_imputed, y_val, cph_grid)
         
         # Fallback for CoxPH if grid search fails
@@ -408,10 +540,10 @@ for file_name in dataset_files:
             print("CoxPH grid search failed, using default parameters")
             best_params_cph = {'alpha': 1e-4}
             best_score_cph = 0.0
+
         print(f"Best CoxPH params: {best_params_cph}, Score: {best_score_cph:.4f}")
 
         # Grid search for RSF
-        print("Running Grid Search for RSF...")
         best_params_rsf, best_score_rsf = grid_search_rsf(x_train_imputed, y_train, x_val_imputed, y_val, rsf_grid)
         
         # Fallback for RSF if grid search fails
@@ -419,11 +551,11 @@ for file_name in dataset_files:
             print("RSF grid search failed, using default parameters")
             best_params_rsf = {'n_estimators': 100, 'min_samples_split': 5}
             best_score_rsf = 0.0
+            
         print(f"Best RSF params: {best_params_rsf}, Score: {best_score_rsf:.4f}")
 
         # Grid search for DeepHit
-        print("Running Grid Search for DeepHit...")
-        best_params_dh, best_score_dh = grid_search_deephit(x_train_imputed, y_train, x_val_imputed, y_val, times, deephit_grid)
+        best_params_dh, best_score_dh = grid_search_deephit(x_train_imputed, y_train, x_val_imputed, y_val, eval_times, deephit_grid)
         
         # Fallback for DeepHit if grid search fails
         if best_params_dh is None:
@@ -436,10 +568,10 @@ for file_name in dataset_files:
                 'num_bins': 10
             }
             best_score_dh = 0.0
+            
         print(f"Best DeepHit params: {best_params_dh}, Score: {best_score_dh:.4f}")
 
         # Grid search for DeepSurv
-        print("Running Grid Search for DeepSurv...")
         best_params_ds, best_score_ds = grid_search_deepsurv(x_train_imputed, y_train, x_val_imputed, y_val, deepsurv_grid)
         
         # Fallback for DeepSurv if grid search fails
@@ -452,9 +584,10 @@ for file_name in dataset_files:
                 'learning_rate': 1e-3
             }
             best_score_ds = 0.0
+
         print(f"Best DeepSurv params: {best_params_ds}, Score: {best_score_ds:.4f}")
 
-        # --- Save best hyperparameters for this dataset ---
+        # Save best hyperparameters for this dataset
         hp_out = "baseline_hyperparameter.csv"
         write_hp_header = not os.path.exists(hp_out) or os.stat(hp_out).st_size == 0
 
@@ -486,24 +619,34 @@ for file_name in dataset_files:
                 best_params_ds["learning_rate"], best_score_ds
             ])
 
-        # ========== Retrain on train+val, evaluate on test ==========
-        # OHE and impute trainval/test
+        # Retrain on train+val, evaluate on test 
+        # Combine train and val sets
         x_trainval_ohe = pd.get_dummies(x_trainval, drop_first=True)
         x_test_ohe = pd.get_dummies(x_test, drop_first=True)
         x_trainval_ohe, x_test_ohe = x_trainval_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
         covariates_ohe = x_trainval_ohe.columns
+
+        # Impute missing values in covariates (fit on train+val only)
         imputer = SimpleImputer().fit(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
+
         x_trainval_imputed = imputer.transform(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
         x_trainval_imputed = pd.DataFrame(x_trainval_imputed, columns=covariates_ohe, index=x_trainval.index)
+
         x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
         x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
+
+        # Filter test set to only include times within the range of train+val
         test_mask = y_test["time"] < max_trainval_time
         y_test_filtered = y_test[test_mask]
         x_test_filtered = x_test_imputed[test_mask]
-        times = times[(times > y_test_filtered["time"].min()) & (times < y_test_filtered["time"].max())]
 
-        # ============== RSF ==============
-        print("Training RSF...")
+        # Further filter eval_times to be within the range of the filtered test set
+        eval_times = eval_times[
+            (eval_times > y_test_filtered["time"].min()) & 
+            (eval_times < y_test_filtered["time"].max())
+        ]
+
+        # Train RSF
         rsf = make_pipeline(
             StandardScaler(),
             RandomSurvivalForest(
@@ -527,19 +670,16 @@ for file_name in dataset_files:
             estimator = rsf
 
         event_times = estimator.event_times_
-        times = times[(times > event_times[0]) & (times < event_times[-1])] 
+        eval_times = eval_times[(eval_times > event_times[0]) & (eval_times < event_times[-1])] 
 
-        rsf_results = evaluate_model_fold(rsf, x_test_filtered, y_test_filtered, y_trainval, times)
+        rsf_results = evaluate_model_fold(rsf, x_test_filtered, y_test_filtered, y_trainval, eval_times)
 
-        # ============== CoxPH ==============
-        print("Training CoxPH...")
+        # Train CoxPH
         cph = make_pipeline(StandardScaler(), CoxPHSurvivalAnalysis(alpha=best_params_cph["alpha"]))
         cph.fit(x_trainval_imputed, y_trainval)
-        cph_results = evaluate_model_fold(cph, x_test_filtered, y_test_filtered, y_trainval, times)
+        cph_results = evaluate_model_fold(cph, x_test_filtered, y_test_filtered, y_trainval, eval_times)
 
-        # ============== DeepHit ===============
-        print("Training DeepHit...")
-
+        # Train DeepHit
         # Preprocess via pipeline: StandardScaler (fit on trainval only)
         dh_prep = make_pipeline(StandardScaler())
         X_train_dh_arr = dh_prep.fit_transform(x_trainval_imputed)
@@ -552,6 +692,7 @@ for file_name in dataset_files:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         X_train_dh = torch.tensor(np.asarray(X_train_dh_arr), dtype=torch.float32, device=device)
         X_test_dh = torch.tensor(np.asarray(X_test_dh_arr), dtype=torch.float32, device=device)
+
         y_trainval_time = torch.tensor(y_trainval_dh[0], dtype=torch.long, device=device)
         y_trainval_event = torch.tensor(y_trainval_dh[1], dtype=torch.float32, device=device)
 
@@ -570,12 +711,10 @@ for file_name in dataset_files:
         deephit.fit(X_train_dh, (y_trainval_time, y_trainval_event),
                     batch_size=256, epochs=300, verbose=False)
 
-        dh_results = evaluate_model_fold(deephit, X_test_dh, y_test_filtered, y_trainval, times, 
+        dh_results = evaluate_model_fold(deephit, X_test_dh, y_test_filtered, y_trainval, eval_times,
                                          model_type='deephit', labtrans=labtrans)
 
-        # ============== DeepSurv ==============
-        print("Training DeepSurv...")
-
+        # Train DeepSurv
         # Preprocess via pipeline: StandardScaler (fit on trainval only)
         ds_prep = make_pipeline(StandardScaler())
         X_train_ds_arr = ds_prep.fit_transform(x_trainval_imputed)
@@ -603,13 +742,12 @@ for file_name in dataset_files:
                      batch_size=256, epochs=300, verbose=False)
         deepsurv.compute_baseline_hazards()
 
-        ds_results = evaluate_model_fold(deepsurv, X_test_ds, y_test_filtered, y_trainval, times, 
+        ds_results = evaluate_model_fold(deepsurv, X_test_ds, y_test_filtered, y_trainval, eval_times,
                                          model_type='deepsurv')
 
         # Print results 
-        print("\n" + "="*50)
-        print("HOLDOUT TEST SET RESULTS")
         print("="*50)
+        print(f"Final test results for dataset {dataset_name}:")
         
         print(f"\nRandom Survival Forest:")
         print(f"C-index: {rsf_results['c_index']:.4f}")
