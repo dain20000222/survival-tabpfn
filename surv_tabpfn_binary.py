@@ -2,27 +2,17 @@ import pandas as pd
 import numpy as np
 import os
 import csv
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sksurv.util import Surv
-from sklearn.pipeline import make_pipeline
-from sksurv.preprocessing import OneHotEncoder
-from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.metrics import cumulative_dynamic_auc, concordance_index_censored, integrated_brier_score
-from sksurv.ensemble import RandomSurvivalForest
-from sklearn.preprocessing import StandardScaler
 import torch
-import torch.nn as nn
-from pycox.models import DeepHitSingle, CoxPH
-import torchtuples as tt
 from tabpfn import TabPFNClassifier
 import warnings
-import matplotlib.pyplot as plt
 import random
-from sksurv.nonparametric import SurvivalFunctionEstimator 
 warnings.filterwarnings("ignore")
 
+# Set random seeds for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
@@ -33,22 +23,29 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = False
 
 # Directory containing the datasets
-data_dir = os.path.join("test1")
+data_dir = os.path.join("data")
 
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV path
-csv_path = "tabpfn_binary_evaluation.csv"
+csv_path = "tabpfn_evaluation.csv"
 
-def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
+def construct_tabpfn_binary_trainset(x_train, y_train, times):
     """
     Construct TabPFN training dataset using binary classification approach.
     Include patient's own horizon in addition to provided time points.
     
-    Args:
-        cuts: Time points to evaluate at
+    Parameters:
+    - x_train: DataFrame of imputed covariates for training set
+    - y_train: Structured array with 'time' and 'event' fields
+    - times: Array of time points to consider for binary classification
+
+    Returns:
+    - X_tabpfn: DataFrame of features for TabPFN
+    - y_tabpfn: Series of binary labels for TabPFN
     """
+
     # Extract event/censoring times and status
     T = y_train["time"]
     delta = y_train["event"]
@@ -60,10 +57,10 @@ def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
     for i in range(n_train):
         T_i = T[i]
         delta_i = delta[i]
-        x_i = x_train_imputed.iloc[i].values
+        x_i = x_train.iloc[i].values
         
         # Add subject's own time to provided time points
-        horizons = np.append(cuts.copy(), T_i)
+        horizons = np.append(times.copy(), T_i)
         horizons.sort()
         
         if delta_i == 0:  # censored
@@ -76,14 +73,9 @@ def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
             dataset_rows.append(row)
             binary_labels.append(label)
     
-    feature_cols = list(x_train_imputed.columns) + ["eval_time"]
+    feature_cols = list(x_train.columns) + ["eval_time"]
     X_tabpfn = pd.DataFrame(dataset_rows, columns=feature_cols)
     y_tabpfn = pd.Series(binary_labels)
-
-    print(f"[DEBUG] Number of training samples for TabPFN: {X_tabpfn.shape[0]}")
-    print(f"[DEBUG] Number of features (including eval_time): {X_tabpfn.shape[1]}")
-    print(f"[DEBUG] Sample of features:\n{X_tabpfn.head()}")
-    print(f"[DEBUG] Sample of labels:\n{y_tabpfn.head()}")
     
     # Print class distribution
     n_ones = sum(binary_labels)
@@ -95,22 +87,34 @@ def construct_tabpfn_binary_trainset(x_train_imputed, y_train, cuts):
     
     return X_tabpfn, y_tabpfn
 
-def construct_tabpfn_binary_testset(x_test_imputed, eval_times):
-    """Construct TabPFN test dataset using actual evaluation times for binary classification."""
-    n_test = x_test_imputed.shape[0]
+def construct_tabpfn_binary_testset(x_test, times):
+    """Construct TabPFN test dataset using evaluation times for binary classification.
     
+    Parameters:
+    - x_test: DataFrame of imputed covariates for test set
+    - times: Array of time points to consider for binary classification
+
+    Returns:
+    - X_tabpfn_test: DataFrame of features for TabPFN
+    - patient_ids: Array mapping each row to the original patient index
+    """
+    n_test = x_test.shape[0]
+
     test_rows = []
     patient_ids = []
     
     for i in range(n_test):
-        x_i = x_test_imputed.iloc[i].values
-        for t in eval_times:  
+        x_i = x_test.iloc[i].values
+
+        # Create one row per evaluation time
+        for t in times:
             row = np.concatenate([x_i, [t]])
             test_rows.append(row)
             patient_ids.append(i)
     
-    feature_cols = list(x_test_imputed.columns) + ["eval_time"]
+    feature_cols = list(x_test.columns) + ["eval_time"]
     X_tabpfn_test = pd.DataFrame(test_rows, columns=feature_cols)
+
     return X_tabpfn_test, np.array(patient_ids)
 
 for file_name in dataset_files:
@@ -141,173 +145,174 @@ for file_name in dataset_files:
         x = df[covariates].copy()
         y = Surv.from_arrays(event=df[event_col].astype(bool), time=df[time_col])
         
-        # --------------- 70-15-15 Split (same as baseline.py) ---------------
+        # Split into train/val/test (70%/15%/15%) with stratification on event
         x_trainval, x_test, y_trainval, y_test = train_test_split(
             x, y, test_size=0.15, stratify=y["event"], random_state=SEED
         )
+
         x_train, x_val, y_train, y_val = train_test_split(
             x_trainval, y_trainval, test_size=0.1765, stratify=y_trainval["event"], random_state=SEED
         )
-        # 0.1765 * 0.85 ≈ 0.15, so test/val are both 15%
 
-        # One-hot encode using get_dummies (fit on TRAIN only!)
+        # One-hot encode using get_dummies (fit on train only)
         x_train_ohe = pd.get_dummies(x_train, drop_first=True)
         x_val_ohe = pd.get_dummies(x_val, drop_first=True)
         x_test_ohe = pd.get_dummies(x_test, drop_first=True)
 
-        # Align columns so train/val/test match
+        # Align columns of val/test to train (add missing columns with 0s)
         x_train_ohe, x_val_ohe = x_train_ohe.align(x_val_ohe, join="left", axis=1, fill_value=0)
         x_train_ohe, x_test_ohe = x_train_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
 
         covariates_ohe = x_train_ohe.columns  # all columns are covariates after OHE
 
-        # Impute missing values in covariates (fit on train only, same as baseline.py)
+        # Impute missing values in covariates (fit on train only)
         imputer = SimpleImputer().fit(x_train_ohe.loc[:, covariates_ohe.tolist()])
+
         x_train_imputed = imputer.transform(x_train_ohe.loc[:, covariates_ohe.tolist()])
         x_train_imputed = pd.DataFrame(x_train_imputed, columns=covariates_ohe, index=x_train.index)
+
         x_val_imputed = imputer.transform(x_val_ohe.loc[:, covariates_ohe.tolist()])
         x_val_imputed = pd.DataFrame(x_val_imputed, columns=covariates_ohe, index=x_val.index)
+
         x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
         x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
 
-        # Evaluation time points (use train+val, same as baseline.py)
+        # Determine evaluation time points (eval_times)
+        # Use percentiles from 10th to 90th of train + val times
         eval_times = np.percentile(y_trainval["time"], np.arange(10, 100, 10))
         eval_times = np.unique(eval_times)
+
+        # Filter test set to only include times within the range of train+val
         max_trainval_time = y_trainval["time"].max()
-        eval_times = eval_times[eval_times < max_trainval_time]
         test_mask = y_test["time"] < max_trainval_time
         y_test_filtered = y_test[test_mask]
         x_test_filtered = x_test_imputed[test_mask]
+
+        # Further filter eval_times to be within the range of the filtered test set
         eval_times = eval_times[
             (eval_times > y_test_filtered["time"].min()) & 
             (eval_times < y_test_filtered["time"].max())
         ]
         print(f"Evaluation time points: {eval_times}")
 
-        # ========================= Train and evaluate using eval_times =========================
-        print("Training binary TabPFN model using evaluation time points...")
-        
-        # Train binary model using eval_times
+        # Train and validate TabPFN model
+        # Construct TabPFN training set
         X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
-            x_train_imputed, y_train, cuts=eval_times
+            x_train_imputed, y_train, eval_times
         )
         
+        # Initialize and train TabPFN model
         tabpfn_model = TabPFNClassifier(
             device='cuda' if torch.cuda.is_available() else 'cpu',
             ignore_pretraining_limits=True
         )
         tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
         
-        # Evaluate on validation set using eval_times
+        # Construct TabPFN validation set
         X_tabpfn_val, val_patient_ids = construct_tabpfn_binary_testset(
             x_val_imputed, eval_times
         )
+
+        # Predict survival probabilities
         probs = tabpfn_model.predict_proba(X_tabpfn_val)
-        
-        # Process predictions directly at evaluation times
-        event_probs = probs[:, 1]
+        surv_probs = probs[:, 0]
+
         n_patients = len(x_val_imputed)
-        F = np.zeros((n_patients, len(eval_times)))
+        S = np.zeros((n_patients, len(eval_times)))
         
         for i, t in enumerate(eval_times):
             mask = np.isclose(X_tabpfn_val["eval_time"], t)
-            F[val_patient_ids[mask], i] = event_probs[mask]
-        
-        S = 1 - F
+            S[val_patient_ids[mask], i] = surv_probs[mask]
+
+        # Ensure survival probabilities are non-increasing over time
         S = np.minimum.accumulate(S, axis=1)
         
-        # Calculate time-dependent risk scores using cumulative hazard
-        H = -np.log(S)
-        # Use last time point for validation ranking
-        risk_scores = H[:, -1]
+        # Calculate time-dependent risk scores
+        risk_scores = -np.log(S)
 
         # Validation C-index
         val_c_index, *_ = concordance_index_censored(
-            y_val["event"], y_val["time"], risk_scores
+            y_val["event"], y_val["time"], risk_scores[:, -1] # Use last time-dependent risk score for ranking
         )
         
-        print(f"Validation C-index: {val_c_index:.4f}")
-        
-        # ========================= Final evaluation on test set =========================
-        print("Evaluating on test set...")
-
-        # ========== Retrain on train+val, evaluate on test (same as baseline.py) ==========
-        # OHE and impute trainval/test
+        # Retrain on train+val, evaluate on test
+        # Combine train and val sets
         x_trainval_ohe = pd.get_dummies(x_trainval, drop_first=True)
         x_test_ohe = pd.get_dummies(x_test, drop_first=True)
         x_trainval_ohe, x_test_ohe = x_trainval_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
         covariates_ohe = x_trainval_ohe.columns
+
+        # Impute missing values in covariates (fit on train+val only)
         imputer = SimpleImputer().fit(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
+
         x_trainval_imputed = imputer.transform(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
         x_trainval_imputed = pd.DataFrame(x_trainval_imputed, columns=covariates_ohe, index=x_trainval.index)
+
         x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
         x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
+
+        # Filter test set to only include times within the range of train+val
         test_mask = y_test["time"] < max_trainval_time
         y_test_filtered = y_test[test_mask]
         x_test_filtered = x_test_imputed[test_mask]
+
+        # Further filter eval_times to be within the range of the filtered test set
         eval_times = eval_times[
             (eval_times > y_test_filtered["time"].min()) & 
             (eval_times < y_test_filtered["time"].max())
         ]
         
-        # Train final binary model using eval_times
+        # Construct TabPFN training set
         X_tabpfn_train, y_tabpfn_train = construct_tabpfn_binary_trainset(
-            x_trainval_imputed, y_trainval, cuts=eval_times
+            x_trainval_imputed, y_trainval, eval_times
         )
 
+        # Initialize and train TabPFN model
         tabpfn_model = TabPFNClassifier(
             device='cuda' if torch.cuda.is_available() else 'cpu',
             ignore_pretraining_limits=True
         )
         tabpfn_model.fit(X_tabpfn_train, y_tabpfn_train)
 
-        # Final evaluation using evaluation times
+        # Construct TabPFN test set
         X_tabpfn_test, test_patient_ids = construct_tabpfn_binary_testset(
             x_test_filtered, eval_times
         )
-        probs = tabpfn_model.predict_proba(X_tabpfn_test)
 
-        # Process predictions directly at evaluation times
-        event_probs = probs[:, 1]
+        # Predict survival probabilities
+        probs = tabpfn_model.predict_proba(X_tabpfn_test)
+        surv_probs = probs[:, 0]
+
         n_patients = len(x_test_filtered)
-        F = np.zeros((n_patients, len(eval_times)))
+        S = np.zeros((n_patients, len(eval_times)))
 
         for i, t in enumerate(eval_times):
             mask = np.isclose(X_tabpfn_test["eval_time"], t)
-            F[test_patient_ids[mask], i] = event_probs[mask]
+            S[test_patient_ids[mask], i] = surv_probs[mask]
 
-        S = 1 - F
+        # Ensure survival probabilities are non-increasing over time
         S = np.minimum.accumulate(S, axis=1)
 
-        # Calculate time-dependent risk scores using cumulative hazard
-        H = -np.log(S)
-        
-        print(f"[DEBUG] Survival probabilities shape: {S.shape}")
-        print(f"[DEBUG] Sample of survival probabilities:\n{S[:5, :]}")
-
-        print(f"[DEBUG] Cumulative hazard shape: {H.shape}")
-        print(f"[DEBUG] Sample of cumulative hazard:\n{H[:5, :]}")
-
-        # For C-index, use the last time point for ranking
-        risk_scores_ranking = H[:, -1]
+        # Calculate time-dependent risk scores
+        risk_scores = -np.log(S)
 
         # Final metrics on test set
         c_index, *_ = concordance_index_censored(
             y_test_filtered["event"], 
             y_test_filtered["time"], 
-            risk_scores_ranking
+            risk_scores[:, -1] # Use last time-dependent risk score for ranking
         )
 
         ibs = integrated_brier_score(y_trainval, y_test_filtered, S, eval_times)
         
         _, mean_auc = cumulative_dynamic_auc(
-            y_trainval, y_test_filtered, H, eval_times
+            y_trainval, y_test_filtered, risk_scores, eval_times
         )
 
         best_row = {
             "dataset": dataset_name,
-            "n_eval_times": len(eval_times),  # Use number of evaluation time points
-            "score": round(float(val_c_index), 4),
+            "n_eval_times": len(eval_times),  
+            "val_score": round(float(val_c_index), 4),
             "c_index": round(float(c_index), 4),
             "ibs": round(float(ibs), 4),
             "mean_auc": round(float(mean_auc), 4),
@@ -316,16 +321,16 @@ for file_name in dataset_files:
         print("="*50)
         print(f"Final test results for dataset {dataset_name}:")
         print(f"Number of eval time points: {best_row['n_eval_times']}")
-        print(f"Validation C-index: {best_row['score']:.4f}")
+        print(f"Validation C-index: {best_row['val_score']:.4f}")
         print(f"Test C-index: {best_row['c_index']:.4f}")
-        print(f"Test interval Brier Score (IBS): {best_row['ibs']:.4f}")
+        print(f"Test intergrated Brier Score (IBS): {best_row['ibs']:.4f}")
         print(f"Test mean AUC: {best_row['mean_auc']:.4f}")
 
         # ========================= write results =========================
         if best_row is not None:
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "score", "c_index", "ibs", "mean_auc"])
+                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "val_score", "c_index", "ibs", "mean_auc"])
                 if not file_exists:
                     writer.writeheader()
                 writer.writerow(best_row)
