@@ -2,13 +2,16 @@
 """
 Performance Comparison Script for Survival Analysis Models
 
-This script compares the performance of 4 different models:
-1. MITRA Binary
-2. MITRA 
-3. TabPFN Binary
-4. TabPFN
+This script compares the performance of 5 main models plus baseline models:
+1. MITRA
+2. MITRA (Fine-tuned)
+3. TabPFN 
+4. Random Forest (RF)
+5. XGBoost
 
-Metrics compared: score, c_index, ibs, mean_auc
+Plus baseline models: RSF, CPH, DH, DS
+
+Metrics compared: val_score, c_index, ibs, mean_auc
 """
 
 import pandas as pd
@@ -27,10 +30,11 @@ def load_evaluation_data():
     """Load all evaluation CSV files and return as a dictionary of DataFrames."""
     
     files = {
-        'MITRA_Binary': 'mitra_binary_evaluation.csv',
         'MITRA': 'mitra_evaluation.csv',
-        'TabPFN_Binary': 'tabpfn_binary_evaluation.csv',
-        'TabPFN': 'tabpfn_evaluation.csv'
+        'MITRA (Fine-tuned)': 'mitra_evaluation_ft.csv',
+        'TabPFN': 'tabpfn_evaluation.csv',
+        'Random Forest': 'rf_evaluation.csv',
+        'XGBoost': 'xgboost_evaluation.csv'
     }
     
     data = {}
@@ -59,7 +63,7 @@ def load_evaluation_data():
             model_df['mean_auc'] = baseline_df[f'{model.lower()}_mean_auc']
             # Add dummy values for missing columns to maintain consistency
             model_df['n_eval_times'] = 9  # Default value
-            model_df['score'] = model_df['c_index']  # Use c_index as score proxy
+            model_df['val_score'] = model_df['c_index']  # Use c_index as val_score proxy
             
             data[model] = model_df
             print(f"✓ Processed baseline model {model}: {len(model_df)} datasets")
@@ -85,7 +89,7 @@ def create_combined_dataframe(data_dict):
 def calculate_summary_statistics(combined_df):
     """Calculate summary statistics for each model."""
     
-    metrics = ['c_index', 'ibs', 'mean_auc']
+    metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     
     print("\n" + "="*80)
     print("SUMMARY STATISTICS BY MODEL")
@@ -119,7 +123,7 @@ def calculate_summary_statistics(combined_df):
 def find_best_worst_performers(combined_df):
     """Find best and worst performing datasets for each metric."""
     
-    metrics = ['c_index', 'ibs', 'mean_auc']
+    metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     
     print("\n" + "="*80)
     print("BEST AND WORST PERFORMERS BY METRIC")
@@ -170,7 +174,7 @@ def perform_pairwise_comparisons(combined_df):
     
     from scipy.stats import wilcoxon
     
-    metrics = ['c_index', 'ibs', 'mean_auc']
+    metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     models = combined_df['model'].unique()
     
     print("\n" + "="*80)
@@ -224,7 +228,7 @@ def perform_pairwise_comparisons(combined_df):
 def perform_win_loss_analysis(combined_df):
     """Perform win/loss/tie analysis between models."""
     
-    metrics = ['c_index', 'ibs', 'mean_auc']
+    metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     models = combined_df['model'].unique()
     
     print("\n" + "="*80)
@@ -264,7 +268,7 @@ def perform_win_loss_analysis(combined_df):
                     if metric == 'ibs':  # Lower is better for IBS
                         wins = (data1 < data2).sum()
                         losses = (data1 > data2).sum()
-                    else:  # Higher is better for other metrics
+                    else:  # Higher is better for other metrics (val_score, c_index, mean_auc)
                         wins = (data1 > data2).sum()
                         losses = (data1 < data2).sum()
                     
@@ -284,7 +288,7 @@ def perform_win_loss_analysis(combined_df):
 def calculate_model_rankings(combined_df):
     """Calculate overall model rankings across all metrics."""
     
-    metrics = ['c_index', 'ibs', 'mean_auc']
+    metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     models = combined_df['model'].unique()
     
     print("\n" + "="*80)
@@ -324,46 +328,48 @@ def calculate_model_rankings(combined_df):
 def create_visualizations(combined_df):
     """Create comprehensive visualizations for model comparison."""
     
-    metrics = ['c_index', 'ibs', 'mean_auc']  # Removed 'score' as it's just validation score
+    metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     
-    # Separate TabPFN/MITRA models from baseline models
-    tabpfn_models = ['MITRA_Binary', 'MITRA', 'TabPFN_Binary', 'TabPFN']
+    # Separate main models from baseline models
+    main_models = ['MITRA', 'MITRA (Fine-tuned)', 'TabPFN', 'Random Forest', 'XGBoost']
     baseline_models = ['RSF', 'CPH', 'DH', 'DS']
     
-    # Filter data for TabPFN/MITRA only
-    tabpfn_df = combined_df[combined_df['model'].isin(tabpfn_models)].copy()
+    # Filter data for main models only
+    main_df = combined_df[combined_df['model'].isin(main_models)].copy()
     
-    print("Creating TabPFN/MITRA only visualizations...")
+    print("Creating main models visualizations...")
     
-    # 1. Box plots for TabPFN/MITRA models only
-    if not tabpfn_df.empty:
-        fig, axes = plt.subplots(1, 3, figsize=(15, 6))
+    # 1. Box plots for main models only
+    if not main_df.empty:
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        axes = axes.flatten()
         
         for i, metric in enumerate(metrics):
-            sns.boxplot(data=tabpfn_df, x='model', y=metric, ax=axes[i])
-            axes[i].set_title(f'{metric.upper()} Distribution - TabPFN/MITRA Models')
+            sns.boxplot(data=main_df, x='model', y=metric, ax=axes[i])
+            axes[i].set_title(f'{metric.upper()} Distribution - Main Models')
             axes[i].tick_params(axis='x', rotation=45)
             
             # Add mean markers
-            model_means = tabpfn_df.groupby('model')[metric].mean()
+            model_means = main_df.groupby('model')[metric].mean()
             for j, (model, mean_val) in enumerate(model_means.items()):
                 axes[i].scatter(j, mean_val, color='red', s=100, marker='D', 
                               label='Mean' if i == 0 and j == 0 else "", zorder=5)
         
         plt.tight_layout()
-        plt.savefig('tabpfn_mitra_distributions.png', dpi=300, bbox_inches='tight')
+        plt.savefig('main_models_distributions.png', dpi=300, bbox_inches='tight')
         plt.show()
         
-        # Summary comparison bar chart for TabPFN/MITRA
-        model_means = tabpfn_df.groupby('model')[metrics].mean()
+        # Summary comparison bar chart for main models
+        model_means = main_df.groupby('model')[metrics].mean()
         
-        fig, axes = plt.subplots(1, 3, figsize=(15, 6))
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        axes = axes.flatten()
         
         for i, metric in enumerate(metrics):
             model_means_sorted = model_means[metric].sort_values(ascending=(metric == 'ibs'))
             
             bars = axes[i].bar(range(len(model_means_sorted)), model_means_sorted.values)
-            axes[i].set_title(f'Average {metric.upper()} - TabPFN/MITRA Models')
+            axes[i].set_title(f'Average {metric.upper()} - Main Models')
             axes[i].set_xticks(range(len(model_means_sorted)))
             axes[i].set_xticklabels(model_means_sorted.index, rotation=45)
             axes[i].set_ylabel(f'{metric.upper()}')
@@ -371,29 +377,26 @@ def create_visualizations(combined_df):
             # Add value labels on bars
             for j, (bar, value) in enumerate(zip(bars, model_means_sorted.values)):
                 height = bar.get_height()
-                if metric == 'ibs':
-                    axes[i].text(bar.get_x() + bar.get_width()/2, height + 0.002,
-                                f'{value:.3f}', ha='center', va='bottom', fontsize=9)
-                else:
-                    axes[i].text(bar.get_x() + bar.get_width()/2, height + 0.002,
-                                f'{value:.3f}', ha='center', va='bottom', fontsize=9)
+                axes[i].text(bar.get_x() + bar.get_width()/2, height + 0.002,
+                            f'{value:.3f}', ha='center', va='bottom', fontsize=9)
             
             # Color coding: green for best, red for worst (corrected logic)
             if metric == 'ibs':  # Lower is better for IBS
                 bars[0].set_color('green')  # First (lowest) is best
                 bars[-1].set_color('red')   # Last (highest) is worst
-            else:  # Higher is better for c_index and mean_auc
+            else:  # Higher is better for val_score, c_index and mean_auc
                 bars[-1].set_color('green') # Last (highest) is best
                 bars[0].set_color('red')    # First (lowest) is worst
         
         plt.tight_layout()
-        plt.savefig('tabpfn_mitra_comparison_bars.png', dpi=300, bbox_inches='tight')
+        plt.savefig('main_models_comparison_bars.png', dpi=300, bbox_inches='tight')
         plt.show()
     
     print("Creating all models visualizations...")
     
     # 2. Box plots for all models
-    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+    axes = axes.flatten()
     
     for i, metric in enumerate(metrics):
         sns.boxplot(data=combined_df, x='model', y=metric, ax=axes[i])
@@ -413,7 +416,8 @@ def create_visualizations(combined_df):
     # Summary comparison bar chart for all models
     model_means = combined_df.groupby('model')[metrics].mean()
     
-    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+    axes = axes.flatten()
     
     for i, metric in enumerate(metrics):
         model_means_sorted = model_means[metric].sort_values(ascending=(metric == 'ibs'))
@@ -436,14 +440,14 @@ def create_visualizations(combined_df):
         
         # Color bars by model type
         for j, (bar, model_name) in enumerate(zip(bars, model_means_sorted.index)):
-            if model_name in tabpfn_models:
+            if model_name in main_models:
                 if metric == 'ibs':  # Lower is better
-                    if j == 0:  # Best TabPFN/MITRA
+                    if j == 0:  # Best main model
                         bar.set_color('darkgreen')
                     else:
                         bar.set_color('lightgreen')
                 else:  # Higher is better
-                    if j == len(bars) - 1:  # Best TabPFN/MITRA
+                    if j == len(bars) - 1:  # Best main model
                         bar.set_color('darkgreen')
                     else:
                         bar.set_color('lightgreen')
@@ -466,10 +470,10 @@ def create_visualizations(combined_df):
     # 3. Heatmap of model rankings per dataset
     print("\nCreating performance heatmaps...")
     
-    # Create ranking matrix for TabPFN/MITRA models only
-    if not tabpfn_df.empty:
+    # Create ranking matrix for main models only
+    if not main_df.empty:
         for metric in metrics:
-            pivot_data = tabpfn_df.pivot_table(
+            pivot_data = main_df.pivot_table(
                 values=metric,
                 index='dataset',
                 columns='model',
@@ -482,15 +486,15 @@ def create_visualizations(combined_df):
             else:  # Higher is better for other metrics
                 rankings = pivot_data.rank(axis=1, method='min', ascending=False)
             
-            plt.figure(figsize=(8, max(6, len(rankings) * 0.3)))
+            plt.figure(figsize=(10, max(6, len(rankings) * 0.3)))
             sns.heatmap(rankings, annot=True, cmap='RdYlBu_r', cbar_kws={'label': 'Rank (1=best)'})
-            plt.title(f'TabPFN/MITRA Model Rankings by Dataset - {metric.upper()}')
+            plt.title(f'Main Model Rankings by Dataset - {metric.upper()}')
             plt.xlabel('Model')
             plt.ylabel('Dataset')
             plt.xticks(rotation=45)
             plt.yticks(rotation=0)
             plt.tight_layout()
-            plt.savefig(f'tabpfn_mitra_rankings_{metric}.png', dpi=300, bbox_inches='tight')
+            plt.savefig(f'main_models_rankings_{metric}.png', dpi=300, bbox_inches='tight')
             plt.show()
     
     # Create ranking matrix for all models
@@ -524,25 +528,27 @@ def create_visualizations(combined_df):
     
     from math import pi
     
-    categories = ['C-Index', 'IBS (inverted)', 'Mean AUC']
+    categories = ['Val Score', 'C-Index', 'IBS (inverted)', 'Mean AUC']
     N = len(categories)
     
     angles = [n / float(N) * 2 * pi for n in range(N)]
     angles += angles[:1]  # Complete the circle
     
-    # Radar chart for TabPFN/MITRA models only
-    if not tabpfn_df.empty:
+    # Radar chart for main models only
+    if not main_df.empty:
         model_performance = []
-        for model in tabpfn_df['model'].unique():
-            model_data = tabpfn_df[tabpfn_df['model'] == model]
+        for model in main_df['model'].unique():
+            model_data = main_df[main_df['model'] == model]
             
             # Normalize metrics (higher = better)
+            val_score_norm = model_data['val_score'].mean()
             c_index_norm = model_data['c_index'].mean()
             ibs_norm = 1 - model_data['ibs'].mean()  # Invert IBS (lower is better)
             auc_norm = model_data['mean_auc'].mean()
             
             model_performance.append({
                 'Model': model,
+                'Val Score': val_score_norm,
                 'C-Index': c_index_norm,
                 'IBS (inverted)': ibs_norm,
                 'Mean AUC': auc_norm
@@ -552,11 +558,11 @@ def create_visualizations(combined_df):
         
         fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
         
-        # Colors for TabPFN/MITRA models
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+        # Colors for main models
+        colors = ['#FF6B6B', '#FF9F9F', '#4ECDC4', '#45B7D1', '#96CEB4']
         
         for i, (_, row) in enumerate(perf_df.iterrows()):
-            values = [row['C-Index'], row['IBS (inverted)'], row['Mean AUC']]
+            values = [row['Val Score'], row['C-Index'], row['IBS (inverted)'], row['Mean AUC']]
             values += values[:1]  # Complete the circle
             
             color = colors[i] if i < len(colors) else colors[i % len(colors)]
@@ -568,11 +574,11 @@ def create_visualizations(combined_df):
         ax.set_ylim(0, 1)
         ax.grid(True)
         ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.0))
-        plt.title('TabPFN/MITRA Model Performance Comparison\n(Higher values = Better performance)', 
+        plt.title('Main Model Performance Comparison\n(Higher values = Better performance)', 
                   pad=20, fontsize=14, fontweight='bold')
         
         plt.tight_layout()
-        plt.savefig('tabpfn_mitra_radar.png', dpi=300, bbox_inches='tight')
+        plt.savefig('main_models_radar.png', dpi=300, bbox_inches='tight')
         plt.show()
     
     # Radar chart for all models
@@ -581,12 +587,14 @@ def create_visualizations(combined_df):
         model_data = combined_df[combined_df['model'] == model]
         
         # Normalize metrics (higher = better)
+        val_score_norm = model_data['val_score'].mean()
         c_index_norm = model_data['c_index'].mean()
         ibs_norm = 1 - model_data['ibs'].mean()  # Invert IBS (lower is better)
         auc_norm = model_data['mean_auc'].mean()
         
         model_performance.append({
             'Model': model,
+            'Val Score': val_score_norm,
             'C-Index': c_index_norm,
             'IBS (inverted)': ibs_norm,
             'Mean AUC': auc_norm
@@ -601,11 +609,11 @@ def create_visualizations(combined_df):
     colors = cm.tab10(np.linspace(0, 1, len(perf_df)))
     
     for i, (_, row) in enumerate(perf_df.iterrows()):
-        values = [row['C-Index'], row['IBS (inverted)'], row['Mean AUC']]
+        values = [row['Val Score'], row['C-Index'], row['IBS (inverted)'], row['Mean AUC']]
         values += values[:1]  # Complete the circle
         
-        # Different line styles for TabPFN/MITRA vs baseline models
-        if row['Model'] in tabpfn_models:
+        # Different line styles for main vs baseline models
+        if row['Model'] in main_models:
             linestyle = '-'
             linewidth = 3
             alpha = 0.2
@@ -623,7 +631,7 @@ def create_visualizations(combined_df):
     ax.set_ylim(0, 1)
     ax.grid(True)
     ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0))
-    plt.title('All Model Performance Comparison\n(Higher values = Better performance, Solid=TabPFN/MITRA, Dashed=Baseline)', 
+    plt.title('All Model Performance Comparison\n(Higher values = Better performance, Solid=Main Models, Dashed=Baseline)', 
               pad=20, fontsize=14, fontweight='bold')
     
     plt.tight_layout()
@@ -644,12 +652,12 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
         f.write("MODELS COMPARED:\n")
         f.write("-" * 16 + "\n")
         models = combined_df['model'].unique()
-        tabpfn_models = [m for m in models if 'TabPFN' in m or 'MITRA' in m]
+        main_models = [m for m in models if m in ['MITRA', 'MITRA (Fine-tuned)', 'TabPFN', 'Random Forest', 'XGBoost']]
         baseline_models = [m for m in models if m in ['RSF', 'CPH', 'DH', 'DS']]
         
-        if tabpfn_models:
-            f.write("\nTabPFN/MITRA Models:\n")
-            for model in tabpfn_models:
+        if main_models:
+            f.write("\nMain Models:\n")
+            for model in main_models:
                 count = len(combined_df[combined_df['model'] == model])
                 f.write(f"• {model}: {count} datasets\n")
         
@@ -660,7 +668,7 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
                 f.write(f"• {model}: {count} datasets\n")
         
         f.write(f"\nTOTAL DATASETS: {combined_df['dataset'].nunique()}\n")
-        f.write(f"METRICS EVALUATED: c_index, ibs, mean_auc\n\n")
+        f.write(f"METRICS EVALUATED: val_score, c_index, ibs, mean_auc\n\n")
         
         f.write("SUMMARY STATISTICS:\n")
         f.write("-" * 19 + "\n")
@@ -671,7 +679,7 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
         f.write("MODEL RANKINGS (by average metric performance):\n")
         f.write("-" * 48 + "\n")
         
-        metrics = ['c_index', 'ibs', 'mean_auc']
+        metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
         
         for metric in metrics:
             f.write(f"\n{metric.upper()} Rankings:\n")
@@ -692,34 +700,34 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
             for i, (model, avg_rank) in enumerate(model_rankings, 1):
                 f.write(f"  {i}. {model:20s}: {avg_rank:.2f}\n")
         
-        # Performance comparison between TabPFN/MITRA and baselines
-        if tabpfn_models and baseline_models:
-            f.write(f"\nTABPFN/MITRA vs BASELINE COMPARISON:\n")
-            f.write("-" * 36 + "\n")
+        # Performance comparison between main models and baselines
+        if main_models and baseline_models:
+            f.write(f"\nMAIN MODELS vs BASELINE COMPARISON:\n")
+            f.write("-" * 35 + "\n")
             
             for metric in metrics:
-                tabpfn_means = combined_df[combined_df['model'].isin(tabpfn_models)].groupby('model')[metric].mean()
+                main_means = combined_df[combined_df['model'].isin(main_models)].groupby('model')[metric].mean()
                 baseline_means = combined_df[combined_df['model'].isin(baseline_models)].groupby('model')[metric].mean()
                 
-                best_tabpfn = tabpfn_means.max() if metric != 'ibs' else tabpfn_means.min()
+                best_main = main_means.max() if metric != 'ibs' else main_means.min()
                 best_baseline = baseline_means.max() if metric != 'ibs' else baseline_means.min()
-                best_tabpfn_model = tabpfn_means.idxmax() if metric != 'ibs' else tabpfn_means.idxmin()
+                best_main_model = main_means.idxmax() if metric != 'ibs' else main_means.idxmin()
                 best_baseline_model = baseline_means.idxmax() if metric != 'ibs' else baseline_means.idxmin()
                 
                 f.write(f"\n{metric.upper()}:\n")
-                f.write(f"  Best TabPFN/MITRA: {best_tabpfn_model} ({best_tabpfn:.4f})\n")
-                f.write(f"  Best Baseline:      {best_baseline_model} ({best_baseline:.4f})\n")
+                f.write(f"  Best Main Model: {best_main_model} ({best_main:.4f})\n")
+                f.write(f"  Best Baseline:   {best_baseline_model} ({best_baseline:.4f})\n")
                 
                 if metric == 'ibs':
-                    improvement = ((best_baseline - best_tabpfn) / best_baseline) * 100
-                    if best_tabpfn < best_baseline:
-                        f.write(f"  TabPFN/MITRA advantage: {improvement:.1f}% lower IBS\n")
+                    improvement = ((best_baseline - best_main) / best_baseline) * 100
+                    if best_main < best_baseline:
+                        f.write(f"  Main model advantage: {improvement:.1f}% lower IBS\n")
                     else:
                         f.write(f"  Baseline advantage: {-improvement:.1f}% lower IBS\n")
                 else:
-                    improvement = ((best_tabpfn - best_baseline) / best_baseline) * 100
-                    if best_tabpfn > best_baseline:
-                        f.write(f"  TabPFN/MITRA advantage: {improvement:.1f}% higher {metric}\n")
+                    improvement = ((best_main - best_baseline) / best_baseline) * 100
+                    if best_main > best_baseline:
+                        f.write(f"  Main model advantage: {improvement:.1f}% higher {metric}\n")
                     else:
                         f.write(f"  Baseline advantage: {-improvement:.1f}% higher {metric}\n")
         
@@ -765,8 +773,8 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
         f.write("• Consider dataset-specific performance variations\n")
         f.write("• Statistical significance should be evaluated for final conclusions\n")
         f.write("• Domain knowledge and model interpretability may influence final choice\n")
-        if tabpfn_models:
-            f.write("• TabPFN/MITRA models show competitive performance with baseline methods\n")
+        if main_models:
+            f.write("• Main models show competitive performance with baseline methods\n")
         f.write("• IBS (Integrated Brier Score) - lower values indicate better calibration\n")
         f.write("• C-Index and Mean AUC - higher values indicate better discrimination\n")
     
@@ -825,11 +833,11 @@ def main():
     
     print("\n✅ Analysis complete!")
     print("\nFiles generated:")
-    print("\nTabPFN/MITRA Only:")
-    print("• tabpfn_mitra_distributions.png")
-    print("• tabpfn_mitra_comparison_bars.png")
-    print("• tabpfn_mitra_rankings_*.png")
-    print("• tabpfn_mitra_radar.png")
+    print("\nMain Models Only:")
+    print("• main_models_distributions.png")
+    print("• main_models_comparison_bars.png")
+    print("• main_models_rankings_*.png")
+    print("• main_models_radar.png")
     print("\nAll Models (including baselines):")
     print("• all_models_distributions.png")
     print("• all_models_comparison_bars.png")

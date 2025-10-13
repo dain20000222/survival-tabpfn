@@ -1,0 +1,292 @@
+================================================================================
+SURVIVAL ANALYSIS MODEL PERFORMANCE COMPARISON REPORT
+================================================================================
+Generated on: 2025-10-14 00:07:24
+
+MODELS COMPARED:
+----------------
+
+Main Models:
+• MITRA: 32 datasets
+• MITRA (Fine-tuned): 32 datasets
+• TabPFN: 32 datasets
+• Random Forest: 32 datasets
+• XGBoost: 32 datasets
+
+Baseline Models:
+• RSF: 32 datasets
+• CPH: 32 datasets
+• DH: 32 datasets
+• DS: 32 datasets
+
+TOTAL DATASETS: 32
+METRICS EVALUATED: val_score, c_index, ibs, mean_auc
+
+SUMMARY STATISTICS:
+-------------------
+             Model  val_score_mean  val_score_std  val_score_median  c_index_mean  c_index_std  c_index_median  ibs_mean  ibs_std  ibs_median  mean_auc_mean  mean_auc_std  mean_auc_median
+             MITRA        0.659731       0.092055          0.654100      0.680262     0.103517        0.664200  0.184603 0.038628    0.180650       0.725162      0.117216         0.728950
+MITRA (Fine-tuned)        0.650741       0.091529          0.647150      0.662112     0.117008        0.646700  0.192419 0.049258    0.191250       0.700303      0.139853         0.686750
+            TabPFN        0.625787       0.114136          0.618400      0.639791     0.141920        0.649050  0.201422 0.046387    0.197450       0.678225      0.168077         0.706600
+     Random Forest        0.638641       0.101198          0.596300      0.651925     0.128845        0.618500  0.200772 0.049267    0.198600       0.694353      0.133958         0.711850
+           XGBoost        0.635913       0.107678          0.622150      0.675928     0.105929        0.664750  0.186475 0.042913    0.179300       0.723106      0.130800         0.746550
+               RSF        0.683473       0.111617          0.675275      0.683473     0.111617        0.675275  0.183906 0.034426    0.180390       0.716531      0.123857         0.722775
+               CPH        0.676125       0.110318          0.673746      0.676125     0.110318        0.673746  0.188425 0.041379    0.184599       0.709392      0.117817         0.743877
+                DH        0.615010       0.126203          0.615953      0.615010     0.126203        0.615953  0.222567 0.052288    0.216406       0.643211      0.142398         0.652386
+                DS        0.655461       0.111863          0.655109      0.655461     0.111863        0.655109  0.200748 0.046744    0.196758       0.676580      0.174769         0.708141
+
+MODEL RANKINGS (by average metric performance):
+------------------------------------------------
+
+VAL_SCORE Rankings:
+  1. RSF                 : 0.6835
+  2. CPH                 : 0.6761
+  3. MITRA               : 0.6597
+  4. DS                  : 0.6555
+  5. MITRA (Fine-tuned)  : 0.6507
+  6. Random Forest       : 0.6386
+  7. XGBoost             : 0.6359
+  8. TabPFN              : 0.6258
+  9. DH                  : 0.6150
+
+C_INDEX Rankings:
+  1. RSF                 : 0.6835
+  2. MITRA               : 0.6803
+  3. CPH                 : 0.6761
+  4. XGBoost             : 0.6759
+  5. MITRA (Fine-tuned)  : 0.6621
+  6. DS                  : 0.6555
+  7. Random Forest       : 0.6519
+  8. TabPFN              : 0.6398
+  9. DH                  : 0.6150
+
+IBS Rankings:
+  1. RSF                 : 0.1839
+  2. MITRA               : 0.1846
+  3. XGBoost             : 0.1865
+  4. CPH                 : 0.1884
+  5. MITRA (Fine-tuned)  : 0.1924
+  6. DS                  : 0.2007
+  7. Random Forest       : 0.2008
+  8. TabPFN              : 0.2014
+  9. DH                  : 0.2226
+
+MEAN_AUC Rankings:
+  1. MITRA               : 0.7252
+  2. XGBoost             : 0.7231
+  3. RSF                 : 0.7165
+  4. CPH                 : 0.7094
+  5. MITRA (Fine-tuned)  : 0.7003
+  6. Random Forest       : 0.6944
+  7. TabPFN              : 0.6782
+  8. DS                  : 0.6766
+  9. DH                  : 0.6432
+
+OVERALL RANKINGS (Average across all metrics):
+----------------------------------------------
+  1. RSF                 : 1.50
+  2. MITRA               : 2.00
+  3. CPH                 : 3.25
+  4. XGBoost             : 4.00
+  5. MITRA (Fine-tuned)  : 5.00
+  6. DS                  : 6.00
+  7. Random Forest       : 6.50
+  8. TabPFN              : 7.75
+  9. DH                  : 9.00
+
+MAIN MODELS vs BASELINE COMPARISON:
+-----------------------------------
+
+VAL_SCORE:
+  Best Main Model: MITRA (0.6597)
+  Best Baseline:   RSF (0.6835)
+  Baseline advantage: 3.5% higher val_score
+
+C_INDEX:
+  Best Main Model: MITRA (0.6803)
+  Best Baseline:   RSF (0.6835)
+  Baseline advantage: 0.5% higher c_index
+
+IBS:
+  Best Main Model: MITRA (0.1846)
+  Best Baseline:   RSF (0.1839)
+  Baseline advantage: 0.4% lower IBS
+
+MEAN_AUC:
+  Best Main Model: MITRA (0.7252)
+  Best Baseline:   RSF (0.7165)
+  Main model advantage: 1.2% higher mean_auc
+
+WIN/LOSS ANALYSIS SUMMARY:
+--------------------------
+
+VAL_SCORE Head-to-Head Records:
+  MITRA           vs MITRA (Fine-tuned): 62.5% win rate
+  MITRA           vs TabPFN         : 71.9% win rate
+  MITRA           vs Random Forest  : 68.8% win rate
+  MITRA           vs XGBoost        : 68.8% win rate
+  MITRA           vs RSF            : 34.4% win rate
+  MITRA           vs CPH            : 46.9% win rate
+  MITRA           vs DH             : 68.8% win rate
+  MITRA           vs DS             : 50.0% win rate
+  MITRA (Fine-tuned) vs TabPFN         : 62.5% win rate
+  MITRA (Fine-tuned) vs Random Forest  : 59.4% win rate
+  MITRA (Fine-tuned) vs XGBoost        : 56.2% win rate
+  MITRA (Fine-tuned) vs RSF            : 34.4% win rate
+  MITRA (Fine-tuned) vs CPH            : 43.8% win rate
+  MITRA (Fine-tuned) vs DH             : 68.8% win rate
+  MITRA (Fine-tuned) vs DS             : 50.0% win rate
+  TabPFN          vs Random Forest  : 46.9% win rate
+  TabPFN          vs XGBoost        : 40.6% win rate
+  TabPFN          vs RSF            : 34.4% win rate
+  TabPFN          vs CPH            : 34.4% win rate
+  TabPFN          vs DH             : 50.0% win rate
+  TabPFN          vs DS             : 34.4% win rate
+  Random Forest   vs XGBoost        : 43.8% win rate
+  Random Forest   vs RSF            : 31.2% win rate
+  Random Forest   vs CPH            : 28.1% win rate
+  Random Forest   vs DH             : 59.4% win rate
+  Random Forest   vs DS             : 40.6% win rate
+  XGBoost         vs RSF            : 37.5% win rate
+  XGBoost         vs CPH            : 34.4% win rate
+  XGBoost         vs DH             : 56.2% win rate
+  XGBoost         vs DS             : 37.5% win rate
+  RSF             vs CPH            : 50.0% win rate
+  RSF             vs DH             : 68.8% win rate
+  RSF             vs DS             : 46.9% win rate
+  CPH             vs DH             : 65.6% win rate
+  CPH             vs DS             : 62.5% win rate
+  DH              vs DS             : 25.0% win rate
+
+C_INDEX Head-to-Head Records:
+  MITRA           vs MITRA (Fine-tuned): 53.1% win rate
+  MITRA           vs TabPFN         : 65.6% win rate
+  MITRA           vs Random Forest  : 75.0% win rate
+  MITRA           vs XGBoost        : 59.4% win rate
+  MITRA           vs RSF            : 56.2% win rate
+  MITRA           vs CPH            : 56.2% win rate
+  MITRA           vs DH             : 75.0% win rate
+  MITRA           vs DS             : 59.4% win rate
+  MITRA (Fine-tuned) vs TabPFN         : 56.2% win rate
+  MITRA (Fine-tuned) vs Random Forest  : 71.9% win rate
+  MITRA (Fine-tuned) vs XGBoost        : 53.1% win rate
+  MITRA (Fine-tuned) vs RSF            : 50.0% win rate
+  MITRA (Fine-tuned) vs CPH            : 50.0% win rate
+  MITRA (Fine-tuned) vs DH             : 71.9% win rate
+  MITRA (Fine-tuned) vs DS             : 59.4% win rate
+  TabPFN          vs Random Forest  : 53.1% win rate
+  TabPFN          vs XGBoost        : 31.2% win rate
+  TabPFN          vs RSF            : 37.5% win rate
+  TabPFN          vs CPH            : 37.5% win rate
+  TabPFN          vs DH             : 56.2% win rate
+  TabPFN          vs DS             : 28.1% win rate
+  Random Forest   vs XGBoost        : 31.2% win rate
+  Random Forest   vs RSF            : 25.0% win rate
+  Random Forest   vs CPH            : 37.5% win rate
+  Random Forest   vs DH             : 59.4% win rate
+  Random Forest   vs DS             : 34.4% win rate
+  XGBoost         vs RSF            : 56.2% win rate
+  XGBoost         vs CPH            : 53.1% win rate
+  XGBoost         vs DH             : 78.1% win rate
+  XGBoost         vs DS             : 59.4% win rate
+  RSF             vs CPH            : 50.0% win rate
+  RSF             vs DH             : 68.8% win rate
+  RSF             vs DS             : 46.9% win rate
+  CPH             vs DH             : 65.6% win rate
+  CPH             vs DS             : 62.5% win rate
+  DH              vs DS             : 25.0% win rate
+
+IBS Head-to-Head Records:
+  MITRA           vs MITRA (Fine-tuned): 65.6% win rate
+  MITRA           vs TabPFN         : 81.2% win rate
+  MITRA           vs Random Forest  : 78.1% win rate
+  MITRA           vs XGBoost        : 59.4% win rate
+  MITRA           vs RSF            : 46.9% win rate
+  MITRA           vs CPH            : 53.1% win rate
+  MITRA           vs DH             : 78.1% win rate
+  MITRA           vs DS             : 78.1% win rate
+  MITRA (Fine-tuned) vs TabPFN         : 59.4% win rate
+  MITRA (Fine-tuned) vs Random Forest  : 68.8% win rate
+  MITRA (Fine-tuned) vs XGBoost        : 43.8% win rate
+  MITRA (Fine-tuned) vs RSF            : 56.2% win rate
+  MITRA (Fine-tuned) vs CPH            : 50.0% win rate
+  MITRA (Fine-tuned) vs DH             : 75.0% win rate
+  MITRA (Fine-tuned) vs DS             : 71.9% win rate
+  TabPFN          vs Random Forest  : 43.8% win rate
+  TabPFN          vs XGBoost        : 37.5% win rate
+  TabPFN          vs RSF            : 25.0% win rate
+  TabPFN          vs CPH            : 37.5% win rate
+  TabPFN          vs DH             : 65.6% win rate
+  TabPFN          vs DS             : 56.2% win rate
+  Random Forest   vs XGBoost        : 31.2% win rate
+  Random Forest   vs RSF            : 28.1% win rate
+  Random Forest   vs CPH            : 34.4% win rate
+  Random Forest   vs DH             : 71.9% win rate
+  Random Forest   vs DS             : 34.4% win rate
+  XGBoost         vs RSF            : 53.1% win rate
+  XGBoost         vs CPH            : 59.4% win rate
+  XGBoost         vs DH             : 78.1% win rate
+  XGBoost         vs DS             : 68.8% win rate
+  RSF             vs CPH            : 43.8% win rate
+  RSF             vs DH             : 87.5% win rate
+  RSF             vs DS             : 68.8% win rate
+  CPH             vs DH             : 81.2% win rate
+  CPH             vs DS             : 65.6% win rate
+  DH              vs DS             : 18.8% win rate
+
+MEAN_AUC Head-to-Head Records:
+  MITRA           vs MITRA (Fine-tuned): 68.8% win rate
+  MITRA           vs TabPFN         : 71.9% win rate
+  MITRA           vs Random Forest  : 75.0% win rate
+  MITRA           vs XGBoost        : 56.2% win rate
+  MITRA           vs RSF            : 62.5% win rate
+  MITRA           vs CPH            : 53.1% win rate
+  MITRA           vs DH             : 78.1% win rate
+  MITRA           vs DS             : 65.6% win rate
+  MITRA (Fine-tuned) vs TabPFN         : 65.6% win rate
+  MITRA (Fine-tuned) vs Random Forest  : 71.9% win rate
+  MITRA (Fine-tuned) vs XGBoost        : 50.0% win rate
+  MITRA (Fine-tuned) vs RSF            : 53.1% win rate
+  MITRA (Fine-tuned) vs CPH            : 37.5% win rate
+  MITRA (Fine-tuned) vs DH             : 84.4% win rate
+  MITRA (Fine-tuned) vs DS             : 62.5% win rate
+  TabPFN          vs Random Forest  : 50.0% win rate
+  TabPFN          vs XGBoost        : 37.5% win rate
+  TabPFN          vs RSF            : 40.6% win rate
+  TabPFN          vs CPH            : 40.6% win rate
+  TabPFN          vs DH             : 65.6% win rate
+  TabPFN          vs DS             : 50.0% win rate
+  Random Forest   vs XGBoost        : 31.2% win rate
+  Random Forest   vs RSF            : 37.5% win rate
+  Random Forest   vs CPH            : 28.1% win rate
+  Random Forest   vs DH             : 65.6% win rate
+  Random Forest   vs DS             : 34.4% win rate
+  XGBoost         vs RSF            : 62.5% win rate
+  XGBoost         vs CPH            : 50.0% win rate
+  XGBoost         vs DH             : 71.9% win rate
+  XGBoost         vs DS             : 59.4% win rate
+  RSF             vs CPH            : 40.6% win rate
+  RSF             vs DH             : 78.1% win rate
+  RSF             vs DS             : 56.2% win rate
+  CPH             vs DH             : 78.1% win rate
+  CPH             vs DS             : 56.2% win rate
+  DH              vs DS             : 34.4% win rate
+
+================================================================================
+RECOMMENDATIONS:
+================================================================================
+
+Best Overall Model: MITRA (Normalized Score: 0.7403)
+
+Top 3 Models:
+  1. MITRA               : 0.7403
+  2. RSF                 : 0.7387
+  3. XGBoost             : 0.7375
+
+Detailed Analysis:
+• Consider dataset-specific performance variations
+• Statistical significance should be evaluated for final conclusions
+• Domain knowledge and model interpretability may influence final choice
+• Main models show competitive performance with baseline methods
+• IBS (Integrated Brier Score) - lower values indicate better calibration
+• C-Index and Mean AUC - higher values indicate better discrimination
