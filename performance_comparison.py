@@ -2,12 +2,13 @@
 """
 Performance Comparison Script for Survival Analysis Models
 
-This script compares the performance of 5 main models plus baseline models:
+This script compares the performance of 6 main models plus baseline models:
 1. MITRA
-2. MITRA (Fine-tuned)
-3. TabPFN 
-4. Random Forest (RF)
-5. XGBoost
+2. MITRA (model)
+3. MITRA (temperature)
+4. TabPFN 
+5. Random Forest (RF)
+6. XGBoost
 
 Plus baseline models: RSF, CPH, DH, DS
 
@@ -31,7 +32,8 @@ def load_evaluation_data():
     
     files = {
         'MITRA': 'mitra_evaluation.csv',
-        'MITRA (Fine-tuned)': 'mitra_evaluation_ft.csv',
+        'MITRA (model)': 'mitra_evaluation_ft_model.csv',
+        'MITRA (temperature)': 'mitra_evaluation_ft_temp.csv',
         'TabPFN': 'tabpfn_evaluation.csv',
         'Random Forest': 'rf_evaluation.csv',
         'XGBoost': 'xgboost_evaluation.csv'
@@ -331,7 +333,7 @@ def create_visualizations(combined_df):
     metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     
     # Separate main models from baseline models
-    main_models = ['MITRA', 'MITRA (Fine-tuned)', 'TabPFN', 'Random Forest', 'XGBoost']
+    main_models = ['MITRA', 'MITRA (model)', 'MITRA (temperature)', 'TabPFN', 'Random Forest', 'XGBoost']
     baseline_models = ['RSF', 'CPH', 'DH', 'DS']
     
     # Filter data for main models only
@@ -559,7 +561,7 @@ def create_visualizations(combined_df):
         fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
         
         # Colors for main models
-        colors = ['#FF6B6B', '#FF9F9F', '#4ECDC4', '#45B7D1', '#96CEB4']
+        colors = ['#FF6B6B', '#FF9999', '#FFCC99', '#4ECDC4', '#45B7D1', '#96CEB4']
         
         for i, (_, row) in enumerate(perf_df.iterrows()):
             values = [row['Val Score'], row['C-Index'], row['IBS (inverted)'], row['Mean AUC']]
@@ -652,7 +654,7 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
         f.write("MODELS COMPARED:\n")
         f.write("-" * 16 + "\n")
         models = combined_df['model'].unique()
-        main_models = [m for m in models if m in ['MITRA', 'MITRA (Fine-tuned)', 'TabPFN', 'Random Forest', 'XGBoost']]
+        main_models = [m for m in models if m in ['MITRA', 'MITRA (model)', 'MITRA (temperature)', 'TabPFN', 'Random Forest', 'XGBoost']]
         baseline_models = [m for m in models if m in ['RSF', 'CPH', 'DH', 'DS']]
         
         if main_models:

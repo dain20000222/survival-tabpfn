@@ -30,7 +30,7 @@ data_dir = os.path.join("data")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV path
-csv_path = "mitra_evaluation_ft.csv"
+csv_path = "mitra_evaluation_ft_model.csv"
 
 def construct_mitra_binary_trainset(x_train, y_train, times):
     """
