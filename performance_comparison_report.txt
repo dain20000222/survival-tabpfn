@@ -1,7 +1,7 @@
 ================================================================================
 SURVIVAL ANALYSIS MODEL PERFORMANCE COMPARISON REPORT
 ================================================================================
-Generated on: 2025-10-14 03:05:08
+Generated on: 2025-10-15 01:00:10
 
 MODELS COMPARED:
 ----------------
@@ -10,6 +10,7 @@ Main Models:
 • MITRA: 32 datasets
 • MITRA (model): 32 datasets
 • MITRA (temperature): 32 datasets
+• MITRA (combine): 32 datasets
 • TabPFN: 32 datasets
 • Random Forest: 32 datasets
 • XGBoost: 32 datasets
@@ -29,6 +30,7 @@ SUMMARY STATISTICS:
               MITRA        0.659731       0.092055          0.654100      0.680262     0.103517        0.664200  0.184603 0.038628    0.180650       0.725162      0.117216         0.728950
       MITRA (model)        0.650541       0.092103          0.640950      0.663612     0.116684        0.651700  0.192463 0.049430    0.191300       0.701078      0.140261         0.684100
 MITRA (temperature)        0.660003       0.091520          0.654100      0.680250     0.103486        0.664200  0.210934 0.033963    0.218150       0.725000      0.117489         0.728950
+    MITRA (combine)        0.662053       0.089446          0.669550      0.680481     0.103611        0.664200  0.210309 0.033837    0.214900       0.724537      0.116841         0.726900
              TabPFN        0.625787       0.114136          0.618400      0.639791     0.141920        0.649050  0.201422 0.046387    0.197450       0.678225      0.168077         0.706600
       Random Forest        0.638641       0.101198          0.596300      0.651925     0.128845        0.618500  0.200772 0.049267    0.198600       0.694353      0.133958         0.711850
             XGBoost        0.635913       0.107678          0.622150      0.675928     0.105929        0.664750  0.186475 0.042913    0.179300       0.723106      0.130800         0.746550
@@ -43,26 +45,28 @@ MODEL RANKINGS (by average metric performance):
 VAL_SCORE Rankings:
   1. RSF                 : 0.6835
   2. CPH                 : 0.6761
-  3. MITRA (temperature) : 0.6600
-  4. MITRA               : 0.6597
-  5. DS                  : 0.6555
-  6. MITRA (model)       : 0.6505
-  7. Random Forest       : 0.6386
-  8. XGBoost             : 0.6359
-  9. TabPFN              : 0.6258
-  10. DH                  : 0.6150
+  3. MITRA (combine)     : 0.6621
+  4. MITRA (temperature) : 0.6600
+  5. MITRA               : 0.6597
+  6. DS                  : 0.6555
+  7. MITRA (model)       : 0.6505
+  8. Random Forest       : 0.6386
+  9. XGBoost             : 0.6359
+  10. TabPFN              : 0.6258
+  11. DH                  : 0.6150
 
 C_INDEX Rankings:
   1. RSF                 : 0.6835
-  2. MITRA               : 0.6803
-  3. MITRA (temperature) : 0.6803
-  4. CPH                 : 0.6761
-  5. XGBoost             : 0.6759
-  6. MITRA (model)       : 0.6636
-  7. DS                  : 0.6555
-  8. Random Forest       : 0.6519
-  9. TabPFN              : 0.6398
-  10. DH                  : 0.6150
+  2. MITRA (combine)     : 0.6805
+  3. MITRA               : 0.6803
+  4. MITRA (temperature) : 0.6803
+  5. CPH                 : 0.6761
+  6. XGBoost             : 0.6759
+  7. MITRA (model)       : 0.6636
+  8. DS                  : 0.6555
+  9. Random Forest       : 0.6519
+  10. TabPFN              : 0.6398
+  11. DH                  : 0.6150
 
 IBS Rankings:
   1. RSF                 : 0.1839
@@ -73,46 +77,49 @@ IBS Rankings:
   6. DS                  : 0.2007
   7. Random Forest       : 0.2008
   8. TabPFN              : 0.2014
-  9. MITRA (temperature) : 0.2109
-  10. DH                  : 0.2226
+  9. MITRA (combine)     : 0.2103
+  10. MITRA (temperature) : 0.2109
+  11. DH                  : 0.2226
 
 MEAN_AUC Rankings:
   1. MITRA               : 0.7252
   2. MITRA (temperature) : 0.7250
-  3. XGBoost             : 0.7231
-  4. RSF                 : 0.7165
-  5. CPH                 : 0.7094
-  6. MITRA (model)       : 0.7011
-  7. Random Forest       : 0.6944
-  8. TabPFN              : 0.6782
-  9. DS                  : 0.6766
-  10. DH                  : 0.6432
+  3. MITRA (combine)     : 0.7245
+  4. XGBoost             : 0.7231
+  5. RSF                 : 0.7165
+  6. CPH                 : 0.7094
+  7. MITRA (model)       : 0.7011
+  8. Random Forest       : 0.6944
+  9. TabPFN              : 0.6782
+  10. DS                  : 0.6766
+  11. DH                  : 0.6432
 
 OVERALL RANKINGS (Average across all metrics):
 ----------------------------------------------
-  1. RSF                 : 1.75
-  2. MITRA               : 2.25
-  3. CPH                 : 3.75
-  4. MITRA (temperature) : 4.25
-  5. XGBoost             : 4.75
-  6. MITRA (model)       : 5.75
-  7. DS                  : 6.75
-  8. Random Forest       : 7.25
-  9. TabPFN              : 8.50
-  10. DH                  : 10.00
+  1. RSF                 : 2.00
+  2. MITRA               : 2.75
+  3. MITRA (combine)     : 4.25
+  4. CPH                 : 4.25
+  5. MITRA (temperature) : 5.00
+  6. XGBoost             : 5.50
+  7. MITRA (model)       : 6.50
+  8. DS                  : 7.50
+  9. Random Forest       : 8.00
+  10. TabPFN              : 9.25
+  11. DH                  : 11.00
 
 MAIN MODELS vs BASELINE COMPARISON:
 -----------------------------------
 
 VAL_SCORE:
-  Best Main Model: MITRA (temperature) (0.6600)
+  Best Main Model: MITRA (combine) (0.6621)
   Best Baseline:   RSF (0.6835)
-  Baseline advantage: 3.4% higher val_score
+  Baseline advantage: 3.1% higher val_score
 
 C_INDEX:
-  Best Main Model: MITRA (0.6803)
+  Best Main Model: MITRA (combine) (0.6805)
   Best Baseline:   RSF (0.6835)
-  Baseline advantage: 0.5% higher c_index
+  Baseline advantage: 0.4% higher c_index
 
 IBS:
   Best Main Model: MITRA (0.1846)
@@ -130,6 +137,7 @@ WIN/LOSS ANALYSIS SUMMARY:
 VAL_SCORE Head-to-Head Records:
   MITRA           vs MITRA (model)  : 62.5% win rate
   MITRA           vs MITRA (temperature): 3.1% win rate
+  MITRA           vs MITRA (combine): 50.0% win rate
   MITRA           vs TabPFN         : 71.9% win rate
   MITRA           vs Random Forest  : 68.8% win rate
   MITRA           vs XGBoost        : 68.8% win rate
@@ -138,6 +146,7 @@ VAL_SCORE Head-to-Head Records:
   MITRA           vs DH             : 68.8% win rate
   MITRA           vs DS             : 50.0% win rate
   MITRA (model)   vs MITRA (temperature): 34.4% win rate
+  MITRA (model)   vs MITRA (combine): 31.2% win rate
   MITRA (model)   vs TabPFN         : 62.5% win rate
   MITRA (model)   vs Random Forest  : 59.4% win rate
   MITRA (model)   vs XGBoost        : 56.2% win rate
@@ -145,6 +154,7 @@ VAL_SCORE Head-to-Head Records:
   MITRA (model)   vs CPH            : 43.8% win rate
   MITRA (model)   vs DH             : 68.8% win rate
   MITRA (model)   vs DS             : 50.0% win rate
+  MITRA (temperature) vs MITRA (combine): 50.0% win rate
   MITRA (temperature) vs TabPFN         : 71.9% win rate
   MITRA (temperature) vs Random Forest  : 68.8% win rate
   MITRA (temperature) vs XGBoost        : 68.8% win rate
@@ -152,6 +162,13 @@ VAL_SCORE Head-to-Head Records:
   MITRA (temperature) vs CPH            : 46.9% win rate
   MITRA (temperature) vs DH             : 68.8% win rate
   MITRA (temperature) vs DS             : 50.0% win rate
+  MITRA (combine) vs TabPFN         : 65.6% win rate
+  MITRA (combine) vs Random Forest  : 68.8% win rate
+  MITRA (combine) vs XGBoost        : 62.5% win rate
+  MITRA (combine) vs RSF            : 37.5% win rate
+  MITRA (combine) vs CPH            : 46.9% win rate
+  MITRA (combine) vs DH             : 78.1% win rate
+  MITRA (combine) vs DS             : 56.2% win rate
   TabPFN          vs Random Forest  : 46.9% win rate
   TabPFN          vs XGBoost        : 40.6% win rate
   TabPFN          vs RSF            : 34.4% win rate
@@ -177,6 +194,7 @@ VAL_SCORE Head-to-Head Records:
 C_INDEX Head-to-Head Records:
   MITRA           vs MITRA (model)  : 53.1% win rate
   MITRA           vs MITRA (temperature): 3.1% win rate
+  MITRA           vs MITRA (combine): 3.1% win rate
   MITRA           vs TabPFN         : 65.6% win rate
   MITRA           vs Random Forest  : 75.0% win rate
   MITRA           vs XGBoost        : 59.4% win rate
@@ -185,6 +203,7 @@ C_INDEX Head-to-Head Records:
   MITRA           vs DH             : 75.0% win rate
   MITRA           vs DS             : 59.4% win rate
   MITRA (model)   vs MITRA (temperature): 40.6% win rate
+  MITRA (model)   vs MITRA (combine): 40.6% win rate
   MITRA (model)   vs TabPFN         : 59.4% win rate
   MITRA (model)   vs Random Forest  : 71.9% win rate
   MITRA (model)   vs XGBoost        : 53.1% win rate
@@ -192,6 +211,7 @@ C_INDEX Head-to-Head Records:
   MITRA (model)   vs CPH            : 53.1% win rate
   MITRA (model)   vs DH             : 78.1% win rate
   MITRA (model)   vs DS             : 59.4% win rate
+  MITRA (temperature) vs MITRA (combine): 3.1% win rate
   MITRA (temperature) vs TabPFN         : 65.6% win rate
   MITRA (temperature) vs Random Forest  : 75.0% win rate
   MITRA (temperature) vs XGBoost        : 59.4% win rate
@@ -199,6 +219,13 @@ C_INDEX Head-to-Head Records:
   MITRA (temperature) vs CPH            : 56.2% win rate
   MITRA (temperature) vs DH             : 75.0% win rate
   MITRA (temperature) vs DS             : 59.4% win rate
+  MITRA (combine) vs TabPFN         : 65.6% win rate
+  MITRA (combine) vs Random Forest  : 71.9% win rate
+  MITRA (combine) vs XGBoost        : 59.4% win rate
+  MITRA (combine) vs RSF            : 56.2% win rate
+  MITRA (combine) vs CPH            : 56.2% win rate
+  MITRA (combine) vs DH             : 75.0% win rate
+  MITRA (combine) vs DS             : 59.4% win rate
   TabPFN          vs Random Forest  : 53.1% win rate
   TabPFN          vs XGBoost        : 31.2% win rate
   TabPFN          vs RSF            : 37.5% win rate
@@ -224,6 +251,7 @@ C_INDEX Head-to-Head Records:
 IBS Head-to-Head Records:
   MITRA           vs MITRA (model)  : 65.6% win rate
   MITRA           vs MITRA (temperature): 71.9% win rate
+  MITRA           vs MITRA (combine): 71.9% win rate
   MITRA           vs TabPFN         : 81.2% win rate
   MITRA           vs Random Forest  : 78.1% win rate
   MITRA           vs XGBoost        : 59.4% win rate
@@ -232,6 +260,7 @@ IBS Head-to-Head Records:
   MITRA           vs DH             : 78.1% win rate
   MITRA           vs DS             : 78.1% win rate
   MITRA (model)   vs MITRA (temperature): 71.9% win rate
+  MITRA (model)   vs MITRA (combine): 68.8% win rate
   MITRA (model)   vs TabPFN         : 59.4% win rate
   MITRA (model)   vs Random Forest  : 68.8% win rate
   MITRA (model)   vs XGBoost        : 46.9% win rate
@@ -239,6 +268,7 @@ IBS Head-to-Head Records:
   MITRA (model)   vs CPH            : 53.1% win rate
   MITRA (model)   vs DH             : 75.0% win rate
   MITRA (model)   vs DS             : 71.9% win rate
+  MITRA (temperature) vs MITRA (combine): 25.0% win rate
   MITRA (temperature) vs TabPFN         : 40.6% win rate
   MITRA (temperature) vs Random Forest  : 37.5% win rate
   MITRA (temperature) vs XGBoost        : 28.1% win rate
@@ -246,6 +276,13 @@ IBS Head-to-Head Records:
   MITRA (temperature) vs CPH            : 25.0% win rate
   MITRA (temperature) vs DH             : 56.2% win rate
   MITRA (temperature) vs DS             : 37.5% win rate
+  MITRA (combine) vs TabPFN         : 40.6% win rate
+  MITRA (combine) vs Random Forest  : 37.5% win rate
+  MITRA (combine) vs XGBoost        : 25.0% win rate
+  MITRA (combine) vs RSF            : 9.4% win rate
+  MITRA (combine) vs CPH            : 25.0% win rate
+  MITRA (combine) vs DH             : 56.2% win rate
+  MITRA (combine) vs DS             : 37.5% win rate
   TabPFN          vs Random Forest  : 43.8% win rate
   TabPFN          vs XGBoost        : 37.5% win rate
   TabPFN          vs RSF            : 25.0% win rate
@@ -271,6 +308,7 @@ IBS Head-to-Head Records:
 MEAN_AUC Head-to-Head Records:
   MITRA           vs MITRA (model)  : 68.8% win rate
   MITRA           vs MITRA (temperature): 28.1% win rate
+  MITRA           vs MITRA (combine): 28.1% win rate
   MITRA           vs TabPFN         : 71.9% win rate
   MITRA           vs Random Forest  : 75.0% win rate
   MITRA           vs XGBoost        : 56.2% win rate
@@ -279,6 +317,7 @@ MEAN_AUC Head-to-Head Records:
   MITRA           vs DH             : 78.1% win rate
   MITRA           vs DS             : 65.6% win rate
   MITRA (model)   vs MITRA (temperature): 28.1% win rate
+  MITRA (model)   vs MITRA (combine): 31.2% win rate
   MITRA (model)   vs TabPFN         : 65.6% win rate
   MITRA (model)   vs Random Forest  : 71.9% win rate
   MITRA (model)   vs XGBoost        : 53.1% win rate
@@ -286,6 +325,7 @@ MEAN_AUC Head-to-Head Records:
   MITRA (model)   vs CPH            : 40.6% win rate
   MITRA (model)   vs DH             : 81.2% win rate
   MITRA (model)   vs DS             : 62.5% win rate
+  MITRA (temperature) vs MITRA (combine): 6.2% win rate
   MITRA (temperature) vs TabPFN         : 71.9% win rate
   MITRA (temperature) vs Random Forest  : 75.0% win rate
   MITRA (temperature) vs XGBoost        : 56.2% win rate
@@ -293,6 +333,13 @@ MEAN_AUC Head-to-Head Records:
   MITRA (temperature) vs CPH            : 53.1% win rate
   MITRA (temperature) vs DH             : 78.1% win rate
   MITRA (temperature) vs DS             : 65.6% win rate
+  MITRA (combine) vs TabPFN         : 71.9% win rate
+  MITRA (combine) vs Random Forest  : 75.0% win rate
+  MITRA (combine) vs XGBoost        : 56.2% win rate
+  MITRA (combine) vs RSF            : 62.5% win rate
+  MITRA (combine) vs CPH            : 53.1% win rate
+  MITRA (combine) vs DH             : 78.1% win rate
+  MITRA (combine) vs DS             : 65.6% win rate
   TabPFN          vs Random Forest  : 50.0% win rate
   TabPFN          vs XGBoost        : 37.5% win rate
   TabPFN          vs RSF            : 40.6% win rate

@@ -1,0 +1,505 @@
+import pandas as pd
+import numpy as np
+import os
+import csv
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sksurv.util import Surv
+from sksurv.metrics import cumulative_dynamic_auc, concordance_index_censored, integrated_brier_score
+import torch
+import warnings
+from autogluon.tabular import TabularDataset, TabularPredictor
+import random
+import tempfile, shutil
+from scipy.optimize import minimize_scalar
+warnings.filterwarnings("ignore")
+
+# Set random seeds for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+# Directory containing the datasets
+data_dir = os.path.join("data")
+
+# List all CSV files in the directory
+dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
+
+# CSV path
+csv_path = "mitra_evaluation_combine.csv"
+
+def construct_mitra_binary_trainset(x_train, y_train, times):
+    """
+    Construct MITRA training dataset using binary classification approach.
+    Include patient's own horizon in addition to provided time points.
+    
+    Parameters:
+    - x_train: DataFrame of imputed covariates for training set
+    - y_train: Structured array with 'time' and 'event' fields 
+    - times: Array of time points to consider for binary classification
+
+    Returns:
+    - X_mitra: DataFrame of features for MITRA
+    - y_mitra: Series of binary labels for MITRA
+    """
+
+    # Extract event/censoring times and status
+    T = y_train["time"]
+    delta = y_train["event"]
+    n_train = len(T)
+    
+    dataset_rows = []
+    binary_labels = []
+    
+    for i in range(n_train):
+        T_i = T[i]
+        delta_i = delta[i]
+        x_i = x_train.iloc[i].values
+        
+        # Add subject's own time to provided time points
+        horizons = np.append(times.copy(), T_i)
+        horizons.sort()
+        
+        if delta_i == 0:  # censored
+            horizons = horizons[horizons <= T_i]
+
+        # Create one row per admissible horizon
+        for t in horizons:
+            row = np.concatenate([x_i, [t]])
+            label = int(delta_i and T_i <= t)  # Binary: 1 if event occurred by time t
+            dataset_rows.append(row)
+            binary_labels.append(label)
+    
+    feature_cols = list(x_train.columns) + ["eval_time"]
+    X_mitra = pd.DataFrame(dataset_rows, columns=feature_cols)
+    y_mitra = pd.Series(binary_labels)
+    
+    # Print class distribution
+    n_ones = sum(binary_labels)
+    n_zeros = len(binary_labels) - n_ones
+    print(f"\nTraining set class distribution:")
+    print(f"Class 0 (no event): {n_zeros} ({n_zeros/len(binary_labels)*100:.1f}%)")
+    print(f"Class 1 (event):    {n_ones} ({n_ones/len(binary_labels)*100:.1f}%)")
+    print(f"Total samples:      {len(binary_labels)}")
+
+    return X_mitra, y_mitra
+
+def construct_mitra_binary_testset(x_test, times):
+    """Construct MITRA test dataset using evaluation times for binary classification.
+    
+    Parameters:
+    - x_test: DataFrame of imputed covariates for test set
+    - times: Array of time points to consider for binary classification
+
+    Returns:
+    - X_mitra_test: DataFrame of features for MITRA test set
+    - patient_ids: Array mapping each row to the original patient index
+    """
+    n_test = x_test.shape[0]
+
+    test_rows = []
+    patient_ids = []
+    
+    for i in range(n_test):
+        x_i = x_test.iloc[i].values
+
+        # Create one row per evaluation time
+        for t in times:
+            row = np.concatenate([x_i, [t]])
+            test_rows.append(row)
+            patient_ids.append(i)
+
+    feature_cols = list(x_test.columns) + ["eval_time"]
+    X_mitra_test = pd.DataFrame(test_rows, columns=feature_cols)
+
+    return X_mitra_test, np.array(patient_ids)
+
+def find_optimal_temperature(val_logits, val_labels, initial_temp=1.0):
+    """
+    Find optimal temperature for temperature scaling using validation data.
+    
+    Parameters:
+    - val_logits: Raw logits from the model on validation data
+    - val_labels: True binary labels for validation data
+    - initial_temp: Initial temperature value
+    
+    Returns:
+    - optimal_temperature: Best temperature value found
+    """
+    
+    def temperature_scaled_loss(temperature):
+        # Apply temperature scaling
+        scaled_logits = val_logits / temperature
+        # Convert to probabilities using softmax
+        exp_logits = np.exp(scaled_logits - np.max(scaled_logits, axis=1, keepdims=True))
+        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+        
+        # Calculate negative log-likelihood (cross-entropy loss)
+        epsilon = 1e-15  # Small value to prevent log(0)
+        probs = np.clip(probs, epsilon, 1 - epsilon)
+        
+        # For binary classification, we use the probability of the true class
+        loss = 0
+        for i in range(len(val_labels)):
+            if val_labels[i] == 1:
+                loss -= np.log(probs[i, 1])  # Class 1 probability
+            else:
+                loss -= np.log(probs[i, 0])  # Class 0 probability
+        
+        return loss / len(val_labels)  # Average loss
+    
+    # Find optimal temperature using scalar minimization
+    result = minimize_scalar(
+        temperature_scaled_loss, 
+        bounds=(0.1, 10.0), 
+        method='bounded'
+    )
+    
+    optimal_temp = result.x
+    print(f"Optimal temperature found: {optimal_temp:.4f}")
+    
+    return optimal_temp
+
+def apply_temperature_scaling(probs, temperature):
+    """
+    Apply temperature scaling to probability predictions.
+    
+    Parameters:
+    - probs: Probability matrix from predict_proba
+    - temperature: Temperature scaling factor
+    
+    Returns:
+    - calibrated_probs: Temperature-scaled probabilities
+    """
+    
+    # Convert probabilities back to logits (inverse softmax)
+    epsilon = 1e-15
+    probs = np.clip(probs, epsilon, 1 - epsilon)
+    
+    # Convert to logits
+    logits = np.log(probs + epsilon)
+    
+    # Apply temperature scaling
+    scaled_logits = logits / temperature
+    
+    # Apply softmax to get calibrated probabilities
+    exp_logits = np.exp(scaled_logits - np.max(scaled_logits, axis=1, keepdims=True))
+    calibrated_probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+    
+    return calibrated_probs
+
+for file_name in dataset_files:
+    try:
+        dataset_name = file_name.replace(".csv", "")
+        file_path = os.path.join(data_dir, file_name)
+        print("="*50)
+        print(f"\nProcessing dataset: {dataset_name}")
+
+        # Track best per dataset
+        best_row = None
+
+        # Load datasets
+        df = pd.read_csv(file_path)
+        df.drop(columns=['pid'], inplace=True)
+        shape = df.shape
+        print(f"Dataset shape: {shape}")
+
+        # Define columns
+        time_col = "time"
+        event_col = "event"
+        censored = (df["event"] == 0).sum()
+        censored_percent = (censored)/len(df)*100
+        print(f"Percentage of censored data: {censored_percent}%")
+        covariates = df.columns.difference([time_col, event_col])
+
+        # Define covariates and target variable
+        x = df[covariates].copy()
+        y = Surv.from_arrays(event=df[event_col].astype(bool), time=df[time_col])
+        
+        # Split into train/val/test (70%/15%/15%) with stratification on event
+        x_trainval, x_test, y_trainval, y_test = train_test_split(
+            x, y, test_size=0.15, stratify=y["event"], random_state=SEED
+        )
+
+        x_train, x_val, y_train, y_val = train_test_split(
+            x_trainval, y_trainval, test_size=0.1765, stratify=y_trainval["event"], random_state=SEED
+        )
+
+        # One-hot encode using get_dummies (fit on train only)
+        x_train_ohe = pd.get_dummies(x_train, drop_first=True)
+        x_val_ohe = pd.get_dummies(x_val, drop_first=True)
+        x_test_ohe = pd.get_dummies(x_test, drop_first=True)
+
+        # Align columns so train/val/test match (add missing columns with 0s)
+        x_train_ohe, x_val_ohe = x_train_ohe.align(x_val_ohe, join="left", axis=1, fill_value=0)
+        x_train_ohe, x_test_ohe = x_train_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
+
+        covariates_ohe = x_train_ohe.columns  # all columns are covariates after OHE
+
+        # Impute missing values in covariates (fit on train only)
+        imputer = SimpleImputer().fit(x_train_ohe.loc[:, covariates_ohe.tolist()])
+
+        x_train_imputed = imputer.transform(x_train_ohe.loc[:, covariates_ohe.tolist()])
+        x_train_imputed = pd.DataFrame(x_train_imputed, columns=covariates_ohe, index=x_train.index)
+
+        x_val_imputed = imputer.transform(x_val_ohe.loc[:, covariates_ohe.tolist()])
+        x_val_imputed = pd.DataFrame(x_val_imputed, columns=covariates_ohe, index=x_val.index)
+
+        x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
+        x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
+
+        # Determine evaluation time points (eval_times)
+        # Use percentiles from 10th to 90th of train + val times
+        eval_times = np.percentile(y_trainval["time"], np.arange(10, 100, 10))
+        eval_times = np.unique(eval_times)
+
+        # Filter test set to only include times within the range of train+val
+        max_trainval_time = y_trainval["time"].max()
+        test_mask = y_test["time"] < max_trainval_time
+        y_test_filtered = y_test[test_mask]
+        x_test_filtered = x_test_imputed[test_mask]
+
+        # Further filter eval_times to be within the range of the filtered test set
+        eval_times = eval_times[
+            (eval_times > y_test_filtered["time"].min()) & 
+            (eval_times < y_test_filtered["time"].max())
+        ]
+        print(f"Evaluation time points: {eval_times}")
+
+        # Construct MITRA training and validation sets
+        X_mitra_train, y_mitra_train = construct_mitra_binary_trainset(
+            x_train_imputed, y_train, eval_times
+        )
+        
+        X_mitra_val, y_mitra_val = construct_mitra_binary_trainset(
+            x_val_imputed, y_val, eval_times
+        )
+        
+        # Sample if datasets are larger
+        if len(X_mitra_train) > 10000:
+            print(f"\nSampling 10000 rows from {len(X_mitra_train)} total training rows...")
+            sample_idx = np.random.choice(len(X_mitra_train), size=10000, replace=False)
+            X_mitra_train = X_mitra_train.iloc[sample_idx].reset_index(drop=True)
+            y_mitra_train = y_mitra_train.iloc[sample_idx].reset_index(drop=True)
+
+        if len(X_mitra_val) > 5000:
+            print(f"\nSampling 5000 rows from {len(X_mitra_val)} total validation rows...")
+            sample_idx = np.random.choice(len(X_mitra_val), size=5000, replace=False)
+            X_mitra_val = X_mitra_val.iloc[sample_idx].reset_index(drop=True)
+            y_mitra_val = y_mitra_val.iloc[sample_idx].reset_index(drop=True)
+
+        # Convert to TabularDataset 
+        train_data = pd.DataFrame(X_mitra_train)
+        train_data['target'] = y_mitra_train
+        train_data = TabularDataset(train_data)
+        
+        validation_data = pd.DataFrame(X_mitra_val)
+        validation_data['target'] = y_mitra_val
+        validation_data = TabularDataset(validation_data)
+
+        # Initialize and train Mitra model with validation data as tuning data
+        # Create a temporary directory for AutoGluon
+        tmp_dir = tempfile.mkdtemp()
+        mitra_predictor = TabularPredictor(label='target', path=tmp_dir)
+        mitra_predictor.fit(
+            train_data,
+            tuning_data=validation_data,
+            hyperparameters={
+                'MITRA': {'fine_tune': True, 'fine_tune_steps': 100}
+            }
+        )
+        
+        # Get validation predictions for temperature scaling calibration
+        # Construct MITRA validation set for prediction
+        X_mitra_val_pred, val_patient_ids = construct_mitra_binary_testset(
+            x_val_imputed, eval_times
+        )
+
+        # Convert val data to TabularDataset 
+        val_data = TabularDataset(pd.DataFrame(X_mitra_val_pred))
+
+        # Predict survival probabilities on validation set
+        probs_val = mitra_predictor.predict_proba(val_data)
+        probs_val = probs_val.to_numpy()
+        
+        # Prepare validation labels for temperature scaling
+        val_labels = []
+        for i, t in enumerate(eval_times):
+            mask = np.isclose(X_mitra_val_pred["eval_time"], t)
+            for patient_idx in val_patient_ids[mask]:
+                # Label is 1 if event occurred by time t, 0 otherwise
+                label = int(y_val["event"][patient_idx] and y_val["time"][patient_idx] <= t)
+                val_labels.append(label)
+        
+        val_labels = np.array(val_labels)
+        
+        # Convert probabilities to logits for temperature scaling
+        epsilon = 1e-15
+        probs_clipped = np.clip(probs_val, epsilon, 1 - epsilon)
+        pseudo_logits = np.log(probs_clipped)
+        
+        # Find optimal temperature
+        optimal_temperature = find_optimal_temperature(pseudo_logits, val_labels)
+        
+        # Apply temperature scaling to validation predictions
+        calibrated_probs_val = apply_temperature_scaling(probs_val, optimal_temperature)
+        surv_probs_val = calibrated_probs_val[:, 0]
+
+        n_patients = len(x_val_imputed)
+        S_val = np.zeros((n_patients, len(eval_times)))
+        
+        for i, t in enumerate(eval_times):
+            mask = np.isclose(X_mitra_val_pred["eval_time"], t)
+            S_val[val_patient_ids[mask], i] = surv_probs_val[mask]
+
+        # Ensure survival probabilities are non-increasing over time
+        S_val = np.minimum.accumulate(S_val, axis=1)
+        
+        # Calculate time-dependent risk scores 
+        risk_scores_val = -np.log(S_val)
+
+        # Validation C-index
+        val_c_index, *_ = concordance_index_censored(
+            y_val["event"], y_val["time"], risk_scores_val[:, -1]  # Use last time-dependent risk score for ranking
+        )
+
+        print(f"Validation C-index with fine-tuning and temperature scaling: {val_c_index:.4f}")
+
+        # Combine train and val sets for final training
+        x_trainval_ohe = pd.get_dummies(x_trainval, drop_first=True)
+        x_test_ohe = pd.get_dummies(x_test, drop_first=True)
+        x_trainval_ohe, x_test_ohe = x_trainval_ohe.align(x_test_ohe, join="left", axis=1, fill_value=0)
+        covariates_ohe = x_trainval_ohe.columns
+
+        # Impute missing values in covariates (fit on train+val only)
+        imputer = SimpleImputer().fit(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
+
+        x_trainval_imputed = imputer.transform(x_trainval_ohe.loc[:, covariates_ohe.tolist()])
+        x_trainval_imputed = pd.DataFrame(x_trainval_imputed, columns=covariates_ohe, index=x_trainval.index)
+
+        x_test_imputed = imputer.transform(x_test_ohe.loc[:, covariates_ohe.tolist()])
+        x_test_imputed = pd.DataFrame(x_test_imputed, columns=covariates_ohe, index=x_test.index)
+
+        # Filter test set to only include times within the range of train+val
+        test_mask = y_test["time"] < max_trainval_time
+        y_test_filtered = y_test[test_mask]
+        x_test_filtered = x_test_imputed[test_mask]
+
+        # Further filter eval_times to be within the range of the filtered test set
+        eval_times = eval_times[
+            (eval_times > y_test_filtered["time"].min()) & 
+            (eval_times < y_test_filtered["time"].max())
+        ]
+        
+        # Construct MITRA training set with combined train+val data
+        X_mitra_trainval, y_mitra_trainval = construct_mitra_binary_trainset(
+            x_trainval_imputed, y_trainval, eval_times
+        )
+
+        # Sample if dataset is larger
+        if len(X_mitra_trainval) > 10000:
+            print(f"\nSampling 10000 rows from {len(X_mitra_trainval)} total rows...")
+            sample_idx = np.random.choice(len(X_mitra_trainval), size=10000, replace=False)
+            X_mitra_trainval = X_mitra_trainval.iloc[sample_idx].reset_index(drop=True)
+            y_mitra_trainval = y_mitra_trainval.iloc[sample_idx].reset_index(drop=True)
+
+        # Convert to TabularDataset 
+        trainval_data = pd.DataFrame(X_mitra_trainval)
+        trainval_data['target'] = y_mitra_trainval
+        trainval_data = TabularDataset(trainval_data)
+
+        # Clean up temporary directory from first model
+        shutil.rmtree(tmp_dir)
+
+        # Initialize and train final Mitra model on combined data
+        # Create a new temporary directory for AutoGluon
+        tmp_dir = tempfile.mkdtemp()
+        mitra_predictor_final = TabularPredictor(label='target', path=tmp_dir)
+        mitra_predictor_final.fit(
+            trainval_data,
+            hyperparameters={
+                'MITRA': {'fine_tune': False}
+            }
+        )
+        
+        # Construct MITRA test set
+        X_mitra_test, test_patient_ids = construct_mitra_binary_testset(
+            x_test_filtered, eval_times
+        )
+
+        # Convert test data to TabularDataset 
+        test_data = TabularDataset(pd.DataFrame(X_mitra_test))
+
+        # Predict survival probabilities on test set
+        probs_test = mitra_predictor_final.predict_proba(test_data)
+        probs_test = probs_test.to_numpy()
+        
+        # Apply temperature scaling using the optimal temperature from validation
+        calibrated_probs_test = apply_temperature_scaling(probs_test, optimal_temperature)
+        surv_probs_test = calibrated_probs_test[:, 0]
+
+        # Clean up temporary directory
+        shutil.rmtree(tmp_dir)
+
+        n_patients = len(x_test_filtered)
+        S = np.zeros((n_patients, len(eval_times)))
+
+        for i, t in enumerate(eval_times):
+            mask = np.isclose(X_mitra_test["eval_time"], t)
+            S[test_patient_ids[mask], i] = surv_probs_test[mask]
+
+        # Ensure survival probabilities are non-increasing over time    
+        S = np.minimum.accumulate(S, axis=1)
+
+        # Calculate time-dependent risk scores 
+        risk_scores = -np.log(S)
+
+        # Final metrics on test set
+        c_index, *_ = concordance_index_censored(
+            y_test_filtered["event"], 
+            y_test_filtered["time"], 
+            risk_scores[:, -1]  # Use last time-dependent risk score for ranking
+        )
+
+        ibs = integrated_brier_score(y_trainval, y_test_filtered, S, eval_times)
+        
+        _, mean_auc = cumulative_dynamic_auc(
+            y_trainval, y_test_filtered, risk_scores, eval_times
+        )
+
+        best_row = {
+            "dataset": dataset_name,
+            "n_eval_times": len(eval_times),  
+            "val_score": round(float(val_c_index), 4),
+            "c_index": round(float(c_index), 4),
+            "ibs": round(float(ibs), 4),
+            "mean_auc": round(float(mean_auc), 4),
+            "optimal_temperature": round(float(optimal_temperature), 4),
+        }
+        
+        print("="*50)
+        print(f"Final test results for dataset {dataset_name}:")
+        print(f"Number of eval time points: {best_row['n_eval_times']}")
+        print(f"Optimal temperature: {best_row['optimal_temperature']:.4f}")
+        print(f"Validation C-index: {best_row['val_score']:.4f}")
+        print(f"Test C-index: {best_row['c_index']:.4f}")
+        print(f"Test Integrated Brier Score (IBS): {best_row['ibs']:.4f}")
+        print(f"Test mean AUC: {best_row['mean_auc']:.4f}")
+
+        # ========================= write results =========================
+        if best_row is not None:
+            file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "val_score", "c_index", "ibs", "mean_auc", "optimal_temperature"])
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerow(best_row)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        continue

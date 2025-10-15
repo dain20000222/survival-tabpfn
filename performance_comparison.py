@@ -2,13 +2,14 @@
 """
 Performance Comparison Script for Survival Analysis Models
 
-This script compares the performance of 6 main models plus baseline models:
+This script compares the performance of 7 main models plus baseline models:
 1. MITRA
 2. MITRA (model)
 3. MITRA (temperature)
-4. TabPFN 
-5. Random Forest (RF)
-6. XGBoost
+4. MITRA (combine)
+5. TabPFN 
+6. Random Forest (RF)
+7. XGBoost
 
 Plus baseline models: RSF, CPH, DH, DS
 
@@ -20,6 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -34,6 +36,7 @@ def load_evaluation_data():
         'MITRA': 'mitra_evaluation.csv',
         'MITRA (model)': 'mitra_evaluation_ft_model.csv',
         'MITRA (temperature)': 'mitra_evaluation_ft_temp.csv',
+        'MITRA (combine)': 'mitra_evaluation_combine.csv',
         'TabPFN': 'tabpfn_evaluation.csv',
         'Random Forest': 'rf_evaluation.csv',
         'XGBoost': 'xgboost_evaluation.csv'
@@ -333,7 +336,7 @@ def create_visualizations(combined_df):
     metrics = ['val_score', 'c_index', 'ibs', 'mean_auc']
     
     # Separate main models from baseline models
-    main_models = ['MITRA', 'MITRA (model)', 'MITRA (temperature)', 'TabPFN', 'Random Forest', 'XGBoost']
+    main_models = ['MITRA', 'MITRA (model)', 'MITRA (temperature)', 'MITRA (combine)', 'TabPFN', 'Random Forest', 'XGBoost']
     baseline_models = ['RSF', 'CPH', 'DH', 'DS']
     
     # Filter data for main models only
@@ -358,7 +361,7 @@ def create_visualizations(combined_df):
                               label='Mean' if i == 0 and j == 0 else "", zorder=5)
         
         plt.tight_layout()
-        plt.savefig('main_models_distributions.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join('figures', 'main_models_distributions.png'), dpi=300, bbox_inches='tight')
         plt.show()
         
         # Summary comparison bar chart for main models
@@ -391,7 +394,7 @@ def create_visualizations(combined_df):
                 bars[0].set_color('red')    # First (lowest) is worst
         
         plt.tight_layout()
-        plt.savefig('main_models_comparison_bars.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join('figures', 'main_models_comparison_bars.png'), dpi=300, bbox_inches='tight')
         plt.show()
     
     print("Creating all models visualizations...")
@@ -412,7 +415,7 @@ def create_visualizations(combined_df):
                           label='Mean' if i == 0 and j == 0 else "", zorder=5)
     
     plt.tight_layout()
-    plt.savefig('all_models_distributions.png', dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join('figures', 'all_models_distributions.png'), dpi=300, bbox_inches='tight')
     plt.show()
     
     # Summary comparison bar chart for all models
@@ -466,7 +469,7 @@ def create_visualizations(combined_df):
                         bar.set_color('lightblue')
     
     plt.tight_layout()
-    plt.savefig('all_models_comparison_bars.png', dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join('figures', 'all_models_comparison_bars.png'), dpi=300, bbox_inches='tight')
     plt.show()
     
     # 3. Heatmap of model rankings per dataset
@@ -496,7 +499,7 @@ def create_visualizations(combined_df):
             plt.xticks(rotation=45)
             plt.yticks(rotation=0)
             plt.tight_layout()
-            plt.savefig(f'main_models_rankings_{metric}.png', dpi=300, bbox_inches='tight')
+            plt.savefig(os.path.join('figures', f'main_models_rankings_{metric}.png'), dpi=300, bbox_inches='tight')
             plt.show()
     
     # Create ranking matrix for all models
@@ -522,7 +525,7 @@ def create_visualizations(combined_df):
         plt.xticks(rotation=45)
         plt.yticks(rotation=0)
         plt.tight_layout()
-        plt.savefig(f'all_models_rankings_{metric}.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join('figures', f'all_models_rankings_{metric}.png'), dpi=300, bbox_inches='tight')
         plt.show()
     
     # 4. Overall performance radar charts
@@ -561,7 +564,7 @@ def create_visualizations(combined_df):
         fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
         
         # Colors for main models
-        colors = ['#FF6B6B', '#FF9999', '#FFCC99', '#4ECDC4', '#45B7D1', '#96CEB4']
+        colors = ['#FF6B6B', '#FF9999', '#FFCC99', '#FFE599', '#4ECDC4', '#45B7D1', '#96CEB4']
         
         for i, (_, row) in enumerate(perf_df.iterrows()):
             values = [row['Val Score'], row['C-Index'], row['IBS (inverted)'], row['Mean AUC']]
@@ -580,7 +583,7 @@ def create_visualizations(combined_df):
                   pad=20, fontsize=14, fontweight='bold')
         
         plt.tight_layout()
-        plt.savefig('main_models_radar.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join('figures', 'main_models_radar.png'), dpi=300, bbox_inches='tight')
         plt.show()
     
     # Radar chart for all models
@@ -637,7 +640,7 @@ def create_visualizations(combined_df):
               pad=20, fontsize=14, fontweight='bold')
     
     plt.tight_layout()
-    plt.savefig('all_models_radar.png', dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join('figures', 'all_models_radar.png'), dpi=300, bbox_inches='tight')
     plt.show()
 
 def generate_report(summary_stats, combined_df, win_loss_results=None, model_rankings=None):
@@ -654,7 +657,7 @@ def generate_report(summary_stats, combined_df, win_loss_results=None, model_ran
         f.write("MODELS COMPARED:\n")
         f.write("-" * 16 + "\n")
         models = combined_df['model'].unique()
-        main_models = [m for m in models if m in ['MITRA', 'MITRA (model)', 'MITRA (temperature)', 'TabPFN', 'Random Forest', 'XGBoost']]
+        main_models = [m for m in models if m in ['MITRA', 'MITRA (model)', 'MITRA (temperature)', 'MITRA (combine)', 'TabPFN', 'Random Forest', 'XGBoost']]
         baseline_models = [m for m in models if m in ['RSF', 'CPH', 'DH', 'DS']]
         
         if main_models:
@@ -788,6 +791,9 @@ def main():
     print("🔍 SURVIVAL ANALYSIS MODEL PERFORMANCE COMPARISON")
     print("="*60)
     
+    # Ensure figures directory exists
+    os.makedirs('figures', exist_ok=True)
+    
     # Load data
     print("\n📂 Loading evaluation data...")
     data = load_evaluation_data()
@@ -835,16 +841,16 @@ def main():
     
     print("\n✅ Analysis complete!")
     print("\nFiles generated:")
-    print("\nMain Models Only:")
-    print("• main_models_distributions.png")
-    print("• main_models_comparison_bars.png")
-    print("• main_models_rankings_*.png")
-    print("• main_models_radar.png")
-    print("\nAll Models (including baselines):")
-    print("• all_models_distributions.png")
-    print("• all_models_comparison_bars.png")
-    print("• all_models_rankings_*.png")
-    print("• all_models_radar.png")
+    print("\nMain Models Only (saved in figures/):")
+    print("• figures/main_models_distributions.png")
+    print("• figures/main_models_comparison_bars.png")
+    print("• figures/main_models_rankings_*.png")
+    print("• figures/main_models_radar.png")
+    print("\nAll Models (including baselines, saved in figures/):")
+    print("• figures/all_models_distributions.png")
+    print("• figures/all_models_comparison_bars.png")
+    print("• figures/all_models_rankings_*.png")
+    print("• figures/all_models_radar.png")
     print("\nReport:")
     print("• performance_comparison_report.txt")
 
