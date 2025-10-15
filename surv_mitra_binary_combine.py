@@ -119,49 +119,64 @@ def construct_mitra_binary_testset(x_test, times):
 
     return X_mitra_test, np.array(patient_ids)
 
-def find_optimal_temperature(val_logits, val_labels, initial_temp=1.0):
+def find_optimal_temperature(val_probs, X_mitra_val_pred, val_patient_ids, y_trainval, y_val, eval_times, initial_temp=1.0):
     """
-    Find optimal temperature for temperature scaling using validation data.
+    Find optimal temperature for temperature scaling using IBS metric on validation data.
     
     Parameters:
-    - val_logits: Raw logits from the model on validation data
-    - val_labels: True binary labels for validation data
+    - val_probs: Probability matrix from the model on validation data
+    - X_mitra_val_pred: MITRA validation features including eval_time column
+    - val_patient_ids: Array mapping each prediction to patient index
+    - y_trainval: Training+validation survival data for IBS calculation
+    - y_val: Validation survival data
+    - eval_times: Array of evaluation time points
     - initial_temp: Initial temperature value
     
     Returns:
     - optimal_temperature: Best temperature value found
     """
     
-    def temperature_scaled_loss(temperature):
-        # Apply temperature scaling
-        scaled_logits = val_logits / temperature
-        # Convert to probabilities using softmax
-        exp_logits = np.exp(scaled_logits - np.max(scaled_logits, axis=1, keepdims=True))
-        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
-        
-        # Calculate negative log-likelihood (cross-entropy loss)
-        epsilon = 1e-15  # Small value to prevent log(0)
-        probs = np.clip(probs, epsilon, 1 - epsilon)
-        
-        # For binary classification, we use the probability of the true class
-        loss = 0
-        for i in range(len(val_labels)):
-            if val_labels[i] == 1:
-                loss -= np.log(probs[i, 1])  # Class 1 probability
-            else:
-                loss -= np.log(probs[i, 0])  # Class 0 probability
-        
-        return loss / len(val_labels)  # Average loss
+    def temperature_scaled_ibs(temperature):
+        try:
+            # Apply temperature scaling to probabilities
+            calibrated_probs = apply_temperature_scaling(val_probs, temperature)
+            surv_probs = calibrated_probs[:, 0]  # Class 0 is survival probability
+            
+            # Reconstruct survival matrix
+            n_patients = len(y_val)
+            S_val = np.zeros((n_patients, len(eval_times)))
+            
+            # Map predictions back to patient-time matrix
+            for i, t in enumerate(eval_times):
+                # Find predictions for this specific time point
+                mask = np.isclose(X_mitra_val_pred["eval_time"], t)
+                time_patient_ids = val_patient_ids[mask]
+                time_surv_probs = surv_probs[mask]
+                
+                # Assign survival probabilities to corresponding patients
+                S_val[time_patient_ids, i] = time_surv_probs
+            
+            # Ensure survival probabilities are non-increasing over time
+            S_val = np.minimum.accumulate(S_val, axis=1)
+            
+            # Calculate IBS
+            ibs = integrated_brier_score(y_trainval, y_val, S_val, eval_times)
+            return ibs
+            
+        except Exception as e:
+            print(f"Error in IBS calculation with temperature {temperature}: {e}")
+            return float('inf')  # Return large value if calculation fails
     
-    # Find optimal temperature using scalar minimization
+    # Find optimal temperature using scalar minimization (minimize IBS)
     result = minimize_scalar(
-        temperature_scaled_loss, 
-        bounds=(0.1, 10.0), 
+        temperature_scaled_ibs, 
+        bounds=(0.1, 5.0), 
         method='bounded'
     )
     
     optimal_temp = result.x
-    print(f"Optimal temperature found: {optimal_temp:.4f}")
+    min_ibs = result.fun
+    print(f"Optimal temperature found (IBS-based): {optimal_temp:.4f}, IBS: {min_ibs:.4f}")
     
     return optimal_temp
 
@@ -327,24 +342,10 @@ for file_name in dataset_files:
         probs_val = mitra_predictor.predict_proba(val_data)
         probs_val = probs_val.to_numpy()
         
-        # Prepare validation labels for temperature scaling
-        val_labels = []
-        for i, t in enumerate(eval_times):
-            mask = np.isclose(X_mitra_val_pred["eval_time"], t)
-            for patient_idx in val_patient_ids[mask]:
-                # Label is 1 if event occurred by time t, 0 otherwise
-                label = int(y_val["event"][patient_idx] and y_val["time"][patient_idx] <= t)
-                val_labels.append(label)
-        
-        val_labels = np.array(val_labels)
-        
-        # Convert probabilities to logits for temperature scaling
-        epsilon = 1e-15
-        probs_clipped = np.clip(probs_val, epsilon, 1 - epsilon)
-        pseudo_logits = np.log(probs_clipped)
-        
-        # Find optimal temperature
-        optimal_temperature = find_optimal_temperature(pseudo_logits, val_labels)
+        # Find optimal temperature using IBS optimization
+        optimal_temperature = find_optimal_temperature(
+            probs_val, X_mitra_val_pred, val_patient_ids, y_trainval, y_val, eval_times
+        )
         
         # Apply temperature scaling to validation predictions
         calibrated_probs_val = apply_temperature_scaling(probs_val, optimal_temperature)
