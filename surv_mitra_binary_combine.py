@@ -325,7 +325,7 @@ for file_name in dataset_files:
             train_data,
             tuning_data=validation_data,
             hyperparameters={
-                'MITRA': {'fine_tune': True, 'fine_tune_steps': 100}
+                'MITRA': {'fine_tune': True, 'fine_tune_steps': 100, 'metric': 'accuracy'}
             }
         )
         
