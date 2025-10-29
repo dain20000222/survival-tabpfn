@@ -28,6 +28,10 @@ csv_path = "landmark_cox_evaluation.csv"
 TAU = 10
 
 def build_patient_outcome(df):
+    """
+    For each pid, get final follow-up time (t_event) and status_event (1 if event, else 0).
+    Assumes last row per pid contains correct final event/censor info.
+    """
     outcome = (
         df.sort_values("time2")
         .groupby("pid")
@@ -40,6 +44,9 @@ def build_patient_outcome(df):
     return outcome
 
 def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, tau):
+    """
+    Apply Last Observation Carried Forward (LOCF) for landmark analysis.
+    """
     landmark_data = []
 
     for pid in df['pid'].unique():
@@ -96,7 +103,7 @@ for file_name in dataset_files:
         covariates = df.columns.difference([time_col, time2_col, event_col, 'pid'])
 
         # Get event times for landmark calculation
-        event_times = df[df['event'] == 1]['time2'].values
+        event_times = df[df[event_col] == 1]["time2"].values
         if len(event_times) == 0:
             print(f"Skipping {dataset_name}: No events observed")
             continue
@@ -105,6 +112,7 @@ for file_name in dataset_files:
         landmark_times = np.quantile(event_times, [0.25, 0.5, 0.75])
         print(f"Landmark times: {landmark_times}")
 
+        # Split patient IDs into train, val, test
         all_pids = df['pid'].unique()
         pids_trainval, pids_test = train_test_split(
             all_pids, test_size=0.15, random_state=SEED
@@ -113,6 +121,7 @@ for file_name in dataset_files:
             pids_trainval, test_size=0.1765, random_state=SEED
         )
 
+        # Build patient outcome DataFrame
         patient_outcome = build_patient_outcome(df)
         
         results = []
