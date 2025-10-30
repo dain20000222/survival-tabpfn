@@ -191,7 +191,6 @@ for file_name in dataset_files:
         event_col = "event"
 
         covariates = df.columns.difference([time_col, time2_col, event_col, 'pid']).tolist()
-        print(f"Number of covariates: {len(covariates)}")
         
         # Handle categorical variables with label encoding
         categorical_cols = []
@@ -202,9 +201,6 @@ for file_name in dataset_files:
                 categorical_cols.append(col)
             else:
                 numerical_cols.append(col)
-        
-        print(f"Categorical columns: {categorical_cols}")
-        print(f"Numerical columns: {numerical_cols}")
         
         # Use label encoding instead of one-hot encoding
         for col in categorical_cols:
@@ -221,8 +217,6 @@ for file_name in dataset_files:
         for col in covariates:
             df[col] = pd.to_numeric(df[col], errors='coerce')
             df[col] = df[col].fillna(0.0)  # Fill any remaining NaN with 0
-        
-        print(f"Final number of covariates: {len(covariates)}")
 
         # Get event times for landmark calculation
         event_times = df[df[event_col] == 1]["time2"].values
@@ -232,8 +226,8 @@ for file_name in dataset_files:
 
         # Convert to sequential format for DDH - use full dynamic data
         x, t, e = convert_to_sequential_format(df, covariates)
-        
-        # Split data - same approach as landmark_cox.py
+
+        # Split data 
         all_pids = df['pid'].unique()
         pids_trainval, pids_test = train_test_split(
             all_pids, test_size=0.15, random_state=SEED
