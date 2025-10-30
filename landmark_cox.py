@@ -5,7 +5,7 @@ import csv
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sksurv.linear_model import CoxPHSurvivalAnalysis
-from sksurv.metrics import concordance_index_censored
+from sksurv.metrics import concordance_index_ipcw
 from sksurv.util import Surv
 import warnings
 import random
@@ -25,8 +25,6 @@ dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 # CSV path
 csv_path = "landmark_cox_evaluation.csv"
 
-TAU = 10
-
 def build_patient_outcome(df):
     """
     For each pid, get final follow-up time (t_event) and status_event (1 if event, else 0).
@@ -43,45 +41,37 @@ def build_patient_outcome(df):
     )
     return outcome
 
-def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, tau):
+def apply_locf_landmark(df, landmark_time, covariates, patient_outcome):
     """
-    Apply Last Observation Carried Forward (LOCF) for landmark analysis.
+    Landmarking with LOCF (no tau truncation).
+    Keep patients still at risk at landmark_time.
+    time = t_event - landmark_time
+    event = status_event (1 if event happens after the landmark, else 0)
     """
-    landmark_data = []
+    rows = []
+    for pid, patient in df.groupby("pid"):
+        patient = patient.sort_values("time2")
+        t_event = patient_outcome.loc[pid, "t_event"]
+        status_event = patient_outcome.loc[pid, "status_event"]
 
-    for pid in df['pid'].unique():
-        patient_data = df[df['pid'] == pid].sort_values('time2')
-
-        # Check if patient has event/censoring time > landmark_time 
-        t_event = patient_outcome.loc[pid, 't_event']
-        status_event = patient_outcome.loc[pid, 'status_event']
-
+        # must be under follow-up at (strictly after) the landmark
         if t_event <= landmark_time:
-            continue  # Remove patients with event/censoring <= landmark_time
+            continue
 
-        # Apply LOCF - find latest observation <= landmark_time
-        valid_obs = patient_data[patient_data['time2'] <= landmark_time]
-        if len(valid_obs) == 0:
-            continue  # drop patient if we didn't actually observe them by the landmark
+        # last observation carried forward up to the landmark
+        valid = patient[patient["time2"] <= landmark_time]
+        if valid.empty:
+            continue
+        latest = valid.iloc[-1]
 
-        latest_obs = valid_obs.iloc[-1]
+        new_row = {"pid": pid,
+                   "time": float(t_event - landmark_time),
+                   "event": int(status_event)}
+        for c in covariates:
+            new_row[c] = latest[c]
+        rows.append(new_row)
 
-        time_after_landmark = t_event - landmark_time
-        remaining_time = min(time_after_landmark, tau)
-
-        if (status_event == 1) and (time_after_landmark <= tau):
-            final_event = 1
-        else:
-            final_event = 0
-        
-        new_row = {'pid': pid, 'time': remaining_time, 'event': final_event}
-
-        for cov in covariates:
-            new_row[cov] = latest_obs[cov]
-
-        landmark_data.append(new_row)
-
-    return pd.DataFrame(landmark_data)
+    return pd.DataFrame(rows)
 
 for file_name in dataset_files:
     try:
@@ -109,8 +99,8 @@ for file_name in dataset_files:
             continue
 
         # Pick three landmark times (25, 50, 75 quantiles of event times)
-        landmark_times = np.quantile(event_times, [0.25, 0.5, 0.75])
-        print(f"Landmark times: {landmark_times}")
+        times = np.quantile(event_times, [0.25, 0.5, 0.75])
+        print(f"Landmark times: {times}")
 
         # Split patient IDs into train, val, test
         all_pids = df['pid'].unique()
@@ -126,15 +116,14 @@ for file_name in dataset_files:
         
         results = []
         
-        for i, landmark_time in enumerate(landmark_times):
+        for i, landmark_time in enumerate(times):
             print(f"\nProcessing landmark time {i+1}: {landmark_time:.2f}")
             
             # Apply LOCF for this landmark
             landmark_df = apply_locf_landmark(
-                df, landmark_time, covariates, patient_outcome, TAU
+                df, landmark_time, covariates, patient_outcome
             )
 
-            print("Example patient data after landmarking with tau:")
             print(landmark_df.head())
             print(f"Events: {landmark_df['event'].sum()}, Censored: {len(landmark_df) - landmark_df['event'].sum()}")
 
@@ -212,18 +201,16 @@ for file_name in dataset_files:
             
             # Evaluate on validation set
             val_risk_scores = cox_model.predict(x_val_imputed)
-            val_cindex, *_ = concordance_index_censored(y_val["event"], y_val["time"], val_risk_scores)
+            val_cindex, *_ = concordance_index_ipcw(y_train, y_val, val_risk_scores, landmark_time)
 
             # Evaluate on test set
             test_risk_scores = cox_model.predict(x_test_imputed)
-            test_cindex,  *_ = concordance_index_censored(y_test["event"], y_test["time"], test_risk_scores)
-
+            test_cindex,  *_ = concordance_index_ipcw(y_train, y_test, test_risk_scores, landmark_time)
 
             # Save result if we have valid metrics
             result = {
                 'dataset': dataset_name,
                 'landmark_time': landmark_time,
-                'tau': TAU,
                 'n_patients': len(landmark_df),
                 'n_events': landmark_df['event'].sum(),
                 'val_cindex': val_cindex,
@@ -246,7 +233,7 @@ for file_name in dataset_files:
             # Save to CSV
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, 'a', newline='') as csvfile:
-                fieldnames = ['dataset', 'landmark_time', 'tau', 'n_patients', 'n_events', 
+                fieldnames = ['dataset', 'landmark_time', 'n_patients', 'n_events', 
                              'val_cindex', 'test_cindex']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 
