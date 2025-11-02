@@ -6,7 +6,7 @@ from sklearn.preprocessing import OrdinalEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from tabpfn import TabPFNClassifier
-from sksurv.metrics import concordance_index_ipcw
+from sksurv.metrics import concordance_index_ipcw, brier_score
 from sksurv.util import Surv
 import warnings
 import random
@@ -107,6 +107,8 @@ def online_predict_autoregressive(df, feature_cols, pid_test, base_X, base_y,
                 y_aug = np.concatenate([base_y] + revealed_y_list)
             else:
                 X_aug, y_aug = base_X, base_y
+            
+            print(f"Patient {pid}, row {ridx}: Augmented context size: {X_aug.shape[0]}")
 
             # Light "re-conditioning": fit on augmented context, then predict current query
             clf = TabPFNClassifier(device=device)
@@ -179,6 +181,10 @@ for file_name in dataset_files:
     df = pd.read_csv(file_path)
     print(f"Dataset shape: {df.shape}")
 
+    # Define evaluation times (unique event times)
+    event_times = df[df['event'] == 1]['time2'].values
+    times = np.quantile(event_times, [0.25, 0.5, 0.75])
+
     # Prepare data
     df, feature_cols, X_all, y_all, enc = prepare_data(df)
 
@@ -200,16 +206,35 @@ for file_name in dataset_files:
     y_train_surv, train_pid_order = subject_time_event(df, pid_train)
     y_test_surv, test_pid_order = subject_time_event(df, pid_test)
 
+    print(f"Example y_train_surv: {y_train_surv[:5]}")
+    print(f"Example y_test_surv: {y_test_surv[:5]}")
+
     # 2) Convert interval probabilities to patient-level risks
     pid2risk = patient_risk_from_online(online_out)
     risk_test = np.array([pid2risk[pid] for pid in test_pid_order], dtype=float)
 
-    # 3) IPCW C-index (uses training set to estimate censoring weights)
-    c_ipcw, *_ = concordance_index_ipcw(y_train_surv, y_test_surv, risk_test)
-    print(f"Example y_test_surv: {y_test_surv[:5]}")
+    print(f"Example test risks: {[pid2risk[pid] for pid in test_pid_order[:5]]}")
     print(f"Example test risks: {risk_test[:5]}")
 
+    # 3) IPCW C-index (uses training set to estimate censoring weights)
+    c_ipcw, *_ = concordance_index_ipcw(y_train_surv, y_test_surv, risk_test)
+
     print(f"IPCW C-index: {c_ipcw:.4f}")
+
+    # Compute time-specific C-index for each evaluation time
+    c_ipcw_times = []
+    for t in times:
+        try:
+            c_t, *_ = concordance_index_ipcw(y_train_surv, y_test_surv, risk_test, tau=t)
+            c_ipcw_times.append(c_t)
+            print(f"IPCW C-index at time {t:.2f}: {c_t:.4f}")
+        except Exception as e:
+            print(f"Could not compute C-index at time {t:.2f}: {e}")
+            c_ipcw_times.append(np.nan)
+
+    # You can also compute the mean time-specific C-index
+    mean_c_ipcw_time = np.nanmean(c_ipcw_times) if c_ipcw_times else np.nan
+    print(f"Mean time-specific IPCW C-index: {mean_c_ipcw_time:.4f}")
 
     # 4) Append to CSV
     out_row = {
