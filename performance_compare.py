@@ -50,32 +50,56 @@ def filter_to_common_data(all_results):
     for dataset in common_datasets:
         dataset_data = filtered_results[filtered_results['dataset'] == dataset]
         
-        # Get time points for each model
+        # Get time points for each model with more precise rounding
         time_points_by_model = {}
         for model in dataset_data['model'].unique():
             model_data = dataset_data[dataset_data['model'] == model]
-            time_points_by_model[model] = set(model_data['time'].round(6))  # Round to handle floating point precision
+            # Round to 3 decimal places to handle floating point precision
+            time_points_by_model[model] = set(model_data['time'].round(3))
+        
+        print(f"\n{dataset} - Time points by model:")
+        for model, times in time_points_by_model.items():
+            print(f"  {model}: {sorted(times)} (count: {len(times)})")
         
         # Find common time points
         common_times = time_points_by_model[list(time_points_by_model.keys())[0]]
         for model_times in time_points_by_model.values():
             common_times = common_times.intersection(model_times)
         
-        print(f"\n{dataset} - Common time points: {len(common_times)}")
+        print(f"  Common time points: {sorted(common_times)} (count: {len(common_times)})")
         
-        # Filter to common time points
+        # Filter to common time points with stricter matching
         for time_point in common_times:
-            time_data = dataset_data[abs(dataset_data['time'] - time_point) < 1e-5]  # Handle floating point precision
-            if len(time_data) == len(dataset_data['model'].unique()):  # All models present
-                final_results.append(time_data)
+            time_data_list = []
+            for model in dataset_data['model'].unique():
+                model_data = dataset_data[dataset_data['model'] == model]
+                # Use tighter tolerance for matching
+                matching_rows = model_data[abs(model_data['time'] - time_point) < 0.001]
+                if len(matching_rows) > 0:
+                    time_data_list.append(matching_rows)
+            
+            # Only include if all models have data for this time point
+            if len(time_data_list) == len(dataset_data['model'].unique()):
+                combined_time_data = pd.concat(time_data_list, ignore_index=True)
+                if len(combined_time_data) == len(dataset_data['model'].unique()):
+                    final_results.append(combined_time_data)
     
     if final_results:
         common_results = pd.concat(final_results, ignore_index=True)
         print(f"\nFinal filtered dataset shape: {common_results.shape}")
+        
+        # Verify the final results
+        print("\nFinal verification - Time points per dataset:")
+        for dataset in common_results['dataset'].unique():
+            dataset_final = common_results[common_results['dataset'] == dataset]
+            time_points = sorted(dataset_final['time'].round(3).unique())
+            print(f"{dataset}: {time_points} (count: {len(time_points)})")
+        
         return common_results
     else:
         print("No common data found!")
         return pd.DataFrame()
+
 
 def compare_by_dataset(all_results):
     """Compare models performance by dataset"""
@@ -110,15 +134,27 @@ def visualize_results(all_results):
     
     # Set up the plotting style
     plt.style.use('default')
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    fig.suptitle('Model Performance Comparison (Common Datasets Only)', fontsize=16, fontweight='bold')
+    
+    # Create separate figures for the 4 main comparison plots
+    create_main_comparison_plots(all_results)
+    
+    # Create dataset-specific time-dependent plots
+    create_dataset_time_plots(all_results)
+
+def create_main_comparison_plots(all_results):
+    """Create the 4 main comparison plots as separate files"""
     
     # 1. Box plot of C-index by model
-    sns.boxplot(data=all_results, x='model', y='cindex', ax=axes[0,0])
-    axes[0,0].set_title('C-index Distribution by Model')
-    axes[0,0].tick_params(axis='x', rotation=45)
+    plt.figure(figsize=(8, 6))
+    sns.boxplot(data=all_results, x='model', y='cindex')
+    plt.title('C-index Distribution by Model', fontsize=14, fontweight='bold')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig('cindex_distribution_by_model.png', dpi=300, bbox_inches='tight')
+    plt.show()
     
     # 2. Line plot showing performance over time for each dataset
+    plt.figure(figsize=(12, 8))
     datasets = all_results['dataset'].unique()
     colors = plt.cm.Set1(np.linspace(0, 1, len(datasets)))
     
@@ -126,36 +162,104 @@ def visualize_results(all_results):
         dataset_data = all_results[all_results['dataset'] == dataset]
         for model in dataset_data['model'].unique():
             model_data = dataset_data[dataset_data['model'] == model].sort_values('time')
-            axes[0,1].plot(model_data['time'], model_data['cindex'], 
-                          marker='o', label=f'{dataset}-{model}', 
-                          alpha=0.7, color=colors[i])
+            plt.plot(model_data['time'], model_data['cindex'], 
+                    marker='o', label=f'{dataset}-{model}', 
+                    alpha=0.7, color=colors[i])
     
-    axes[0,1].set_title('Performance Over Time by Dataset')
-    axes[0,1].set_xlabel('Time')
-    axes[0,1].set_ylabel('C-index')
-    axes[0,1].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    plt.title('Performance Over Time by Dataset', fontsize=14, fontweight='bold')
+    plt.xlabel('Time')
+    plt.ylabel('C-index')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    plt.tight_layout()
+    plt.savefig('performance_over_time.png', dpi=300, bbox_inches='tight')
+    plt.show()
     
     # 3. Heatmap of performance by dataset and model
+    plt.figure(figsize=(10, 6))
     heatmap_data = all_results.groupby(['dataset', 'model'])['cindex'].mean().unstack()
-    sns.heatmap(heatmap_data, annot=True, cmap='viridis', ax=axes[1,0], fmt='.3f')
-    axes[1,0].set_title('Mean C-index Heatmap')
+    sns.heatmap(heatmap_data, annot=True, cmap='viridis', fmt='.3f')
+    plt.title('Mean C-index Heatmap', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig('mean_cindex_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.show()
     
     # 4. Bar plot comparing average performance
+    plt.figure(figsize=(8, 6))
     model_means = all_results.groupby('model')['cindex'].mean()
-    bars = axes[1,1].bar(range(len(model_means)), model_means.values)
-    axes[1,1].set_title('Average C-index by Model')
-    axes[1,1].set_ylabel('Mean C-index')
-    axes[1,1].set_xticks(range(len(model_means)))
-    axes[1,1].set_xticklabels(model_means.index, rotation=45)
+    bars = plt.bar(range(len(model_means)), model_means.values)
+    plt.title('Average C-index by Model', fontsize=14, fontweight='bold')
+    plt.ylabel('Mean C-index')
+    plt.xticks(range(len(model_means)), model_means.index, rotation=45)
     
     # Add value labels on bars
     for bar, value in zip(bars, model_means.values):
-        axes[1,1].text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.01,
-                      f'{value:.3f}', ha='center', va='bottom')
+        plt.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.01,
+                f'{value:.3f}', ha='center', va='bottom')
     
     plt.tight_layout()
-    plt.savefig('model_performance_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig('average_cindex_by_model.png', dpi=300, bbox_inches='tight')
     plt.show()
+
+def create_dataset_time_plots(all_results):
+    """Create separate bar charts for each dataset showing C-index at each time point"""
+    
+    datasets = all_results['dataset'].unique()
+    models = all_results['model'].unique()
+    
+    # Create a color palette for models
+    colors = plt.cm.Set2(np.linspace(0, 1, len(models)))
+    color_dict = dict(zip(models, colors))
+    
+    for dataset in datasets:
+        dataset_data = all_results[all_results['dataset'] == dataset]
+        time_points = sorted(dataset_data['time'].unique())
+        
+        # Calculate figure size based on number of time points
+        fig_width = max(8, len(time_points) * 1.2)
+        plt.figure(figsize=(fig_width, 6))
+        
+        # Prepare data for grouped bar chart
+        x = np.arange(len(time_points))
+        width = 0.25  # Width of bars
+        
+        # Plot bars for each model
+        for i, model in enumerate(models):
+            model_data = dataset_data[dataset_data['model'] == model]
+            cindex_values = []
+            
+            for time_point in time_points:
+                time_data = model_data[abs(model_data['time'] - time_point) < 1e-5]
+                if len(time_data) > 0:
+                    cindex_values.append(time_data['cindex'].iloc[0])
+                else:
+                    cindex_values.append(np.nan)
+            
+            # Plot bars with offset
+            offset = (i - len(models)/2 + 0.5) * width
+            bars = plt.bar(x + offset, cindex_values, width, 
+                          label=model, color=color_dict[model], alpha=0.8)
+            
+            # Add value labels on bars
+            for bar, value in zip(bars, cindex_values):
+                if not np.isnan(value):
+                    plt.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.005,
+                            f'{value:.3f}', ha='center', va='bottom', fontsize=9)
+        
+        plt.title(f'C-index by Time Point - {dataset}', fontsize=14, fontweight='bold')
+        plt.xlabel('Time Point')
+        plt.ylabel('C-index')
+        plt.xticks(x, [f'{t:.2f}' for t in time_points], rotation=45)
+        plt.legend()
+        plt.grid(axis='y', alpha=0.3)
+        plt.ylim(0, 1)  # C-index ranges from 0 to 1
+        
+        # Save the plot
+        filename = f'cindex_timepoints_{dataset.replace(" ", "_").replace("/", "_")}.png'
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        print(f"Saved time-dependent plot for {dataset}: {filename}")
 
 def statistical_comparison(common_results):
     """Perform statistical tests to compare models on common datasets"""

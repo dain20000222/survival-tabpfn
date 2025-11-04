@@ -1,0 +1,118 @@
+============================================================
+FILTERING TO COMMON DATASETS
+============================================================
+Common datasets across all models: ['Rossi', 'aids', 'csl', 'epileptic']
+Total common datasets: 4
+
+csl - Time points by model:
+  Dynamic DeepHit: [0.751, 2.355, 4.967] (count: 3)
+  Dynamic TabPFN: [0.751, 2.355, 4.967] (count: 3)
+  Landmark Cox: [0.751, 2.355, 4.967] (count: 3)
+  Common time points: [0.751, 2.355, 4.967] (count: 3)
+
+Rossi - Time points by model:
+  Dynamic DeepHit: [17.0, 28.0, 41.5] (count: 3)
+  Dynamic TabPFN: [17.0, 28.0, 41.5] (count: 3)
+  Landmark Cox: [17.0, 28.0, 41.5] (count: 3)
+  Common time points: [17.0, 28.0, 41.5] (count: 3)
+
+aids - Time points by model:
+  Dynamic DeepHit: [4.592, 8.6, 11.608] (count: 3)
+  Dynamic TabPFN: [4.592, 8.6, 11.608] (count: 3)
+  Landmark Cox: [4.592, 8.6, 11.608] (count: 3)
+  Common time points: [4.592, 8.6, 11.608] (count: 3)
+
+epileptic - Time points by model:
+  Dynamic DeepHit: [166.0, 357.0, 663.0] (count: 3)
+  Dynamic TabPFN: [166.0, 357.0, 663.0] (count: 3)
+  Landmark Cox: [166.0, 357.0, 663.0] (count: 3)
+  Common time points: [166.0, 357.0, 663.0] (count: 3)
+
+Final filtered dataset shape: (36, 4)
+
+Final verification - Time points per dataset:
+csl: [0.751, 2.355, 4.967] (count: 3)
+Rossi: [17.0, 28.0, 41.5] (count: 3)
+aids: [4.592, 8.6, 11.608] (count: 3)
+epileptic: [166.0, 357.0, 663.0] (count: 3)
+
+=== Performance Comparison by Dataset ===
+model                 Dynamic DeepHit  Dynamic TabPFN  Landmark Cox
+dataset   time                                                     
+Rossi     17.000000          0.723279        0.317616      0.651911
+          28.000000          0.664645        0.396300      0.725352
+          41.500000          0.631157        0.500310      0.641834
+aids      4.592500           0.939528        0.837155      0.754024
+          8.600000           0.859402        0.832236      0.670550
+          11.607500          0.823475        0.883307      0.655294
+csl       0.750685           0.933920        0.331753      0.569553
+          2.354795           0.765216        0.365259      0.726858
+          4.967123           0.690866        0.395602      0.620483
+epileptic 166.000000         0.766448        0.585418      0.725990
+          357.000000         0.672110        0.575078      0.631910
+          663.000000         0.517519        0.567780      0.627986
+
+
+Mean C-index by Dataset:
+model      Dynamic DeepHit  Dynamic TabPFN  Landmark Cox
+dataset                                                 
+Rossi             0.673027        0.404742      0.673032
+aids              0.874135        0.850899      0.693289
+csl               0.796667        0.364205      0.638965
+epileptic         0.652026        0.576092      0.661962
+
+
+Best performing model per dataset:
+Rossi: Landmark Cox (C-index: 0.6730)
+aids: Dynamic DeepHit (C-index: 0.8741)
+csl: Dynamic DeepHit (C-index: 0.7967)
+epileptic: Landmark Cox (C-index: 0.6620)
+Saved time-dependent plot for csl: cindex_timepoints_csl.png
+Saved time-dependent plot for Rossi: cindex_timepoints_Rossi.png
+Saved time-dependent plot for aids: cindex_timepoints_aids.png
+Saved time-dependent plot for epileptic: cindex_timepoints_epileptic.png
+
+=== Statistical Comparison (Common Datasets Only) ===
+Sample sizes: [12, 12, 12]
+
+Pairwise paired t-test results (p-values):
+Dynamic DeepHit vs Dynamic TabPFN:
+  t-statistic: 3.4518
+  p-value: 0.0054
+  -> Significant difference at α = 0.05
+
+Dynamic DeepHit vs Landmark Cox:
+  t-statistic: 2.2191
+  p-value: 0.0484
+  -> Significant difference at α = 0.05
+
+Dynamic TabPFN vs Landmark Cox:
+  t-statistic: -2.0815
+  p-value: 0.0615
+  -> No significant difference at α = 0.05
+
+
+============================================================
+COMPREHENSIVE MODEL COMPARISON REPORT (COMMON DATASETS)
+============================================================
+
+Overall Performance Statistics:
+                 count      mean       std       min       max
+model                                                         
+Dynamic DeepHit     12  0.748964  0.125531  0.517519  0.939528
+Dynamic TabPFN      12  0.548984  0.204737  0.317616  0.883307
+Landmark Cox        12  0.666812  0.055156  0.569553  0.754024
+
+Best performing model overall: Dynamic DeepHit
+Mean C-index: 0.7490 ± 0.1255
+
+Dataset-specific analysis:
+csl: Dynamic DeepHit (C-index: 0.7967)
+Rossi: Landmark Cox (C-index: 0.6730)
+aids: Dynamic DeepHit (C-index: 0.8741)
+epileptic: Landmark Cox (C-index: 0.6620)
+
+Model wins per dataset:
+Dynamic DeepHit: 2 dataset(s)
+Landmark Cox: 2 dataset(s)
+Total runtime: 0h 0m 6s
