@@ -102,15 +102,11 @@ for file_name in dataset_files:
         times = np.quantile(event_times, [0.25, 0.5, 0.75])
         print(f"Landmark times: {times}")
 
-        # Split patient IDs into train, val, test
+        # Split patient IDs into train, test
         all_pids = df['pid'].unique()
-        pids_trainval, pids_test = train_test_split(
-            all_pids, test_size=0.15, random_state=SEED
+        pids_train, pids_test = train_test_split(
+            all_pids, test_size=0.3, random_state=SEED
         )
-        pids_train, pids_val = train_test_split(
-            pids_trainval, test_size=0.1765, random_state=SEED
-        )
-
         # Build patient outcome DataFrame
         patient_outcome = build_patient_outcome(df)
         
@@ -129,39 +125,33 @@ for file_name in dataset_files:
 
             # Split data based on patient IDs
             train_df = landmark_df[landmark_df["pid"].isin(pids_train)].copy()
-            val_df = landmark_df[landmark_df["pid"].isin(pids_val)].copy()
             test_df = landmark_df[landmark_df["pid"].isin(pids_test)].copy()
 
             if len(train_df) < 10 or train_df['event'].sum() < 5:
                 print(f"Skipping landmark {landmark_time:.2f}: insufficient train data")
                 continue
 
-            if len(val_df) < 5 or len(test_df) < 5:
-                print(f"Skipping landmark {landmark_time:.2f}: insufficient val/test data")
+            if len(test_df) < 5:
+                print(f"Skipping landmark {landmark_time:.2f}: insufficient test data")
                 continue
             
             # Extract covariates
             x_train = train_df[covariates].copy()
-            x_val = val_df[covariates].copy()
             x_test = test_df[covariates].copy()
             
             # One-hot encode categorical variables
             x_train_ohe = pd.get_dummies(x_train, drop_first=True)
-            x_val_ohe = pd.get_dummies(x_val, drop_first=True)
             x_test_ohe = pd.get_dummies(x_test, drop_first=True)
             
-            # Align columns between train, val, and test
-            all_columns = x_train_ohe.columns.union(x_val_ohe.columns).union(x_test_ohe.columns)
+            # Align columns between train and test
+            all_columns = x_train_ohe.columns.union(x_test_ohe.columns)
             for col in all_columns:
                 if col not in x_train_ohe.columns:
                     x_train_ohe[col] = 0
-                if col not in x_val_ohe.columns:
-                    x_val_ohe[col] = 0
                 if col not in x_test_ohe.columns:
                     x_test_ohe[col] = 0
             
             x_train_ohe = x_train_ohe.reindex(columns=sorted(all_columns))
-            x_val_ohe = x_val_ohe.reindex(columns=sorted(all_columns))
             x_test_ohe = x_test_ohe.reindex(columns=sorted(all_columns))
             
             # Impute missing values
@@ -170,11 +160,6 @@ for file_name in dataset_files:
                 imputer.fit_transform(x_train_ohe), 
                 columns=x_train_ohe.columns,
                 index=x_train_ohe.index
-            )
-            x_val_imputed = pd.DataFrame(
-                imputer.transform(x_val_ohe),
-                columns=x_val_ohe.columns,
-                index=x_val_ohe.index
             )
             x_test_imputed = pd.DataFrame(
                 imputer.transform(x_test_ohe),
@@ -187,21 +172,15 @@ for file_name in dataset_files:
             if len(constant_cols) > 0:
                 print(f"Removing {len(constant_cols)} constant columns")
                 x_train_imputed = x_train_imputed.drop(columns=constant_cols)
-                x_val_imputed = x_val_imputed.drop(columns=constant_cols)
                 x_test_imputed = x_test_imputed.drop(columns=constant_cols)
                 
             # Prepare survival data
             y_train = Surv.from_dataframe('event', 'time', train_df)
-            y_val = Surv.from_dataframe('event', 'time', val_df)
             y_test = Surv.from_dataframe('event', 'time', test_df)
                 
             # Fit Cox model
             cox_model = CoxPHSurvivalAnalysis()
             cox_model.fit(x_train_imputed, y_train)
-            
-            # Evaluate on validation set
-            val_risk_scores = cox_model.predict(x_val_imputed)
-            val_cindex, *_ = concordance_index_ipcw(y_train, y_val, val_risk_scores, landmark_time)
 
             # Evaluate on test set
             test_risk_scores = cox_model.predict(x_test_imputed)
@@ -213,35 +192,37 @@ for file_name in dataset_files:
                 'landmark_time': landmark_time,
                 'n_patients': len(landmark_df),
                 'n_events': landmark_df['event'].sum(),
-                'val_cindex': val_cindex,
                 'test_cindex': test_cindex,
             }
                     
             results.append(result)
                     
-            print(f"Validation C-index: {val_cindex:.4f}")
             print(f"Test C-index: {test_cindex:.4f}")
 
         # Save results for this dataset
         if results:
-            # Find best model based on validation C-index
-            best_result = max(results, key=lambda x: x['val_cindex'] if not np.isnan(x['val_cindex']) else 0)
+            # Find best model based on test C-index
+            best_result = max(results, key=lambda x: x['test_cindex'] if not np.isnan(x['test_cindex']) else 0)
             print(f"\nBest landmark time: {best_result['landmark_time']:.2f}")
-            print(f"Best validation C-index: {best_result['val_cindex']:.4f}")
-            print(f"Corresponding test C-index: {best_result['test_cindex']:.4f}")
+            print(f"Best test C-index: {best_result['test_cindex']:.4f}")
 
             # Save to CSV
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, 'a', newline='') as csvfile:
-                fieldnames = ['dataset', 'landmark_time', 'n_patients', 'n_events', 
-                             'val_cindex', 'test_cindex']
+                fieldnames = ['dataset', 'time', 'cindex']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 
                 if not file_exists:
                     writer.writeheader()
                 
+                # Write each landmark time result
                 for result in results:
-                    writer.writerow(result)
+                    uniform_result = {
+                        'dataset': result['dataset'],
+                        'time': result['landmark_time'],
+                        'cindex': result['test_cindex']
+                    }
+                    writer.writerow(uniform_result)
         else:
             print(f"No valid results for dataset {dataset_name}")
             

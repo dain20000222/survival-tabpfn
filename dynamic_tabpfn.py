@@ -107,8 +107,6 @@ def online_predict_autoregressive(df, feature_cols, pid_test, base_X, base_y,
                 y_aug = np.concatenate([base_y] + revealed_y_list)
             else:
                 X_aug, y_aug = base_X, base_y
-            
-            print(f"Patient {pid}, row {ridx}: Augmented context size: {X_aug.shape[0]}")
 
             # Light "re-conditioning": fit on augmented context, then predict current query
             clf = TabPFNClassifier(device=device)
@@ -213,13 +211,7 @@ for file_name in dataset_files:
     pid2risk = patient_risk_from_online(online_out)
     risk_test = np.array([pid2risk[pid] for pid in test_pid_order], dtype=float)
 
-    print(f"Example test risks: {[pid2risk[pid] for pid in test_pid_order[:5]]}")
     print(f"Example test risks: {risk_test[:5]}")
-
-    # 3) IPCW C-index (uses training set to estimate censoring weights)
-    c_ipcw, *_ = concordance_index_ipcw(y_train_surv, y_test_surv, risk_test)
-
-    print(f"IPCW C-index: {c_ipcw:.4f}")
 
     # Compute time-specific C-index for each evaluation time
     c_ipcw_times = []
@@ -232,23 +224,21 @@ for file_name in dataset_files:
             print(f"Could not compute C-index at time {t:.2f}: {e}")
             c_ipcw_times.append(np.nan)
 
-    # You can also compute the mean time-specific C-index
-    mean_c_ipcw_time = np.nanmean(c_ipcw_times) if c_ipcw_times else np.nan
-    print(f"Mean time-specific IPCW C-index: {mean_c_ipcw_time:.4f}")
-
-    # 4) Append to CSV
-    out_row = {
-        "dataset": dataset_name,
-        "n_train_pids": len(pid_train),
-        "n_test_pids": len(pid_test),
-        "ipcw_cindex": float(c_ipcw),
-    }
-
-    # write header if file doesn't exist
-    write_header = not os.path.exists(csv_path)
-    with open(csv_path, "a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(out_row.keys()))
-        if write_header:
+    # Save to CSV with uniform format
+    file_exists = os.path.isfile(csv_path)
+    with open(csv_path, 'a', newline='') as csvfile:
+        fieldnames = ['dataset', 'time', 'cindex']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        if not file_exists:
             writer.writeheader()
-        writer.writerow(out_row)
+        
+        # Write each evaluation time result
+        for i, (eval_time, c_index) in enumerate(zip(times, c_ipcw_times)):
+            uniform_result = {
+                'dataset': dataset_name,
+                'time': eval_time,
+                'cindex': c_index
+            }
+            writer.writerow(uniform_result)
 

@@ -3,7 +3,6 @@ import numpy as np
 import os
 import csv
 from sklearn.model_selection import train_test_split
-from sksurv.metrics import concordance_index_censored
 import warnings
 import random
 from ddh.ddh_api import DynamicDeepHit
@@ -25,20 +24,6 @@ dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV path
 csv_path = "dynamic_deephit_evaluation.csv"
-
-def build_patient_outcome(df):
-    """
-    For each pid, get final follow-up time (t_event) and status_event (1 if event, else 0).
-    """
-    outcome = (
-        df.sort_values("time2")
-        .groupby("pid")
-        .agg(
-            t_event = ("time2", "max"),
-            status_event = ("event", "last")
-        )
-    )
-    return outcome
 
 def convert_to_sequential_format(df, covariates):
     """
@@ -135,31 +120,35 @@ for file_name in dataset_files:
     n = len(x)
     
     tr_size = int(n*0.70)
-    vl_size = int(n*0.15)
-    te_size = int(n*0.15)
+    te_size = n - tr_size
 
-    x_train, x_test, x_val = np.array(x[:tr_size], dtype = object), np.array(x[-te_size:], dtype = object), np.array(x[tr_size:tr_size+vl_size], dtype = object)
-    t_train, t_test, t_val = np.array(t[:tr_size], dtype = object), np.array(t[-te_size:], dtype = object), np.array(t[tr_size:tr_size+vl_size], dtype = object)
-    e_train, e_test, e_val = np.array(e[:tr_size], dtype = object), np.array(e[-te_size:], dtype = object), np.array(e[tr_size:tr_size+vl_size], dtype = object)
+    x_train = np.array(x[:tr_size], dtype=object)
+    x_test = np.array(x[tr_size:], dtype=object)
+    t_train = np.array(t[:tr_size], dtype=object) 
+    t_test = np.array(t[tr_size:], dtype=object)
+    e_train = np.array(e[:tr_size], dtype=object)
+    e_test = np.array(e[tr_size:], dtype=object)
         
     horizons = [0.25, 0.5, 0.75]
     times = np.quantile([t_[-1] for t_, e_ in zip(t, e) if e_[-1] == 1], horizons).tolist()
-    print(f"Time horizons: {times}")
+    print(f"Evaluation times: {times}")
 
     layers = [[], [100], [100, 100], [100, 100, 100]]
 
+    # Simplified parameter grid (no validation tuning)
     param_grid = {
-            'layers_rnn': [2, 3],
-            'hidden_long': layers,
-            'hidden_rnn': [50, 100],
-            'hidden_att': layers,
-            'hidden_cs': layers,
-            'sigma': [0.1, 1, 3],
+            'layers_rnn': [2],
+            'hidden_long': [[100]],
+            'hidden_rnn': [100],
+            'hidden_att': [[100]],
+            'hidden_cs': [[100]],
+            'sigma': [1],
             'learning_rate' : [1e-3],
             }
     params = ParameterGrid(param_grid)
     
-    models = []
+    # Train single model (no validation-based selection)
+    model = None
     for param in params:
         try: 
             model = DynamicDeepHit(
@@ -173,35 +162,28 @@ for file_name in dataset_files:
             # The fit method is called to train the model
             model.fit(x_train, t_train, e_train, iters = 10, 
                     learning_rate = param['learning_rate'])
-            models.append([[model.compute_nll(x_val, t_val, e_val), model]])
+            break  # Use first successful model
         except Exception as e:
             print(f"Error training model with params {param}: {e}")
+            model = None
             continue
 
-    if not models:
+    if model is None:
         print(f"Skipping {dataset_name}: No models were successfully trained")
         continue
 
-    best_model = min(models)
-    model = best_model[0][1]
-
-    best_model = min(models)
-    model = best_model[0][1]
-
     out_risk = model.predict_risk(x_test, times, all_step = True)
-    out_survival = model.predict_survival(x_test, times, all_step = True)
 
     cis = []
-    brs = []
 
     et_train = np.array([(e_train[i][j], t_train[i][j]) for i in range(len(e_train)) for j in range(len(e_train[i]))],
-                    dtype = [('e', bool), ('t', float)])
-    et_test = np.array([(e_test[i][j], t_test[i][j]) for i in range(len(e_test)) for j in range(len(e_test[i]))],
-                    dtype = [('e', bool), ('t', float)])
-    et_val = np.array([(e_val[i][j], t_val[i][j]) for i in range(len(e_val)) for j in range(len(e_val[i]))],
-                    dtype = [('e', bool), ('t', float)])
+                        dtype = [('e', bool), ('t', float)])
 
-    for i, _ in enumerate(times):
+    et_test = np.array([(e_test[i][j], t_test[i][j]) for i in range(len(e_test)) for j in range(len(e_test[i]))],
+                        dtype = [('e', bool), ('t', float)])
+
+
+    for i, eval_time in enumerate(times):
         risk_scores = out_risk[:, i]
         
         # Extract the final risk score for each patient (last non-NaN value)
@@ -220,48 +202,35 @@ for file_name in dataset_files:
         valid_mask = np.isfinite(final_risk_scores)
         
         if np.sum(valid_mask) > 5:  # Need at least some valid predictions
-            # Create final time and event arrays for each patient (not all time steps)
             et_test_final = np.array([(e_test[i][-1], t_test[i][-1]) for i in range(len(e_test))],
-                                dtype = [('e', bool), ('t', float)])
-            
-            cis.append(concordance_index_ipcw(et_train, et_test_final[valid_mask], 
-                                            final_risk_scores[valid_mask], times[i])[0])
+                                    dtype = [('e', bool), ('t', float)])
+
+            c_index, *_ = concordance_index_ipcw(et_train, et_test_final[valid_mask], 
+                                                final_risk_scores[valid_mask], eval_time)
+                                                
+            cis.append(c_index)
+            print(f"C-index at time {eval_time:.2f}: {c_index:.4f}")
+
         else:
-            print(f"Warning: Too many NaN predictions for time horizon {i}")
+            print(f"Warning: Too many NaN predictions for time {eval_time:.2f}")
             cis.append(np.nan)
 
-    for horizon in enumerate(horizons):
-        print(f"For {horizon[1]} quantile,")
-        print("TD Concordance Index:", cis[horizon[0]])
-    
-    # Save results in same format
-    results = []
-    for i, (horizon, time_horizon) in enumerate(zip(horizons, times)):
-        if not np.isnan(cis[i]):
-            result = {
-                'dataset': dataset_name,
-                'landmark_time': time_horizon,
-                'n_patients': len(x_test),
-                'n_events': sum([e_[-1] for e_ in e_test]),  # Count final events
-                'val_cindex': np.nan,  # DDH doesn't use validation C-index for selection
-                'test_cindex': cis[i],
-            }
-            results.append(result)
-
-    # Save to CSV
-    if results:
-        file_exists = os.path.isfile(csv_path)
-        with open(csv_path, 'a', newline='') as csvfile:
-            fieldnames = ['dataset', 'landmark_time', 'n_patients', 'n_events', 
-                         'val_cindex', 'test_cindex']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            
-            if not file_exists:
-                writer.writeheader()
-            
-            for result in results:
-                writer.writerow(result)
+    # Save to CSV with uniform format (same as other two models)
+    file_exists = os.path.isfile(csv_path)
+    with open(csv_path, 'a', newline='') as csvfile:
+        fieldnames = ['dataset', 'time', 'cindex']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
-        print(f"\nResults saved to {csv_path}")
-    else:
-        print(f"No valid results to save for dataset {dataset_name}")
+        if not file_exists:
+            writer.writeheader()
+        
+        # Write each evaluation time result
+        for i, (eval_time, c_index) in enumerate(zip(times, cis)):
+            uniform_result = {
+                'dataset': dataset_name,
+                'time': eval_time,
+                'cindex': c_index
+            }
+            writer.writerow(uniform_result)
+    
+    print(f"\nResults saved to {csv_path}")
