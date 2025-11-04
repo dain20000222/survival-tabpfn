@@ -30,7 +30,7 @@ data_dir = os.path.join("data_static")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV path
-csv_path = "autoregressive_mitra_evaluation.csv"
+csv_path = "autoregressive_mitra_evaluation2.csv"
 
 def construct_mitra_binary_trainset(x_train, y_train, times):
     """
@@ -172,11 +172,18 @@ def autoregressive_predict(X_mitra_train, y_mitra_train, x_set_imputed, y_set_st
 
             S[i, j] = surv_prob
 
-            # append true (X,y) for this patient at time t to working_train
+            # --- original: append true (X,y) for this patient at time t to working_train
             label = int(bool(delta[i]) and (T[i] <= t))
             append_row = row_df.copy()
             append_row["target"] = label
             working_train = pd.concat([working_train, append_row], ignore_index=True)
+
+            # PSEUDO-LABELING: append predicted probability (event prob) instead of true label
+            # Use model's predicted probability for class '1' (event).
+            # event_prob = 1 - surv_prob 
+            # append_row = row_df.copy()
+            # append_row["target"] = event_prob
+            # working_train = pd.concat([working_train, append_row], ignore_index=True)
 
         # ensure non-increasing survival over eval times
         S[i, :] = np.minimum.accumulate(S[i, :])
@@ -261,7 +268,6 @@ for file_name in dataset_files:
         ]
         print(f"Evaluation time points: {eval_times}")
 
-        # Train and validate using MITRA model
         # Construct MITRA training set
         X_mitra_train, y_mitra_train = construct_mitra_binary_trainset(
             x_train_imputed, y_train, eval_times
@@ -273,17 +279,6 @@ for file_name in dataset_files:
             sample_idx = np.random.choice(len(X_mitra_train), size=10000, replace=False)
             X_mitra_train = X_mitra_train.iloc[sample_idx].reset_index(drop=True)
             y_mitra_train = y_mitra_train.iloc[sample_idx].reset_index(drop=True)
-
-        # Autoregressive validation predictions (train base built from construct function)
-        S = autoregressive_predict(X_mitra_train, y_mitra_train, x_val_imputed, y_val, eval_times)
-
-        # Calculate time-dependent risk scores 
-        risk_scores = -np.log(S)
-
-        # Validation C-index
-        val_c_index, *_ = concordance_index_censored(
-            y_val["event"], y_val["time"], risk_scores[:, -1]
-        )        
 
         # Retrain on train+val, evaluate on test 
         # Combine train and val sets
@@ -327,8 +322,12 @@ for file_name in dataset_files:
         # Autoregressive test predictions (train base built from construct function)
         S = autoregressive_predict(X_mitra_train, y_mitra_train, x_test_filtered, y_test_filtered, eval_times)
 
-        # Calculate time-dependent risk scores 
-        risk_scores= -np.log(S)
+        # Calculate time-dependent risk scores
+        # Avoid -inf from log(0) by clipping survival probabilities to a small positive epsilon.
+        # Keep original line commented for traceability.
+        # risk_scores= -np.log(S)
+        S_clipped = np.clip(S, 1e-12, 1.0)  # prevent zeros/negatives/infs
+        risk_scores = -np.log(S_clipped)
 
         # Final metrics on test set
         c_index, *_ = concordance_index_censored(
@@ -346,7 +345,6 @@ for file_name in dataset_files:
         best_row = {
             "dataset": dataset_name,
             "n_eval_times": len(eval_times),  
-            "val_score": round(float(val_c_index), 4),
             "c_index": round(float(c_index), 4),
             "ibs": round(float(ibs), 4),
             "mean_auc": round(float(mean_auc), 4),
@@ -355,7 +353,6 @@ for file_name in dataset_files:
         print("="*50)
         print(f"Final test results for dataset {dataset_name}:")
         print(f"Number of eval time points: {best_row['n_eval_times']}")
-        print(f"Validation C-index: {best_row['val_score']:.4f}")
         print(f"Test C-index: {best_row['c_index']:.4f}")
         print(f"Test Integrated Brier Score (IBS): {best_row['ibs']:.4f}")
         print(f"Test mean AUC: {best_row['mean_auc']:.4f}")
@@ -364,7 +361,7 @@ for file_name in dataset_files:
         if best_row is not None:
             file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "val_score", "c_index", "ibs", "mean_auc"])
+                writer = csv.DictWriter(f, fieldnames=["dataset", "n_eval_times", "c_index", "ibs", "mean_auc"])
                 if not file_exists:
                     writer.writeheader()
                 writer.writerow(best_row)
