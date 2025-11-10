@@ -125,6 +125,10 @@ for file_name in dataset_files:
 
     # Convert STATIC dataset to sequential format (per-patient variable-length sequences)
     x, t, e = convert_static_to_sequential_format(df, covariates, time_col, event_col)
+    print(f"Converted to sequential format: {len(x)} patients")
+    print(f"Example patient sequence lengths: {[len(ti) for ti in t[:5]]}")
+    print(f"Example patient event sequences: {[ei for ei in e[:5]]}")
+    print(f"Example patient time sequences: {[ti for ti in t[:5]]}")
 
     # Train/val/test split (maintain stratification on event)
     n = len(x)
@@ -134,6 +138,7 @@ for file_name in dataset_files:
     train_idx, val_idx = train_test_split(train_idx, test_size=0.1765, stratify=strat[train_idx], random_state=SEED)
 
     x_train = x[train_idx]; x_val = x[val_idx]; x_test = x[test_idx]
+    print(f"Train/Val/Test sizes: {len(x_train)}/{len(x_val)}/{len(x_test)}")
     t_train = t[train_idx]; t_val = t[val_idx]; t_test = t[test_idx]
     e_train = e[train_idx]; e_val = e[val_idx]; e_test = e[test_idx]
 
@@ -168,7 +173,9 @@ for file_name in dataset_files:
             # The fit method is called to train the model
             model.fit(x_train, t_train, e_train, iters = 10, 
                     learning_rate = param['learning_rate'])
-            models.append([[model.compute_nll(x_val, t_val, e_val), model]])
+            nll = float(model.compute_nll(x_val, t_val, e_val))
+            models.append([ [nll, model] ])
+            print(f"NLL on val set with params {param}: {models[-1][0][0]:.4f}")
         except Exception as e:
             print(f"Error training model with params {param}: {e}")
             continue
@@ -177,8 +184,14 @@ for file_name in dataset_files:
         print(f"Skipping {dataset_name}: No models were successfully trained")
         continue
 
-    best_model = min(models)
-    model = best_model[0][1]
+    # keep only finite NLLs and pick the smallest by NLL key
+    models = [m for m in models if np.isfinite(m[0][0])]
+    if not models:
+        print(f"Skipping {dataset_name}: all validation NLLs were non-finite")
+        continue
+    best_entry = min(models, key=lambda z: z[0][0])
+    print(f"Best val NLL: {best_entry[0][0]:.4f}")
+    model = best_entry[0][1]
 
     # Predict risk for the test set at the final follow-up time (no landmarking)
     max_time = float(np.max([t_seq[-1] for t_seq in t]))
@@ -193,10 +206,12 @@ for file_name in dataset_files:
         valid = patient_risks[~np.isnan(patient_risks)]
         final_risk_scores.append(valid[-1] if len(valid) > 0 else np.nan)
     final_risk_scores = np.array(final_risk_scores, dtype=float)
+    print(f"Predicted risk scores for test set (first 5): {final_risk_scores[:5]}")
+    print(f"Shape of final risk scores: {final_risk_scores.shape}")
 
-    # Prepare ground truth for concordance_index_censored (use last time/event in each patient's seq)
-    y_test_times = np.array([t_test[i][-1] for i in range(len(t_test))], dtype=float)
-    y_test_events = np.array([bool(e_test[i][-1]) for i in range(len(e_test))], dtype=bool)
+    # Prepare ground truth for concordance_index_censored (from original df)
+    y_test_times = df.iloc[test_idx][time_col].to_numpy(dtype=float)
+    y_test_events = df.iloc[test_idx][event_col].to_numpy(dtype=bool)
 
     # Single concordance per dataset (no landmark times)
     c_index, *_ = concordance_index_censored(y_test_events, y_test_times, final_risk_scores)
