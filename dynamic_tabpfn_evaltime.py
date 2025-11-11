@@ -24,7 +24,7 @@ data_dir = os.path.join("data")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV path
-csv_path = "dynamic_tabpfn_evaluation1.csv"
+csv_path = "dynamic_tabpfn_evaluation_5.csv"
 
 def prepare_evaluation_data(df: pd.DataFrame, times):
     """

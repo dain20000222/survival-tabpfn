@@ -4,20 +4,22 @@ import seaborn as sns
 import numpy as np
 
 def load_and_compare_results():
-    # Load the three CSV files
+    # Load the four CSV files
     deephit = pd.read_csv('dynamic_deephit_evaluation.csv')
     tabpfn = pd.read_csv('dynamic_tabpfn_evaluation.csv')
+    tabpfn_eval = pd.read_csv('dynamic_tabpfn_evaluation1.csv')
     cox = pd.read_csv('landmark_cox_evaluation.csv')
     
     # Add model names
     deephit['model'] = 'Dynamic DeepHit'
     tabpfn['model'] = 'Dynamic TabPFN'
+    tabpfn_eval['model'] = 'Dynamic TabPFN (Eval Time)'
     cox['model'] = 'Landmark Cox'
     
     # Combine all results
-    all_results = pd.concat([deephit, tabpfn, cox], ignore_index=True)
+    all_results = pd.concat([deephit, tabpfn, tabpfn_eval, cox], ignore_index=True)
     
-    return all_results, deephit, tabpfn, cox
+    return all_results, deephit, tabpfn, tabpfn_eval, cox
 
 def get_common_datasets(all_results):
     """Find datasets that have results for all three models"""
@@ -336,7 +338,7 @@ def generate_summary_report(common_results):
 
 if __name__ == "__main__":
     # Load data
-    all_results, deephit, tabpfn, cox = load_and_compare_results()
+    all_results, deephit, tabpfn, tabpfn_eval, cox = load_and_compare_results()
     
     print("="*60)
     print("FILTERING TO COMMON DATASETS")
