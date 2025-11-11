@@ -12,11 +12,16 @@ Online prediction results:
 2    3          8    1740.25       0       0  0.022432
 3    7         18    1506.75       0       0  0.000654
 4    7         19    1627.00       0       0  0.001550
+Original test patients: 210
+Test patients with eval data: 210
 Example y_train_surv: [( True, 1823.) (False, 1826.) (False, 1826.) (False, 1724.)
  (False, 1826.)]
-Example y_test_surv: [(False, 1826.) (False, 1716.) (False, 1826.) (False, 1826.)
+Example y_test_surv: [(False, 1826.) (False, 1826.) (False, 1826.) (False, 1826.)
  (False, 1826.)]
-Example test risks: [0.01590431 0.41755202 0.90051732 0.01786173 0.08947656]
+Example pid2risk items: [(3, 0.09169379275305156), (7, 0.003430197535892243), (8, 0.5933993115643428), (11, 0.0007744870274678517), (12, 0.0720604851496931)]
+Example test risks: [0.09169379 0.0034302  0.59339931 0.00077449 0.07206049]
+Number of test patients: 210
+Number of patients with predictions: 210
 IPCW C-index at time 1506.75: 0.9785
 IPCW C-index at time 1627.00: 0.9760
 IPCW C-index at time 1740.25: 0.9235
@@ -34,31 +39,17 @@ Online prediction results:
 2    4          8       17.0       0       0  0.019093
 3    4          9       28.0       0       0  0.006876
 4    4         10       41.5       0       0  0.011485
+Original test patients: 130
+Test patients with eval data: 111
 Example y_train_surv: [( True,  8.) (False, 52.) (False, 52.) (False, 52.) (False, 52.)]
-Example y_test_surv: [( True, 19.) (False, 52.) ( True, 16.) (False, 52.) ( True, 35.)]
-Warning: Patient 76 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 276 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 415 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 196 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 149 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 40 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 56 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 127 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 323 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 79 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 380 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 356 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 91 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 105 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 125 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 133 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 401 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 275 has insufficient evaluation data, using fallback risk 0.341
-Warning: Patient 109 has insufficient evaluation data, using fallback risk 0.341
-Example test risks: [0.86418913 0.341492   0.99593184 0.12297368 0.94276178]
-IPCW C-index at time 17.00: 0.9413
-IPCW C-index at time 28.00: 0.9426
-IPCW C-index at time 41.50: 0.8526
+Example y_test_surv: [( True, 20.) (False, 52.) (False, 52.) (False, 52.) (False, 52.)]
+Example pid2risk items: [(1, 0.909332935556975), (4, 0.03702633765214658), (6, 0.09757526499295999), (8, 0.9476196587934282), (10, 0.05371237860231026)]
+Example test risks: [0.90933294 0.03702634 0.09757526 0.94761966 0.05371238]
+Number of test patients: 111
+Number of patients with predictions: 111
+IPCW C-index at time 17.00: 0.9307
+IPCW C-index at time 28.00: 0.9318
+IPCW C-index at time 41.50: 0.8588
 ==================================================
 
 Processing dataset: aids
@@ -73,18 +64,19 @@ Online prediction results:
 2    4          7     4.5925       0       0  0.131200
 3    4          8     8.6000       0       0  0.163318
 4    4          9    11.6075       0       0  0.325851
+Original test patients: 141
+Test patients with eval data: 137
 Example y_train_surv: [(False, 18.13) ( True,  9.57) ( True,  1.43) ( True,  4.67)
  ( True,  9.73)]
-Example y_test_surv: [(False, 15.03) ( True,  7.17) (False, 18.5 ) (False, 14.33)
- ( True,  1.3 )]
-Warning: Patient 352 has insufficient evaluation data, using fallback risk 0.474
-Warning: Patient 425 has insufficient evaluation data, using fallback risk 0.474
-Warning: Patient 43 has insufficient evaluation data, using fallback risk 0.474
-Warning: Patient 23 has insufficient evaluation data, using fallback risk 0.474
-Example test risks: [0.33461974 0.73944151 0.88104913 0.68878146 0.96165424]
-IPCW C-index at time 4.59: 0.8050
-IPCW C-index at time 8.60: 0.7962
-IPCW C-index at time 11.61: 0.7850
+Example y_test_surv: [(False, 16.97) (False, 12.7 ) ( True,  1.9 ) (False, 16.43)
+ (False, 18.1 )]
+Example pid2risk items: [(1, 0.2048677199967155), (4, 0.5099549034783011), (6, 0.8293853304739615), (10, 0.12024221429115278), (12, 0.11336376678503757)]
+Example test risks: [0.20486772 0.5099549  0.82938533 0.12024221 0.11336377]
+Number of test patients: 137
+Number of patients with predictions: 137
+IPCW C-index at time 4.59: 0.8021
+IPCW C-index at time 8.60: 0.7940
+IPCW C-index at time 11.61: 0.7820
 ==================================================
 
 Processing dataset: csl
@@ -99,15 +91,19 @@ Online prediction results:
 2  1.0          2   4.967123       1       1  0.964128
 3  4.0          9   0.750685       0       0  0.428333
 4  4.0         10   2.354795       1       1  0.783429
+Original test patients: 134
+Test patients with eval data: 133
 Example y_train_surv: [(False, 5.35068493) ( True, 2.83561644) (False, 6.00273973)
  (False, 0.54246575) ( True, 9.89315068)]
-Example y_test_surv: [( True, 1.75342466) ( True, 2.12876712) (False, 3.4       )
- (False, 3.36438356) ( True, 1.76438356)]
-Warning: Patient 142 has insufficient evaluation data, using fallback risk 0.521
-Example test risks: [0.60585623 0.96704297 0.25593075 0.01738208 0.89908195]
-IPCW C-index at time 0.75: 0.9249
-IPCW C-index at time 2.35: 0.9263
-IPCW C-index at time 4.97: 0.8751
+Example y_test_surv: [( True, 0.41369863) ( True, 0.79452055) ( True, 0.76986301)
+ (False, 7.5890411 ) (False, 0.26027397)]
+Example pid2risk items: [(1.0, 0.9960249228452774), (4.0, 0.9993109605476798), (6.0, 0.9949629796948763), (8.0, 0.02268299672853802), (11.0, 0.021147758552138685)]
+Example test risks: [0.99602492 0.99931096 0.99496298 0.022683   0.02114776]
+Number of test patients: 133
+Number of patients with predictions: 133
+IPCW C-index at time 0.75: 0.9243
+IPCW C-index at time 2.35: 0.9258
+IPCW C-index at time 4.97: 0.8766
 ==================================================
 
 Processing dataset: epileptic
@@ -122,46 +118,19 @@ Online prediction results:
 2    1          2      663.0       0       0  0.272917
 3    7         15      166.0       1       1  0.957136
 4    7         16      357.0       1       1  0.998814
+Original test patients: 182
+Test patients with eval data: 150
 Example y_train_surv: [( True, 1568.) ( True,   63.) (False, 1596.) ( True,  350.)
  (False, 1561.)]
-Example y_test_surv: [( True,  179.) (False,  364.) (False, 1653.) ( True,  192.)
- (False,  992.)]
-Warning: Patient 132 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 494 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 403 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 31 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 3 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 601 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 520 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 389 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 111 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 232 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 189 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 275 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 440 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 317 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 473 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 495 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 602 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 533 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 554 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 248 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 551 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 452 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 430 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 85 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 141 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 503 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 435 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 246 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 446 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 213 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 500 has insufficient evaluation data, using fallback risk 0.416
-Warning: Patient 285 has insufficient evaluation data, using fallback risk 0.416
-Example test risks: [0.95250535 0.12235563 0.18205257 0.98282031 0.33558675]
-IPCW C-index at time 166.00: 0.9475
-IPCW C-index at time 357.00: 0.9270
-IPCW C-index at time 663.00: 0.8041
+Example y_test_surv: [(False, 2400.) ( True,   91.) (False,  364.) ( True,  803.)
+ ( True, 1675.)]
+Example pid2risk items: [(1, 0.38154831905921305), (7, 0.9999999773438148), (10, 0.14989019930362701), (11, 0.3629510946628983), (12, 0.533193492919203)]
+Example test risks: [0.38154832 0.99999998 0.1498902  0.36295109 0.53319349]
+Number of test patients: 150
+Number of patients with predictions: 150
+IPCW C-index at time 166.00: 0.9352
+IPCW C-index at time 357.00: 0.9156
+IPCW C-index at time 663.00: 0.8238
 ==================================================
 
 Processing dataset: heart
@@ -176,14 +145,17 @@ Online prediction results:
 2  5.0         10       19.5       1       1  0.824908
 3  5.0         11       66.0       1       1  0.940764
 4  5.0         12      175.5       1       1  0.962494
+Original test patients: 31
+Test patients with eval data: 29
 Example y_train_surv: [( True,   8.) (False,  11.) (False, 942.) ( True,  35.) ( True,  78.)]
-Example y_test_surv: [( True,  16.) ( True,  68.) (False, 842.) ( True,   9.) ( True,   2.)]
-Warning: Patient 91 has insufficient evaluation data, using fallback risk 0.670
-Warning: Patient 27 has insufficient evaluation data, using fallback risk 0.670
-Example test risks: [0.98671795 0.98325251 0.328023   0.97658845 0.98585426]
-IPCW C-index at time 19.50: 0.7164
-IPCW C-index at time 66.00: 0.7258
-IPCW C-index at time 175.50: 0.7594
+Example y_test_surv: [( True,  50.) ( True,  18.) ( True,  58.) ( True, 153.) ( True,  81.)]
+Example pid2risk items: [(1.0, 0.994808223990681), (5.0, 0.9996109948607281), (10.0, 0.9999971963780225), (11.0, 0.9966814951917513), (13.0, 0.999036119199513)]
+Example test risks: [0.99480822 0.99961099 0.9999972  0.9966815  0.99903612]
+Number of test patients: 29
+Number of patients with predictions: 29
+IPCW C-index at time 19.50: 0.6937
+IPCW C-index at time 66.00: 0.7074
+IPCW C-index at time 175.50: 0.7405
 ==================================================
 
 Processing dataset: heartvalve
@@ -198,19 +170,19 @@ Online prediction results:
 2    7         14   5.613014       0       0  0.000861
 3   10         21   4.453425       0       0  0.183221
 4   10         22   5.613014       0       0  0.007904
+Original test patients: 77
+Test patients with eval data: 72
 Example y_train_surv: [(False, 8.936986  ) ( True, 7.54246575) (False, 4.04383562)
  (False, 4.74246575) (False, 7.21369863)]
-Example y_test_surv: [(False, 6.605479  ) (False, 7.98082192) ( True, 2.2       )
- (False, 3.36986301) (False, 5.27671233)]
-Warning: Patient 231 has insufficient evaluation data, using fallback risk 0.203
-Warning: Patient 97 has insufficient evaluation data, using fallback risk 0.203
-Warning: Patient 25 has insufficient evaluation data, using fallback risk 0.203
-Warning: Patient 128 has insufficient evaluation data, using fallback risk 0.203
-Warning: Patient 246 has insufficient evaluation data, using fallback risk 0.203
-Example test risks: [0.00989462 0.03552252 0.99979517 0.05201163 0.48432548]
-IPCW C-index at time 2.48: 0.9861
-IPCW C-index at time 4.45: 0.9849
-IPCW C-index at time 5.61: 0.9706
+Example y_test_surv: [(False, 7.98082192) (False, 8.47123288) (False, 9.53424658)
+ (False, 3.191781  ) (False, 9.8739726 )]
+Example pid2risk items: [(7, 0.03552252124927746), (10, 0.18967626549250793), (11, 0.07906463387693197), (16, 0.22370220060707724), (17, 0.004792933865908955)]
+Example test risks: [0.03552252 0.18967627 0.07906463 0.2237022  0.00479293]
+Number of test patients: 72
+Number of patients with predictions: 72
+IPCW C-index at time 2.48: 0.9850
+IPCW C-index at time 4.45: 0.9836
+IPCW C-index at time 5.61: 0.9673
 ==================================================
 
 Processing dataset: oldmort
@@ -225,138 +197,17 @@ Online prediction results:
 2  782001030          4    78.9135       1       1  0.653515
 3  782001036          5    78.9135       1       1  0.612212
 4  783000730         10    78.9135       1       1  0.571589
+Original test patients: 1381
+Test patients with eval data: 1255
 Example y_train_surv: [( True, 71.585) (False, 64.305) (False, 73.586) ( True, 75.273)
  (False, 76.902)]
-Example y_test_surv: [( True, 79.139) ( True, 67.131) ( True, 74.912) ( True, 82.014)
- (False, 71.511)]
-Warning: Patient 793000571 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780000776 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 777000622 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 775000735 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 775000746 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 786001062 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 794000626 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 787000912 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 781000959 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000873 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 800001301 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 771000670 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 797001394 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 783000780 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 786000953 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 776000772 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780000968 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791001012 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001254 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795000623 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 772000663 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001380 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 789000456 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 800001464 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 793000582 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 796000658 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795000656 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 778000881 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 786000879 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 783000751 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 774000649 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 790001064 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795000619 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 790000510 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 787000940 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791000523 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 799001406 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 783000874 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 784000937 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 778000800 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 799001371 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 783000920 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791000459 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000433 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 774000695 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 787000907 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780000891 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 779000878 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001171 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000408 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 793001201 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 796001205 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 785000834 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 781000922 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001240 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 783000933 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 800001107 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 781000953 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 785000730 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 800001334 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 784000876 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 781000921 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780000975 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001206 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 787001002 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 785000916 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780001003 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 784000977 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 787000898 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 782000977 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 786000464 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 785000761 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 782000984 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 781000864 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 786001083 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780000907 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 792001134 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 790000493 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 790001122 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000909 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000758 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 794000647 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 793001251 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 773000558 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791001192 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000925 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791001248 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791000547 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 789000844 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 784000451 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 777000374 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 794000619 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798000667 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 778000709 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795001290 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 800001366 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 794001305 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 784000936 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001198 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 785000909 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 778000882 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 776000786 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795001320 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 778000723 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 779000769 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 779000921 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 782000463 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 791000836 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795001153 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 795001330 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 787000941 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 798001216 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 782000929 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 779000869 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 780000963 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 782001031 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 800001229 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 782001049 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 799001096 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 790000878 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 788000457 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 771000619 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 790000863 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 786000477 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 792000600 has insufficient evaluation data, using fallback risk 0.494
-Warning: Patient 793001216 has insufficient evaluation data, using fallback risk 0.494
-Example test risks: [0.49359449 0.74581048 0.8723827  0.49359449 0.37097026]
-IPCW C-index at time 67.00: 0.7980
-IPCW C-index at time 73.18: 0.7911
-IPCW C-index at time 78.91: 0.7594
-Total runtime: 5h 19m 58s
+Example y_test_surv: [( True, 78.23 ) ( True, 78.556) ( True, 78.438) ( True, 78.644)
+ ( True, 78.159)]
+Example pid2risk items: [(781000914, 0.8340862393379211), (782000934, 0.8301434516906738), (782001030, 0.6535148024559021), (782001036, 0.612212061882019), (783000730, 0.5715887546539307)]
+Example test risks: [0.83408624 0.83014345 0.6535148  0.61221206 0.57158875]
+Number of test patients: 1255
+Number of patients with predictions: 1255
+IPCW C-index at time 67.00: 0.7820
+IPCW C-index at time 73.18: 0.7608
+IPCW C-index at time 78.91: 0.7062
+Total runtime: 5h 20m 34s

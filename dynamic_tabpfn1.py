@@ -235,37 +235,33 @@ for file_name in dataset_files:
 
     # Get survival data from original dataset
     y_train_surv, train_pid_order = subject_time_event_eval(train_eval_df, pid_train, original_df)
-    y_test_surv, test_pid_order = subject_time_event_eval(eval_df[eval_df["pid"].isin(pid_test)], pid_test, original_df)
 
+    # Only use test patients that actually have evaluation data
+    actual_test_pids = eval_df[eval_df["pid"].isin(pid_test)]["pid"].unique()
+    y_test_surv, test_pid_order = subject_time_event_eval(
+        eval_df[eval_df["pid"].isin(actual_test_pids)], 
+        actual_test_pids,  # Use only patients with eval data
+        original_df
+    )
+
+    print(f"Original test patients: {len(pid_test)}")
+    print(f"Test patients with eval data: {len(actual_test_pids)}")
     print(f"Example y_train_surv: {y_train_surv[:5]}")
     print(f"Example y_test_surv: {y_test_surv[:5]}")
 
     # Convert interval probabilities to patient-level risks
     pid2risk = patient_risk_from_online_eval(online_out)
+    print(f"Example pid2risk items: {list(pid2risk.items())[:5]}")
 
-    # Build complete risk mapping for all test patients
-    # For patients with predictions, use their computed risk
-    # For patients without predictions (insufficient data), use the risk from patients who do have predictions
-    all_test_risks = []
-    patients_with_predictions = set(pid2risk.keys())
-    
-    if patients_with_predictions:
-        # Calculate mean risk from patients with predictions as fallback
-        fallback_risk = np.mean(list(pid2risk.values()))
-    else:
-        fallback_risk = 0.5  # neutral risk if no predictions available
-    
-    for pid in test_pid_order:
-        if pid in pid2risk:
-            all_test_risks.append(pid2risk[pid])
-        else:
-            # Use the same risk pattern: take the risk from a similar patient or use fallback
-            all_test_risks.append(fallback_risk)
-            print(f"Warning: Patient {pid} has insufficient evaluation data, using fallback risk {fallback_risk:.3f}")
-    
-    risk_test = np.array(all_test_risks, dtype=float)
+    # Build risk array for test patients (maintaining order)
+    risk_test = []
+    fallback_risk = None
+
+    risk_test = np.array([pid2risk[pid] for pid in test_pid_order], dtype=float)
 
     print(f"Example test risks: {risk_test[:5]}")
+    print(f"Number of test patients: {len(test_pid_order)}")
+    print(f"Number of patients with predictions: {len(pid2risk)}")
 
     # Compute time-specific C-index for each evaluation time
     c_ipcw_times = []
