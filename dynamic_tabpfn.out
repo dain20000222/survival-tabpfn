@@ -1,0 +1,1323 @@
+==================================================
+
+Processing dataset: FRTCS
+Original dataset shape: (2091, 9)
+Evaluation times: [1506.75 1627.   1740.25]
+Evaluation dataset shape: (2091, 10)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0    3          6    1506.75       0       0  0.014025
+1    3          7    1627.00       0       0  0.057635
+2    3          8    1740.25       0       0  0.022432
+3    7         18    1506.75       0       0  0.000654
+4    7         19    1627.00       0       0  0.001550
+Original test patients: 210
+Test patients with eval data: 210
+Example y_train_surv: [( True, 1823.) (False, 1826.) (False, 1826.) (False, 1724.)
+ (False, 1826.)]
+Example y_test_surv: [(False, 1826.) (False, 1826.) (False, 1826.) (False, 1826.)
+ (False, 1826.)]
+Example time-dependent risks:
+   pid  eval_time      risk
+0    3    1506.75  0.014025
+1    3    1627.00  0.070851
+2    3    1740.25  0.091694
+3    7    1506.75  0.000654
+4    7    1627.00  0.002203
+5    7    1740.25  0.003430
+6    8    1506.75  0.462435
+7    8    1627.00  0.560882
+8    8    1740.25  0.593399
+9   11    1506.75  0.000307
+IPCW C-index at time 1506.75: 0.4237
+IPCW C-index at time 1627.00: 0.8971
+IPCW C-index at time 1740.25: 0.9235
+==================================================
+
+Processing dataset: Rossi
+Original dataset shape: (1405, 13)
+Evaluation times: [17.  28.  41.5]
+Patient 1 has no data before eval_time 17.0, using default row.
+Patient 7 has no data before eval_time 17.0, using default row.
+Patient 8 has no data before eval_time 17.0, using default row.
+Patient 13 has no data before eval_time 17.0, using default row.
+Patient 14 has no data before eval_time 17.0, using default row.
+Patient 21 has no data before eval_time 17.0, using default row.
+Patient 23 has no data before eval_time 17.0, using default row.
+Patient 28 has no data before eval_time 17.0, using default row.
+Patient 30 has no data before eval_time 17.0, using default row.
+Patient 37 has no data before eval_time 17.0, using default row.
+Patient 38 has no data before eval_time 17.0, using default row.
+Patient 40 has no data before eval_time 17.0, using default row.
+Patient 42 has no data before eval_time 17.0, using default row.
+Patient 54 has no data before eval_time 17.0, using default row.
+Patient 56 has no data before eval_time 17.0, using default row.
+Patient 60 has no data before eval_time 17.0, using default row.
+Patient 64 has no data before eval_time 17.0, using default row.
+Patient 70 has no data before eval_time 17.0, using default row.
+Patient 73 has no data before eval_time 17.0, using default row.
+Patient 76 has no data before eval_time 17.0, using default row.
+Patient 79 has no data before eval_time 17.0, using default row.
+Patient 81 has no data before eval_time 17.0, using default row.
+Patient 82 has no data before eval_time 17.0, using default row.
+Patient 83 has no data before eval_time 17.0, using default row.
+Patient 86 has no data before eval_time 17.0, using default row.
+Patient 87 has no data before eval_time 17.0, using default row.
+Patient 88 has no data before eval_time 17.0, using default row.
+Patient 91 has no data before eval_time 17.0, using default row.
+Patient 92 has no data before eval_time 17.0, using default row.
+Patient 96 has no data before eval_time 17.0, using default row.
+Patient 98 has no data before eval_time 17.0, using default row.
+Patient 105 has no data before eval_time 17.0, using default row.
+Patient 109 has no data before eval_time 17.0, using default row.
+Patient 111 has no data before eval_time 17.0, using default row.
+Patient 113 has no data before eval_time 17.0, using default row.
+Patient 114 has no data before eval_time 17.0, using default row.
+Patient 115 has no data before eval_time 17.0, using default row.
+Patient 116 has no data before eval_time 17.0, using default row.
+Patient 117 has no data before eval_time 17.0, using default row.
+Patient 121 has no data before eval_time 17.0, using default row.
+Patient 125 has no data before eval_time 17.0, using default row.
+Patient 126 has no data before eval_time 17.0, using default row.
+Patient 127 has no data before eval_time 17.0, using default row.
+Patient 128 has no data before eval_time 17.0, using default row.
+Patient 133 has no data before eval_time 17.0, using default row.
+Patient 136 has no data before eval_time 17.0, using default row.
+Patient 147 has no data before eval_time 17.0, using default row.
+Patient 149 has no data before eval_time 17.0, using default row.
+Patient 151 has no data before eval_time 17.0, using default row.
+Patient 156 has no data before eval_time 17.0, using default row.
+Patient 159 has no data before eval_time 17.0, using default row.
+Patient 160 has no data before eval_time 17.0, using default row.
+Patient 169 has no data before eval_time 17.0, using default row.
+Patient 171 has no data before eval_time 17.0, using default row.
+Patient 175 has no data before eval_time 17.0, using default row.
+Patient 178 has no data before eval_time 17.0, using default row.
+Patient 180 has no data before eval_time 17.0, using default row.
+Patient 182 has no data before eval_time 17.0, using default row.
+Patient 183 has no data before eval_time 17.0, using default row.
+Patient 186 has no data before eval_time 17.0, using default row.
+Patient 190 has no data before eval_time 17.0, using default row.
+Patient 193 has no data before eval_time 17.0, using default row.
+Patient 196 has no data before eval_time 17.0, using default row.
+Patient 198 has no data before eval_time 17.0, using default row.
+Patient 200 has no data before eval_time 17.0, using default row.
+Patient 201 has no data before eval_time 17.0, using default row.
+Patient 203 has no data before eval_time 17.0, using default row.
+Patient 216 has no data before eval_time 17.0, using default row.
+Patient 217 has no data before eval_time 17.0, using default row.
+Patient 221 has no data before eval_time 17.0, using default row.
+Patient 227 has no data before eval_time 17.0, using default row.
+Patient 230 has no data before eval_time 17.0, using default row.
+Patient 232 has no data before eval_time 17.0, using default row.
+Patient 237 has no data before eval_time 17.0, using default row.
+Patient 238 has no data before eval_time 17.0, using default row.
+Patient 239 has no data before eval_time 17.0, using default row.
+Patient 242 has no data before eval_time 17.0, using default row.
+Patient 253 has no data before eval_time 17.0, using default row.
+Patient 255 has no data before eval_time 17.0, using default row.
+Patient 269 has no data before eval_time 17.0, using default row.
+Patient 271 has no data before eval_time 17.0, using default row.
+Patient 273 has no data before eval_time 17.0, using default row.
+Patient 274 has no data before eval_time 17.0, using default row.
+Patient 275 has no data before eval_time 17.0, using default row.
+Patient 276 has no data before eval_time 17.0, using default row.
+Patient 279 has no data before eval_time 17.0, using default row.
+Patient 283 has no data before eval_time 17.0, using default row.
+Patient 293 has no data before eval_time 17.0, using default row.
+Patient 295 has no data before eval_time 17.0, using default row.
+Patient 303 has no data before eval_time 17.0, using default row.
+Patient 306 has no data before eval_time 17.0, using default row.
+Patient 307 has no data before eval_time 17.0, using default row.
+Patient 316 has no data before eval_time 17.0, using default row.
+Patient 318 has no data before eval_time 17.0, using default row.
+Patient 320 has no data before eval_time 17.0, using default row.
+Patient 323 has no data before eval_time 17.0, using default row.
+Patient 324 has no data before eval_time 17.0, using default row.
+Patient 327 has no data before eval_time 17.0, using default row.
+Patient 328 has no data before eval_time 17.0, using default row.
+Patient 330 has no data before eval_time 17.0, using default row.
+Patient 331 has no data before eval_time 17.0, using default row.
+Patient 333 has no data before eval_time 17.0, using default row.
+Patient 335 has no data before eval_time 17.0, using default row.
+Patient 336 has no data before eval_time 17.0, using default row.
+Patient 338 has no data before eval_time 17.0, using default row.
+Patient 341 has no data before eval_time 17.0, using default row.
+Patient 349 has no data before eval_time 17.0, using default row.
+Patient 353 has no data before eval_time 17.0, using default row.
+Patient 356 has no data before eval_time 17.0, using default row.
+Patient 357 has no data before eval_time 17.0, using default row.
+Patient 361 has no data before eval_time 17.0, using default row.
+Patient 362 has no data before eval_time 17.0, using default row.
+Patient 366 has no data before eval_time 17.0, using default row.
+Patient 372 has no data before eval_time 17.0, using default row.
+Patient 373 has no data before eval_time 17.0, using default row.
+Patient 376 has no data before eval_time 17.0, using default row.
+Patient 377 has no data before eval_time 17.0, using default row.
+Patient 378 has no data before eval_time 17.0, using default row.
+Patient 380 has no data before eval_time 17.0, using default row.
+Patient 385 has no data before eval_time 17.0, using default row.
+Patient 388 has no data before eval_time 17.0, using default row.
+Patient 390 has no data before eval_time 17.0, using default row.
+Patient 394 has no data before eval_time 17.0, using default row.
+Patient 397 has no data before eval_time 17.0, using default row.
+Patient 398 has no data before eval_time 17.0, using default row.
+Patient 399 has no data before eval_time 17.0, using default row.
+Patient 401 has no data before eval_time 17.0, using default row.
+Patient 403 has no data before eval_time 17.0, using default row.
+Patient 406 has no data before eval_time 17.0, using default row.
+Patient 408 has no data before eval_time 17.0, using default row.
+Patient 410 has no data before eval_time 17.0, using default row.
+Patient 411 has no data before eval_time 17.0, using default row.
+Patient 412 has no data before eval_time 17.0, using default row.
+Patient 414 has no data before eval_time 17.0, using default row.
+Patient 415 has no data before eval_time 17.0, using default row.
+Patient 416 has no data before eval_time 17.0, using default row.
+Patient 418 has no data before eval_time 17.0, using default row.
+Patient 419 has no data before eval_time 17.0, using default row.
+Patient 424 has no data before eval_time 17.0, using default row.
+Patient 425 has no data before eval_time 17.0, using default row.
+Patient 428 has no data before eval_time 17.0, using default row.
+Patient 21 has no data before eval_time 28.0, using default row.
+Patient 28 has no data before eval_time 28.0, using default row.
+Patient 30 has no data before eval_time 28.0, using default row.
+Patient 40 has no data before eval_time 28.0, using default row.
+Patient 54 has no data before eval_time 28.0, using default row.
+Patient 56 has no data before eval_time 28.0, using default row.
+Patient 64 has no data before eval_time 28.0, using default row.
+Patient 76 has no data before eval_time 28.0, using default row.
+Patient 79 has no data before eval_time 28.0, using default row.
+Patient 82 has no data before eval_time 28.0, using default row.
+Patient 86 has no data before eval_time 28.0, using default row.
+Patient 87 has no data before eval_time 28.0, using default row.
+Patient 91 has no data before eval_time 28.0, using default row.
+Patient 105 has no data before eval_time 28.0, using default row.
+Patient 109 has no data before eval_time 28.0, using default row.
+Patient 111 has no data before eval_time 28.0, using default row.
+Patient 114 has no data before eval_time 28.0, using default row.
+Patient 115 has no data before eval_time 28.0, using default row.
+Patient 116 has no data before eval_time 28.0, using default row.
+Patient 121 has no data before eval_time 28.0, using default row.
+Patient 125 has no data before eval_time 28.0, using default row.
+Patient 126 has no data before eval_time 28.0, using default row.
+Patient 127 has no data before eval_time 28.0, using default row.
+Patient 128 has no data before eval_time 28.0, using default row.
+Patient 133 has no data before eval_time 28.0, using default row.
+Patient 147 has no data before eval_time 28.0, using default row.
+Patient 149 has no data before eval_time 28.0, using default row.
+Patient 151 has no data before eval_time 28.0, using default row.
+Patient 159 has no data before eval_time 28.0, using default row.
+Patient 169 has no data before eval_time 28.0, using default row.
+Patient 171 has no data before eval_time 28.0, using default row.
+Patient 178 has no data before eval_time 28.0, using default row.
+Patient 180 has no data before eval_time 28.0, using default row.
+Patient 182 has no data before eval_time 28.0, using default row.
+Patient 183 has no data before eval_time 28.0, using default row.
+Patient 186 has no data before eval_time 28.0, using default row.
+Patient 193 has no data before eval_time 28.0, using default row.
+Patient 196 has no data before eval_time 28.0, using default row.
+Patient 198 has no data before eval_time 28.0, using default row.
+Patient 201 has no data before eval_time 28.0, using default row.
+Patient 203 has no data before eval_time 28.0, using default row.
+Patient 217 has no data before eval_time 28.0, using default row.
+Patient 237 has no data before eval_time 28.0, using default row.
+Patient 238 has no data before eval_time 28.0, using default row.
+Patient 253 has no data before eval_time 28.0, using default row.
+Patient 255 has no data before eval_time 28.0, using default row.
+Patient 269 has no data before eval_time 28.0, using default row.
+Patient 273 has no data before eval_time 28.0, using default row.
+Patient 274 has no data before eval_time 28.0, using default row.
+Patient 275 has no data before eval_time 28.0, using default row.
+Patient 276 has no data before eval_time 28.0, using default row.
+Patient 279 has no data before eval_time 28.0, using default row.
+Patient 283 has no data before eval_time 28.0, using default row.
+Patient 293 has no data before eval_time 28.0, using default row.
+Patient 295 has no data before eval_time 28.0, using default row.
+Patient 303 has no data before eval_time 28.0, using default row.
+Patient 306 has no data before eval_time 28.0, using default row.
+Patient 307 has no data before eval_time 28.0, using default row.
+Patient 320 has no data before eval_time 28.0, using default row.
+Patient 323 has no data before eval_time 28.0, using default row.
+Patient 324 has no data before eval_time 28.0, using default row.
+Patient 330 has no data before eval_time 28.0, using default row.
+Patient 331 has no data before eval_time 28.0, using default row.
+Patient 333 has no data before eval_time 28.0, using default row.
+Patient 335 has no data before eval_time 28.0, using default row.
+Patient 338 has no data before eval_time 28.0, using default row.
+Patient 341 has no data before eval_time 28.0, using default row.
+Patient 356 has no data before eval_time 28.0, using default row.
+Patient 362 has no data before eval_time 28.0, using default row.
+Patient 366 has no data before eval_time 28.0, using default row.
+Patient 373 has no data before eval_time 28.0, using default row.
+Patient 377 has no data before eval_time 28.0, using default row.
+Patient 380 has no data before eval_time 28.0, using default row.
+Patient 390 has no data before eval_time 28.0, using default row.
+Patient 397 has no data before eval_time 28.0, using default row.
+Patient 398 has no data before eval_time 28.0, using default row.
+Patient 399 has no data before eval_time 28.0, using default row.
+Patient 401 has no data before eval_time 28.0, using default row.
+Patient 403 has no data before eval_time 28.0, using default row.
+Patient 406 has no data before eval_time 28.0, using default row.
+Patient 408 has no data before eval_time 28.0, using default row.
+Patient 410 has no data before eval_time 28.0, using default row.
+Patient 414 has no data before eval_time 28.0, using default row.
+Patient 415 has no data before eval_time 28.0, using default row.
+Patient 416 has no data before eval_time 28.0, using default row.
+Patient 418 has no data before eval_time 28.0, using default row.
+Patient 419 has no data before eval_time 28.0, using default row.
+Patient 28 has no data before eval_time 41.5, using default row.
+Patient 40 has no data before eval_time 41.5, using default row.
+Patient 54 has no data before eval_time 41.5, using default row.
+Patient 56 has no data before eval_time 41.5, using default row.
+Patient 76 has no data before eval_time 41.5, using default row.
+Patient 79 has no data before eval_time 41.5, using default row.
+Patient 82 has no data before eval_time 41.5, using default row.
+Patient 86 has no data before eval_time 41.5, using default row.
+Patient 91 has no data before eval_time 41.5, using default row.
+Patient 105 has no data before eval_time 41.5, using default row.
+Patient 109 has no data before eval_time 41.5, using default row.
+Patient 115 has no data before eval_time 41.5, using default row.
+Patient 121 has no data before eval_time 41.5, using default row.
+Patient 125 has no data before eval_time 41.5, using default row.
+Patient 126 has no data before eval_time 41.5, using default row.
+Patient 127 has no data before eval_time 41.5, using default row.
+Patient 128 has no data before eval_time 41.5, using default row.
+Patient 133 has no data before eval_time 41.5, using default row.
+Patient 147 has no data before eval_time 41.5, using default row.
+Patient 149 has no data before eval_time 41.5, using default row.
+Patient 159 has no data before eval_time 41.5, using default row.
+Patient 171 has no data before eval_time 41.5, using default row.
+Patient 178 has no data before eval_time 41.5, using default row.
+Patient 180 has no data before eval_time 41.5, using default row.
+Patient 182 has no data before eval_time 41.5, using default row.
+Patient 186 has no data before eval_time 41.5, using default row.
+Patient 193 has no data before eval_time 41.5, using default row.
+Patient 196 has no data before eval_time 41.5, using default row.
+Patient 198 has no data before eval_time 41.5, using default row.
+Patient 201 has no data before eval_time 41.5, using default row.
+Patient 203 has no data before eval_time 41.5, using default row.
+Patient 253 has no data before eval_time 41.5, using default row.
+Patient 255 has no data before eval_time 41.5, using default row.
+Patient 274 has no data before eval_time 41.5, using default row.
+Patient 275 has no data before eval_time 41.5, using default row.
+Patient 276 has no data before eval_time 41.5, using default row.
+Patient 279 has no data before eval_time 41.5, using default row.
+Patient 283 has no data before eval_time 41.5, using default row.
+Patient 293 has no data before eval_time 41.5, using default row.
+Patient 306 has no data before eval_time 41.5, using default row.
+Patient 307 has no data before eval_time 41.5, using default row.
+Patient 320 has no data before eval_time 41.5, using default row.
+Patient 323 has no data before eval_time 41.5, using default row.
+Patient 324 has no data before eval_time 41.5, using default row.
+Patient 330 has no data before eval_time 41.5, using default row.
+Patient 331 has no data before eval_time 41.5, using default row.
+Patient 341 has no data before eval_time 41.5, using default row.
+Patient 356 has no data before eval_time 41.5, using default row.
+Patient 373 has no data before eval_time 41.5, using default row.
+Patient 377 has no data before eval_time 41.5, using default row.
+Patient 380 has no data before eval_time 41.5, using default row.
+Patient 390 has no data before eval_time 41.5, using default row.
+Patient 398 has no data before eval_time 41.5, using default row.
+Patient 399 has no data before eval_time 41.5, using default row.
+Patient 401 has no data before eval_time 41.5, using default row.
+Patient 403 has no data before eval_time 41.5, using default row.
+Patient 408 has no data before eval_time 41.5, using default row.
+Patient 410 has no data before eval_time 41.5, using default row.
+Patient 414 has no data before eval_time 41.5, using default row.
+Patient 415 has no data before eval_time 41.5, using default row.
+Patient 416 has no data before eval_time 41.5, using default row.
+Patient 418 has no data before eval_time 41.5, using default row.
+Evaluation dataset shape: (1296, 14)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0    1          0       17.0       0       0  0.000645
+1    1          1       28.0       1       0  0.244992
+2    1          2       41.5       1       1  0.948012
+3    4          9       17.0       0       0  0.020870
+4    4         10       28.0       0       0  0.006833
+Original test patients: 130
+Test patients with eval data: 130
+Example y_train_surv: [( True,  8.) (False, 52.) (False, 52.) (False, 52.) (False, 52.)]
+Example y_test_surv: [( True, 20.) (False, 52.) (False, 52.) (False, 52.) (False, 52.)]
+Example time-dependent risks:
+   pid  eval_time      risk
+0    1       17.0  0.000645
+1    1       28.0  0.245479
+2    1       41.5  0.960774
+3    4       17.0  0.020870
+4    4       28.0  0.027561
+5    4       41.5  0.038242
+6    6       17.0  0.011420
+7    6       28.0  0.071146
+8    6       41.5  0.083354
+9    8       17.0  0.000645
+IPCW C-index at time 17.00: 0.7224
+IPCW C-index at time 28.00: 0.8710
+IPCW C-index at time 41.50: 0.8839
+==================================================
+
+Processing dataset: aids
+Original dataset shape: (1405, 9)
+Evaluation times: [ 4.5925  8.6    11.6075]
+Patient 1 has no data before eval_time 4.592499999999999, using default row.
+Patient 2 has no data before eval_time 4.592499999999999, using default row.
+Patient 23 has no data before eval_time 4.592499999999999, using default row.
+Patient 27 has no data before eval_time 4.592499999999999, using default row.
+Patient 28 has no data before eval_time 4.592499999999999, using default row.
+Patient 29 has no data before eval_time 4.592499999999999, using default row.
+Patient 30 has no data before eval_time 4.592499999999999, using default row.
+Patient 32 has no data before eval_time 4.592499999999999, using default row.
+Patient 34 has no data before eval_time 4.592499999999999, using default row.
+Patient 36 has no data before eval_time 4.592499999999999, using default row.
+Patient 39 has no data before eval_time 4.592499999999999, using default row.
+Patient 42 has no data before eval_time 4.592499999999999, using default row.
+Patient 43 has no data before eval_time 4.592499999999999, using default row.
+Patient 45 has no data before eval_time 4.592499999999999, using default row.
+Patient 53 has no data before eval_time 4.592499999999999, using default row.
+Patient 60 has no data before eval_time 4.592499999999999, using default row.
+Patient 66 has no data before eval_time 4.592499999999999, using default row.
+Patient 67 has no data before eval_time 4.592499999999999, using default row.
+Patient 96 has no data before eval_time 4.592499999999999, using default row.
+Patient 99 has no data before eval_time 4.592499999999999, using default row.
+Patient 109 has no data before eval_time 4.592499999999999, using default row.
+Patient 113 has no data before eval_time 4.592499999999999, using default row.
+Patient 117 has no data before eval_time 4.592499999999999, using default row.
+Patient 118 has no data before eval_time 4.592499999999999, using default row.
+Patient 119 has no data before eval_time 4.592499999999999, using default row.
+Patient 123 has no data before eval_time 4.592499999999999, using default row.
+Patient 140 has no data before eval_time 4.592499999999999, using default row.
+Patient 152 has no data before eval_time 4.592499999999999, using default row.
+Patient 156 has no data before eval_time 4.592499999999999, using default row.
+Patient 158 has no data before eval_time 4.592499999999999, using default row.
+Patient 164 has no data before eval_time 4.592499999999999, using default row.
+Patient 166 has no data before eval_time 4.592499999999999, using default row.
+Patient 173 has no data before eval_time 4.592499999999999, using default row.
+Patient 185 has no data before eval_time 4.592499999999999, using default row.
+Patient 204 has no data before eval_time 4.592499999999999, using default row.
+Patient 217 has no data before eval_time 4.592499999999999, using default row.
+Patient 227 has no data before eval_time 4.592499999999999, using default row.
+Patient 231 has no data before eval_time 4.592499999999999, using default row.
+Patient 239 has no data before eval_time 4.592499999999999, using default row.
+Patient 242 has no data before eval_time 4.592499999999999, using default row.
+Patient 247 has no data before eval_time 4.592499999999999, using default row.
+Patient 248 has no data before eval_time 4.592499999999999, using default row.
+Patient 275 has no data before eval_time 4.592499999999999, using default row.
+Patient 277 has no data before eval_time 4.592499999999999, using default row.
+Patient 280 has no data before eval_time 4.592499999999999, using default row.
+Patient 291 has no data before eval_time 4.592499999999999, using default row.
+Patient 305 has no data before eval_time 4.592499999999999, using default row.
+Patient 306 has no data before eval_time 4.592499999999999, using default row.
+Patient 320 has no data before eval_time 4.592499999999999, using default row.
+Patient 327 has no data before eval_time 4.592499999999999, using default row.
+Patient 332 has no data before eval_time 4.592499999999999, using default row.
+Patient 352 has no data before eval_time 4.592499999999999, using default row.
+Patient 361 has no data before eval_time 4.592499999999999, using default row.
+Patient 364 has no data before eval_time 4.592499999999999, using default row.
+Patient 371 has no data before eval_time 4.592499999999999, using default row.
+Patient 375 has no data before eval_time 4.592499999999999, using default row.
+Patient 403 has no data before eval_time 4.592499999999999, using default row.
+Patient 413 has no data before eval_time 4.592499999999999, using default row.
+Patient 420 has no data before eval_time 4.592499999999999, using default row.
+Patient 425 has no data before eval_time 4.592499999999999, using default row.
+Patient 429 has no data before eval_time 4.592499999999999, using default row.
+Patient 23 has no data before eval_time 8.600000000000001, using default row.
+Patient 28 has no data before eval_time 8.600000000000001, using default row.
+Patient 42 has no data before eval_time 8.600000000000001, using default row.
+Patient 43 has no data before eval_time 8.600000000000001, using default row.
+Patient 113 has no data before eval_time 8.600000000000001, using default row.
+Patient 123 has no data before eval_time 8.600000000000001, using default row.
+Patient 164 has no data before eval_time 8.600000000000001, using default row.
+Patient 227 has no data before eval_time 8.600000000000001, using default row.
+Patient 247 has no data before eval_time 8.600000000000001, using default row.
+Patient 248 has no data before eval_time 8.600000000000001, using default row.
+Patient 291 has no data before eval_time 8.600000000000001, using default row.
+Patient 320 has no data before eval_time 8.600000000000001, using default row.
+Patient 352 has no data before eval_time 8.600000000000001, using default row.
+Patient 364 has no data before eval_time 8.600000000000001, using default row.
+Patient 403 has no data before eval_time 8.600000000000001, using default row.
+Patient 420 has no data before eval_time 8.600000000000001, using default row.
+Patient 425 has no data before eval_time 8.600000000000001, using default row.
+Patient 23 has no data before eval_time 11.6075, using default row.
+Patient 28 has no data before eval_time 11.6075, using default row.
+Patient 42 has no data before eval_time 11.6075, using default row.
+Patient 43 has no data before eval_time 11.6075, using default row.
+Patient 113 has no data before eval_time 11.6075, using default row.
+Patient 123 has no data before eval_time 11.6075, using default row.
+Patient 247 has no data before eval_time 11.6075, using default row.
+Patient 248 has no data before eval_time 11.6075, using default row.
+Patient 291 has no data before eval_time 11.6075, using default row.
+Patient 320 has no data before eval_time 11.6075, using default row.
+Patient 352 has no data before eval_time 11.6075, using default row.
+Patient 364 has no data before eval_time 11.6075, using default row.
+Patient 403 has no data before eval_time 11.6075, using default row.
+Patient 420 has no data before eval_time 11.6075, using default row.
+Patient 425 has no data before eval_time 11.6075, using default row.
+Evaluation dataset shape: (1401, 10)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0    1          0     4.5925       0       0  0.022564
+1    1          1     8.6000       0       0  0.096472
+2    1          2    11.6075       0       0  0.094323
+3    4          9     4.5925       0       0  0.130277
+4    4         10     8.6000       0       0  0.146242
+Original test patients: 141
+Test patients with eval data: 141
+Example y_train_surv: [(False, 18.13) ( True,  9.57) ( True,  1.43) ( True,  4.67)
+ ( True,  9.73)]
+Example y_test_surv: [(False, 16.97) (False, 12.7 ) ( True,  1.9 ) (False, 16.43)
+ (False, 18.1 )]
+Example time-dependent risks:
+   pid  eval_time      risk
+0    1     4.5925  0.022564
+1    1     8.6000  0.116859
+2    1    11.6075  0.200159
+3    4     4.5925  0.130277
+4    4     8.6000  0.257467
+5    4    11.6075  0.461818
+6    6     4.5925  0.182919
+7    6     8.6000  0.538355
+8    6    11.6075  0.766252
+9   10     4.5925  0.023258
+IPCW C-index at time 4.59: 0.7851
+IPCW C-index at time 8.60: 0.7870
+IPCW C-index at time 11.61: 0.7992
+==================================================
+
+Processing dataset: csl
+Original dataset shape: (2481, 10)
+Evaluation times: [0.75068493 2.35479452 4.96712329]
+Patient 58 has no data before eval_time 0.75068493150685, using default row.
+Patient 84 has no data before eval_time 0.75068493150685, using default row.
+Patient 142 has no data before eval_time 0.75068493150685, using default row.
+Patient 277 has no data before eval_time 0.75068493150685, using default row.
+Patient 535 has no data before eval_time 0.75068493150685, using default row.
+Patient 142 has no data before eval_time 2.3547945205479452, using default row.
+Patient 142 has no data before eval_time 4.967123287671233, using default row.
+Evaluation dataset shape: (1338, 11)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0  1.0          0   0.750685       1       0  0.143402
+1  1.0          1   2.354795       1       1  0.873941
+2  1.0          2   4.967123       1       1  0.967916
+3  4.0          9   0.750685       0       0  0.439317
+4  4.0         10   2.354795       1       1  0.794512
+Original test patients: 134
+Test patients with eval data: 134
+Example y_train_surv: [(False, 5.35068493) ( True, 2.83561644) (False, 6.00273973)
+ (False, 0.54246575) ( True, 9.89315068)]
+Example y_test_surv: [( True, 0.41369863) ( True, 0.79452055) ( True, 0.76986301)
+ (False, 7.5890411 ) (False, 0.26027397)]
+Example time-dependent risks:
+   pid  eval_time      risk
+0  1.0   0.750685  0.143402
+1  1.0   2.354795  0.892018
+2  1.0   4.967123  0.996536
+3  4.0   0.750685  0.439317
+4  4.0   2.354795  0.884786
+5  4.0   4.967123  0.999476
+6  6.0   0.750685  0.308246
+7  6.0   2.354795  0.738970
+8  6.0   4.967123  0.995286
+9  8.0   0.750685  0.000446
+IPCW C-index at time 0.75: 0.7054
+IPCW C-index at time 2.35: 0.8056
+IPCW C-index at time 4.97: 0.8748
+==================================================
+
+Processing dataset: epileptic
+Original dataset shape: (1286, 9)
+Evaluation times: [166. 357. 663.]
+Patient 3 has no data before eval_time 166.0, using default row.
+Patient 9 has no data before eval_time 166.0, using default row.
+Patient 10 has no data before eval_time 166.0, using default row.
+Patient 12 has no data before eval_time 166.0, using default row.
+Patient 20 has no data before eval_time 166.0, using default row.
+Patient 28 has no data before eval_time 166.0, using default row.
+Patient 29 has no data before eval_time 166.0, using default row.
+Patient 31 has no data before eval_time 166.0, using default row.
+Patient 33 has no data before eval_time 166.0, using default row.
+Patient 34 has no data before eval_time 166.0, using default row.
+Patient 35 has no data before eval_time 166.0, using default row.
+Patient 36 has no data before eval_time 166.0, using default row.
+Patient 38 has no data before eval_time 166.0, using default row.
+Patient 43 has no data before eval_time 166.0, using default row.
+Patient 45 has no data before eval_time 166.0, using default row.
+Patient 53 has no data before eval_time 166.0, using default row.
+Patient 58 has no data before eval_time 166.0, using default row.
+Patient 60 has no data before eval_time 166.0, using default row.
+Patient 61 has no data before eval_time 166.0, using default row.
+Patient 62 has no data before eval_time 166.0, using default row.
+Patient 63 has no data before eval_time 166.0, using default row.
+Patient 66 has no data before eval_time 166.0, using default row.
+Patient 71 has no data before eval_time 166.0, using default row.
+Patient 79 has no data before eval_time 166.0, using default row.
+Patient 81 has no data before eval_time 166.0, using default row.
+Patient 83 has no data before eval_time 166.0, using default row.
+Patient 84 has no data before eval_time 166.0, using default row.
+Patient 85 has no data before eval_time 166.0, using default row.
+Patient 92 has no data before eval_time 166.0, using default row.
+Patient 98 has no data before eval_time 166.0, using default row.
+Patient 99 has no data before eval_time 166.0, using default row.
+Patient 100 has no data before eval_time 166.0, using default row.
+Patient 101 has no data before eval_time 166.0, using default row.
+Patient 111 has no data before eval_time 166.0, using default row.
+Patient 115 has no data before eval_time 166.0, using default row.
+Patient 122 has no data before eval_time 166.0, using default row.
+Patient 123 has no data before eval_time 166.0, using default row.
+Patient 125 has no data before eval_time 166.0, using default row.
+Patient 126 has no data before eval_time 166.0, using default row.
+Patient 128 has no data before eval_time 166.0, using default row.
+Patient 129 has no data before eval_time 166.0, using default row.
+Patient 131 has no data before eval_time 166.0, using default row.
+Patient 132 has no data before eval_time 166.0, using default row.
+Patient 134 has no data before eval_time 166.0, using default row.
+Patient 135 has no data before eval_time 166.0, using default row.
+Patient 137 has no data before eval_time 166.0, using default row.
+Patient 140 has no data before eval_time 166.0, using default row.
+Patient 141 has no data before eval_time 166.0, using default row.
+Patient 151 has no data before eval_time 166.0, using default row.
+Patient 162 has no data before eval_time 166.0, using default row.
+Patient 163 has no data before eval_time 166.0, using default row.
+Patient 167 has no data before eval_time 166.0, using default row.
+Patient 171 has no data before eval_time 166.0, using default row.
+Patient 175 has no data before eval_time 166.0, using default row.
+Patient 176 has no data before eval_time 166.0, using default row.
+Patient 178 has no data before eval_time 166.0, using default row.
+Patient 180 has no data before eval_time 166.0, using default row.
+Patient 186 has no data before eval_time 166.0, using default row.
+Patient 187 has no data before eval_time 166.0, using default row.
+Patient 188 has no data before eval_time 166.0, using default row.
+Patient 189 has no data before eval_time 166.0, using default row.
+Patient 192 has no data before eval_time 166.0, using default row.
+Patient 194 has no data before eval_time 166.0, using default row.
+Patient 199 has no data before eval_time 166.0, using default row.
+Patient 204 has no data before eval_time 166.0, using default row.
+Patient 212 has no data before eval_time 166.0, using default row.
+Patient 213 has no data before eval_time 166.0, using default row.
+Patient 216 has no data before eval_time 166.0, using default row.
+Patient 217 has no data before eval_time 166.0, using default row.
+Patient 218 has no data before eval_time 166.0, using default row.
+Patient 228 has no data before eval_time 166.0, using default row.
+Patient 229 has no data before eval_time 166.0, using default row.
+Patient 230 has no data before eval_time 166.0, using default row.
+Patient 232 has no data before eval_time 166.0, using default row.
+Patient 235 has no data before eval_time 166.0, using default row.
+Patient 237 has no data before eval_time 166.0, using default row.
+Patient 238 has no data before eval_time 166.0, using default row.
+Patient 240 has no data before eval_time 166.0, using default row.
+Patient 242 has no data before eval_time 166.0, using default row.
+Patient 244 has no data before eval_time 166.0, using default row.
+Patient 245 has no data before eval_time 166.0, using default row.
+Patient 246 has no data before eval_time 166.0, using default row.
+Patient 247 has no data before eval_time 166.0, using default row.
+Patient 248 has no data before eval_time 166.0, using default row.
+Patient 251 has no data before eval_time 166.0, using default row.
+Patient 252 has no data before eval_time 166.0, using default row.
+Patient 253 has no data before eval_time 166.0, using default row.
+Patient 255 has no data before eval_time 166.0, using default row.
+Patient 259 has no data before eval_time 166.0, using default row.
+Patient 262 has no data before eval_time 166.0, using default row.
+Patient 263 has no data before eval_time 166.0, using default row.
+Patient 267 has no data before eval_time 166.0, using default row.
+Patient 268 has no data before eval_time 166.0, using default row.
+Patient 270 has no data before eval_time 166.0, using default row.
+Patient 273 has no data before eval_time 166.0, using default row.
+Patient 275 has no data before eval_time 166.0, using default row.
+Patient 278 has no data before eval_time 166.0, using default row.
+Patient 279 has no data before eval_time 166.0, using default row.
+Patient 283 has no data before eval_time 166.0, using default row.
+Patient 284 has no data before eval_time 166.0, using default row.
+Patient 285 has no data before eval_time 166.0, using default row.
+Patient 288 has no data before eval_time 166.0, using default row.
+Patient 293 has no data before eval_time 166.0, using default row.
+Patient 294 has no data before eval_time 166.0, using default row.
+Patient 295 has no data before eval_time 166.0, using default row.
+Patient 300 has no data before eval_time 166.0, using default row.
+Patient 302 has no data before eval_time 166.0, using default row.
+Patient 303 has no data before eval_time 166.0, using default row.
+Patient 310 has no data before eval_time 166.0, using default row.
+Patient 312 has no data before eval_time 166.0, using default row.
+Patient 313 has no data before eval_time 166.0, using default row.
+Patient 314 has no data before eval_time 166.0, using default row.
+Patient 315 has no data before eval_time 166.0, using default row.
+Patient 317 has no data before eval_time 166.0, using default row.
+Patient 323 has no data before eval_time 166.0, using default row.
+Patient 324 has no data before eval_time 166.0, using default row.
+Patient 326 has no data before eval_time 166.0, using default row.
+Patient 328 has no data before eval_time 166.0, using default row.
+Patient 329 has no data before eval_time 166.0, using default row.
+Patient 330 has no data before eval_time 166.0, using default row.
+Patient 331 has no data before eval_time 166.0, using default row.
+Patient 332 has no data before eval_time 166.0, using default row.
+Patient 333 has no data before eval_time 166.0, using default row.
+Patient 334 has no data before eval_time 166.0, using default row.
+Patient 336 has no data before eval_time 166.0, using default row.
+Patient 340 has no data before eval_time 166.0, using default row.
+Patient 343 has no data before eval_time 166.0, using default row.
+Patient 346 has no data before eval_time 166.0, using default row.
+Patient 347 has no data before eval_time 166.0, using default row.
+Patient 349 has no data before eval_time 166.0, using default row.
+Patient 352 has no data before eval_time 166.0, using default row.
+Patient 353 has no data before eval_time 166.0, using default row.
+Patient 355 has no data before eval_time 166.0, using default row.
+Patient 357 has no data before eval_time 166.0, using default row.
+Patient 360 has no data before eval_time 166.0, using default row.
+Patient 365 has no data before eval_time 166.0, using default row.
+Patient 369 has no data before eval_time 166.0, using default row.
+Patient 370 has no data before eval_time 166.0, using default row.
+Patient 372 has no data before eval_time 166.0, using default row.
+Patient 377 has no data before eval_time 166.0, using default row.
+Patient 378 has no data before eval_time 166.0, using default row.
+Patient 381 has no data before eval_time 166.0, using default row.
+Patient 382 has no data before eval_time 166.0, using default row.
+Patient 385 has no data before eval_time 166.0, using default row.
+Patient 386 has no data before eval_time 166.0, using default row.
+Patient 387 has no data before eval_time 166.0, using default row.
+Patient 389 has no data before eval_time 166.0, using default row.
+Patient 393 has no data before eval_time 166.0, using default row.
+Patient 394 has no data before eval_time 166.0, using default row.
+Patient 396 has no data before eval_time 166.0, using default row.
+Patient 398 has no data before eval_time 166.0, using default row.
+Patient 399 has no data before eval_time 166.0, using default row.
+Patient 400 has no data before eval_time 166.0, using default row.
+Patient 401 has no data before eval_time 166.0, using default row.
+Patient 403 has no data before eval_time 166.0, using default row.
+Patient 404 has no data before eval_time 166.0, using default row.
+Patient 408 has no data before eval_time 166.0, using default row.
+Patient 413 has no data before eval_time 166.0, using default row.
+Patient 416 has no data before eval_time 166.0, using default row.
+Patient 420 has no data before eval_time 166.0, using default row.
+Patient 424 has no data before eval_time 166.0, using default row.
+Patient 425 has no data before eval_time 166.0, using default row.
+Patient 427 has no data before eval_time 166.0, using default row.
+Patient 429 has no data before eval_time 166.0, using default row.
+Patient 430 has no data before eval_time 166.0, using default row.
+Patient 432 has no data before eval_time 166.0, using default row.
+Patient 434 has no data before eval_time 166.0, using default row.
+Patient 435 has no data before eval_time 166.0, using default row.
+Patient 437 has no data before eval_time 166.0, using default row.
+Patient 439 has no data before eval_time 166.0, using default row.
+Patient 440 has no data before eval_time 166.0, using default row.
+Patient 441 has no data before eval_time 166.0, using default row.
+Patient 442 has no data before eval_time 166.0, using default row.
+Patient 443 has no data before eval_time 166.0, using default row.
+Patient 445 has no data before eval_time 166.0, using default row.
+Patient 446 has no data before eval_time 166.0, using default row.
+Patient 449 has no data before eval_time 166.0, using default row.
+Patient 452 has no data before eval_time 166.0, using default row.
+Patient 456 has no data before eval_time 166.0, using default row.
+Patient 459 has no data before eval_time 166.0, using default row.
+Patient 464 has no data before eval_time 166.0, using default row.
+Patient 465 has no data before eval_time 166.0, using default row.
+Patient 466 has no data before eval_time 166.0, using default row.
+Patient 467 has no data before eval_time 166.0, using default row.
+Patient 470 has no data before eval_time 166.0, using default row.
+Patient 471 has no data before eval_time 166.0, using default row.
+Patient 472 has no data before eval_time 166.0, using default row.
+Patient 473 has no data before eval_time 166.0, using default row.
+Patient 475 has no data before eval_time 166.0, using default row.
+Patient 478 has no data before eval_time 166.0, using default row.
+Patient 479 has no data before eval_time 166.0, using default row.
+Patient 480 has no data before eval_time 166.0, using default row.
+Patient 481 has no data before eval_time 166.0, using default row.
+Patient 482 has no data before eval_time 166.0, using default row.
+Patient 483 has no data before eval_time 166.0, using default row.
+Patient 485 has no data before eval_time 166.0, using default row.
+Patient 486 has no data before eval_time 166.0, using default row.
+Patient 487 has no data before eval_time 166.0, using default row.
+Patient 488 has no data before eval_time 166.0, using default row.
+Patient 489 has no data before eval_time 166.0, using default row.
+Patient 494 has no data before eval_time 166.0, using default row.
+Patient 495 has no data before eval_time 166.0, using default row.
+Patient 500 has no data before eval_time 166.0, using default row.
+Patient 502 has no data before eval_time 166.0, using default row.
+Patient 503 has no data before eval_time 166.0, using default row.
+Patient 505 has no data before eval_time 166.0, using default row.
+Patient 507 has no data before eval_time 166.0, using default row.
+Patient 508 has no data before eval_time 166.0, using default row.
+Patient 510 has no data before eval_time 166.0, using default row.
+Patient 514 has no data before eval_time 166.0, using default row.
+Patient 515 has no data before eval_time 166.0, using default row.
+Patient 517 has no data before eval_time 166.0, using default row.
+Patient 518 has no data before eval_time 166.0, using default row.
+Patient 520 has no data before eval_time 166.0, using default row.
+Patient 521 has no data before eval_time 166.0, using default row.
+Patient 523 has no data before eval_time 166.0, using default row.
+Patient 524 has no data before eval_time 166.0, using default row.
+Patient 525 has no data before eval_time 166.0, using default row.
+Patient 526 has no data before eval_time 166.0, using default row.
+Patient 527 has no data before eval_time 166.0, using default row.
+Patient 532 has no data before eval_time 166.0, using default row.
+Patient 533 has no data before eval_time 166.0, using default row.
+Patient 540 has no data before eval_time 166.0, using default row.
+Patient 544 has no data before eval_time 166.0, using default row.
+Patient 546 has no data before eval_time 166.0, using default row.
+Patient 547 has no data before eval_time 166.0, using default row.
+Patient 551 has no data before eval_time 166.0, using default row.
+Patient 553 has no data before eval_time 166.0, using default row.
+Patient 554 has no data before eval_time 166.0, using default row.
+Patient 556 has no data before eval_time 166.0, using default row.
+Patient 558 has no data before eval_time 166.0, using default row.
+Patient 559 has no data before eval_time 166.0, using default row.
+Patient 563 has no data before eval_time 166.0, using default row.
+Patient 565 has no data before eval_time 166.0, using default row.
+Patient 567 has no data before eval_time 166.0, using default row.
+Patient 569 has no data before eval_time 166.0, using default row.
+Patient 573 has no data before eval_time 166.0, using default row.
+Patient 575 has no data before eval_time 166.0, using default row.
+Patient 581 has no data before eval_time 166.0, using default row.
+Patient 582 has no data before eval_time 166.0, using default row.
+Patient 584 has no data before eval_time 166.0, using default row.
+Patient 587 has no data before eval_time 166.0, using default row.
+Patient 588 has no data before eval_time 166.0, using default row.
+Patient 590 has no data before eval_time 166.0, using default row.
+Patient 596 has no data before eval_time 166.0, using default row.
+Patient 601 has no data before eval_time 166.0, using default row.
+Patient 602 has no data before eval_time 166.0, using default row.
+Patient 604 has no data before eval_time 166.0, using default row.
+Patient 3 has no data before eval_time 357.0, using default row.
+Patient 9 has no data before eval_time 357.0, using default row.
+Patient 10 has no data before eval_time 357.0, using default row.
+Patient 28 has no data before eval_time 357.0, using default row.
+Patient 31 has no data before eval_time 357.0, using default row.
+Patient 34 has no data before eval_time 357.0, using default row.
+Patient 35 has no data before eval_time 357.0, using default row.
+Patient 36 has no data before eval_time 357.0, using default row.
+Patient 38 has no data before eval_time 357.0, using default row.
+Patient 43 has no data before eval_time 357.0, using default row.
+Patient 58 has no data before eval_time 357.0, using default row.
+Patient 62 has no data before eval_time 357.0, using default row.
+Patient 71 has no data before eval_time 357.0, using default row.
+Patient 85 has no data before eval_time 357.0, using default row.
+Patient 92 has no data before eval_time 357.0, using default row.
+Patient 99 has no data before eval_time 357.0, using default row.
+Patient 100 has no data before eval_time 357.0, using default row.
+Patient 111 has no data before eval_time 357.0, using default row.
+Patient 122 has no data before eval_time 357.0, using default row.
+Patient 123 has no data before eval_time 357.0, using default row.
+Patient 125 has no data before eval_time 357.0, using default row.
+Patient 126 has no data before eval_time 357.0, using default row.
+Patient 129 has no data before eval_time 357.0, using default row.
+Patient 132 has no data before eval_time 357.0, using default row.
+Patient 134 has no data before eval_time 357.0, using default row.
+Patient 135 has no data before eval_time 357.0, using default row.
+Patient 137 has no data before eval_time 357.0, using default row.
+Patient 140 has no data before eval_time 357.0, using default row.
+Patient 141 has no data before eval_time 357.0, using default row.
+Patient 167 has no data before eval_time 357.0, using default row.
+Patient 171 has no data before eval_time 357.0, using default row.
+Patient 176 has no data before eval_time 357.0, using default row.
+Patient 180 has no data before eval_time 357.0, using default row.
+Patient 186 has no data before eval_time 357.0, using default row.
+Patient 187 has no data before eval_time 357.0, using default row.
+Patient 188 has no data before eval_time 357.0, using default row.
+Patient 189 has no data before eval_time 357.0, using default row.
+Patient 192 has no data before eval_time 357.0, using default row.
+Patient 199 has no data before eval_time 357.0, using default row.
+Patient 204 has no data before eval_time 357.0, using default row.
+Patient 212 has no data before eval_time 357.0, using default row.
+Patient 213 has no data before eval_time 357.0, using default row.
+Patient 216 has no data before eval_time 357.0, using default row.
+Patient 217 has no data before eval_time 357.0, using default row.
+Patient 229 has no data before eval_time 357.0, using default row.
+Patient 230 has no data before eval_time 357.0, using default row.
+Patient 232 has no data before eval_time 357.0, using default row.
+Patient 238 has no data before eval_time 357.0, using default row.
+Patient 240 has no data before eval_time 357.0, using default row.
+Patient 242 has no data before eval_time 357.0, using default row.
+Patient 245 has no data before eval_time 357.0, using default row.
+Patient 246 has no data before eval_time 357.0, using default row.
+Patient 247 has no data before eval_time 357.0, using default row.
+Patient 248 has no data before eval_time 357.0, using default row.
+Patient 252 has no data before eval_time 357.0, using default row.
+Patient 255 has no data before eval_time 357.0, using default row.
+Patient 263 has no data before eval_time 357.0, using default row.
+Patient 267 has no data before eval_time 357.0, using default row.
+Patient 268 has no data before eval_time 357.0, using default row.
+Patient 270 has no data before eval_time 357.0, using default row.
+Patient 273 has no data before eval_time 357.0, using default row.
+Patient 275 has no data before eval_time 357.0, using default row.
+Patient 284 has no data before eval_time 357.0, using default row.
+Patient 285 has no data before eval_time 357.0, using default row.
+Patient 288 has no data before eval_time 357.0, using default row.
+Patient 293 has no data before eval_time 357.0, using default row.
+Patient 294 has no data before eval_time 357.0, using default row.
+Patient 300 has no data before eval_time 357.0, using default row.
+Patient 302 has no data before eval_time 357.0, using default row.
+Patient 303 has no data before eval_time 357.0, using default row.
+Patient 313 has no data before eval_time 357.0, using default row.
+Patient 317 has no data before eval_time 357.0, using default row.
+Patient 324 has no data before eval_time 357.0, using default row.
+Patient 328 has no data before eval_time 357.0, using default row.
+Patient 329 has no data before eval_time 357.0, using default row.
+Patient 330 has no data before eval_time 357.0, using default row.
+Patient 331 has no data before eval_time 357.0, using default row.
+Patient 332 has no data before eval_time 357.0, using default row.
+Patient 333 has no data before eval_time 357.0, using default row.
+Patient 336 has no data before eval_time 357.0, using default row.
+Patient 343 has no data before eval_time 357.0, using default row.
+Patient 349 has no data before eval_time 357.0, using default row.
+Patient 352 has no data before eval_time 357.0, using default row.
+Patient 353 has no data before eval_time 357.0, using default row.
+Patient 357 has no data before eval_time 357.0, using default row.
+Patient 365 has no data before eval_time 357.0, using default row.
+Patient 369 has no data before eval_time 357.0, using default row.
+Patient 370 has no data before eval_time 357.0, using default row.
+Patient 377 has no data before eval_time 357.0, using default row.
+Patient 378 has no data before eval_time 357.0, using default row.
+Patient 381 has no data before eval_time 357.0, using default row.
+Patient 385 has no data before eval_time 357.0, using default row.
+Patient 386 has no data before eval_time 357.0, using default row.
+Patient 389 has no data before eval_time 357.0, using default row.
+Patient 393 has no data before eval_time 357.0, using default row.
+Patient 394 has no data before eval_time 357.0, using default row.
+Patient 396 has no data before eval_time 357.0, using default row.
+Patient 399 has no data before eval_time 357.0, using default row.
+Patient 400 has no data before eval_time 357.0, using default row.
+Patient 401 has no data before eval_time 357.0, using default row.
+Patient 403 has no data before eval_time 357.0, using default row.
+Patient 404 has no data before eval_time 357.0, using default row.
+Patient 420 has no data before eval_time 357.0, using default row.
+Patient 424 has no data before eval_time 357.0, using default row.
+Patient 425 has no data before eval_time 357.0, using default row.
+Patient 427 has no data before eval_time 357.0, using default row.
+Patient 429 has no data before eval_time 357.0, using default row.
+Patient 430 has no data before eval_time 357.0, using default row.
+Patient 434 has no data before eval_time 357.0, using default row.
+Patient 435 has no data before eval_time 357.0, using default row.
+Patient 437 has no data before eval_time 357.0, using default row.
+Patient 439 has no data before eval_time 357.0, using default row.
+Patient 440 has no data before eval_time 357.0, using default row.
+Patient 441 has no data before eval_time 357.0, using default row.
+Patient 442 has no data before eval_time 357.0, using default row.
+Patient 443 has no data before eval_time 357.0, using default row.
+Patient 446 has no data before eval_time 357.0, using default row.
+Patient 449 has no data before eval_time 357.0, using default row.
+Patient 452 has no data before eval_time 357.0, using default row.
+Patient 456 has no data before eval_time 357.0, using default row.
+Patient 464 has no data before eval_time 357.0, using default row.
+Patient 465 has no data before eval_time 357.0, using default row.
+Patient 467 has no data before eval_time 357.0, using default row.
+Patient 472 has no data before eval_time 357.0, using default row.
+Patient 473 has no data before eval_time 357.0, using default row.
+Patient 479 has no data before eval_time 357.0, using default row.
+Patient 483 has no data before eval_time 357.0, using default row.
+Patient 488 has no data before eval_time 357.0, using default row.
+Patient 489 has no data before eval_time 357.0, using default row.
+Patient 494 has no data before eval_time 357.0, using default row.
+Patient 495 has no data before eval_time 357.0, using default row.
+Patient 500 has no data before eval_time 357.0, using default row.
+Patient 503 has no data before eval_time 357.0, using default row.
+Patient 505 has no data before eval_time 357.0, using default row.
+Patient 508 has no data before eval_time 357.0, using default row.
+Patient 510 has no data before eval_time 357.0, using default row.
+Patient 515 has no data before eval_time 357.0, using default row.
+Patient 517 has no data before eval_time 357.0, using default row.
+Patient 520 has no data before eval_time 357.0, using default row.
+Patient 521 has no data before eval_time 357.0, using default row.
+Patient 523 has no data before eval_time 357.0, using default row.
+Patient 525 has no data before eval_time 357.0, using default row.
+Patient 526 has no data before eval_time 357.0, using default row.
+Patient 533 has no data before eval_time 357.0, using default row.
+Patient 544 has no data before eval_time 357.0, using default row.
+Patient 546 has no data before eval_time 357.0, using default row.
+Patient 551 has no data before eval_time 357.0, using default row.
+Patient 553 has no data before eval_time 357.0, using default row.
+Patient 554 has no data before eval_time 357.0, using default row.
+Patient 558 has no data before eval_time 357.0, using default row.
+Patient 559 has no data before eval_time 357.0, using default row.
+Patient 563 has no data before eval_time 357.0, using default row.
+Patient 565 has no data before eval_time 357.0, using default row.
+Patient 567 has no data before eval_time 357.0, using default row.
+Patient 569 has no data before eval_time 357.0, using default row.
+Patient 573 has no data before eval_time 357.0, using default row.
+Patient 581 has no data before eval_time 357.0, using default row.
+Patient 584 has no data before eval_time 357.0, using default row.
+Patient 587 has no data before eval_time 357.0, using default row.
+Patient 590 has no data before eval_time 357.0, using default row.
+Patient 596 has no data before eval_time 357.0, using default row.
+Patient 601 has no data before eval_time 357.0, using default row.
+Patient 602 has no data before eval_time 357.0, using default row.
+Patient 604 has no data before eval_time 357.0, using default row.
+Patient 3 has no data before eval_time 663.0, using default row.
+Patient 9 has no data before eval_time 663.0, using default row.
+Patient 28 has no data before eval_time 663.0, using default row.
+Patient 31 has no data before eval_time 663.0, using default row.
+Patient 35 has no data before eval_time 663.0, using default row.
+Patient 36 has no data before eval_time 663.0, using default row.
+Patient 38 has no data before eval_time 663.0, using default row.
+Patient 58 has no data before eval_time 663.0, using default row.
+Patient 62 has no data before eval_time 663.0, using default row.
+Patient 85 has no data before eval_time 663.0, using default row.
+Patient 92 has no data before eval_time 663.0, using default row.
+Patient 99 has no data before eval_time 663.0, using default row.
+Patient 100 has no data before eval_time 663.0, using default row.
+Patient 111 has no data before eval_time 663.0, using default row.
+Patient 122 has no data before eval_time 663.0, using default row.
+Patient 123 has no data before eval_time 663.0, using default row.
+Patient 129 has no data before eval_time 663.0, using default row.
+Patient 132 has no data before eval_time 663.0, using default row.
+Patient 134 has no data before eval_time 663.0, using default row.
+Patient 135 has no data before eval_time 663.0, using default row.
+Patient 141 has no data before eval_time 663.0, using default row.
+Patient 167 has no data before eval_time 663.0, using default row.
+Patient 171 has no data before eval_time 663.0, using default row.
+Patient 176 has no data before eval_time 663.0, using default row.
+Patient 180 has no data before eval_time 663.0, using default row.
+Patient 188 has no data before eval_time 663.0, using default row.
+Patient 189 has no data before eval_time 663.0, using default row.
+Patient 199 has no data before eval_time 663.0, using default row.
+Patient 204 has no data before eval_time 663.0, using default row.
+Patient 213 has no data before eval_time 663.0, using default row.
+Patient 216 has no data before eval_time 663.0, using default row.
+Patient 217 has no data before eval_time 663.0, using default row.
+Patient 229 has no data before eval_time 663.0, using default row.
+Patient 232 has no data before eval_time 663.0, using default row.
+Patient 246 has no data before eval_time 663.0, using default row.
+Patient 247 has no data before eval_time 663.0, using default row.
+Patient 248 has no data before eval_time 663.0, using default row.
+Patient 255 has no data before eval_time 663.0, using default row.
+Patient 263 has no data before eval_time 663.0, using default row.
+Patient 267 has no data before eval_time 663.0, using default row.
+Patient 273 has no data before eval_time 663.0, using default row.
+Patient 275 has no data before eval_time 663.0, using default row.
+Patient 285 has no data before eval_time 663.0, using default row.
+Patient 293 has no data before eval_time 663.0, using default row.
+Patient 294 has no data before eval_time 663.0, using default row.
+Patient 317 has no data before eval_time 663.0, using default row.
+Patient 324 has no data before eval_time 663.0, using default row.
+Patient 329 has no data before eval_time 663.0, using default row.
+Patient 330 has no data before eval_time 663.0, using default row.
+Patient 336 has no data before eval_time 663.0, using default row.
+Patient 343 has no data before eval_time 663.0, using default row.
+Patient 352 has no data before eval_time 663.0, using default row.
+Patient 357 has no data before eval_time 663.0, using default row.
+Patient 370 has no data before eval_time 663.0, using default row.
+Patient 378 has no data before eval_time 663.0, using default row.
+Patient 386 has no data before eval_time 663.0, using default row.
+Patient 389 has no data before eval_time 663.0, using default row.
+Patient 396 has no data before eval_time 663.0, using default row.
+Patient 401 has no data before eval_time 663.0, using default row.
+Patient 403 has no data before eval_time 663.0, using default row.
+Patient 424 has no data before eval_time 663.0, using default row.
+Patient 427 has no data before eval_time 663.0, using default row.
+Patient 429 has no data before eval_time 663.0, using default row.
+Patient 430 has no data before eval_time 663.0, using default row.
+Patient 435 has no data before eval_time 663.0, using default row.
+Patient 439 has no data before eval_time 663.0, using default row.
+Patient 440 has no data before eval_time 663.0, using default row.
+Patient 441 has no data before eval_time 663.0, using default row.
+Patient 443 has no data before eval_time 663.0, using default row.
+Patient 446 has no data before eval_time 663.0, using default row.
+Patient 449 has no data before eval_time 663.0, using default row.
+Patient 452 has no data before eval_time 663.0, using default row.
+Patient 456 has no data before eval_time 663.0, using default row.
+Patient 472 has no data before eval_time 663.0, using default row.
+Patient 473 has no data before eval_time 663.0, using default row.
+Patient 483 has no data before eval_time 663.0, using default row.
+Patient 489 has no data before eval_time 663.0, using default row.
+Patient 494 has no data before eval_time 663.0, using default row.
+Patient 495 has no data before eval_time 663.0, using default row.
+Patient 500 has no data before eval_time 663.0, using default row.
+Patient 503 has no data before eval_time 663.0, using default row.
+Patient 505 has no data before eval_time 663.0, using default row.
+Patient 508 has no data before eval_time 663.0, using default row.
+Patient 510 has no data before eval_time 663.0, using default row.
+Patient 520 has no data before eval_time 663.0, using default row.
+Patient 521 has no data before eval_time 663.0, using default row.
+Patient 523 has no data before eval_time 663.0, using default row.
+Patient 525 has no data before eval_time 663.0, using default row.
+Patient 533 has no data before eval_time 663.0, using default row.
+Patient 551 has no data before eval_time 663.0, using default row.
+Patient 553 has no data before eval_time 663.0, using default row.
+Patient 554 has no data before eval_time 663.0, using default row.
+Patient 559 has no data before eval_time 663.0, using default row.
+Patient 563 has no data before eval_time 663.0, using default row.
+Patient 567 has no data before eval_time 663.0, using default row.
+Patient 569 has no data before eval_time 663.0, using default row.
+Patient 573 has no data before eval_time 663.0, using default row.
+Patient 581 has no data before eval_time 663.0, using default row.
+Patient 587 has no data before eval_time 663.0, using default row.
+Patient 590 has no data before eval_time 663.0, using default row.
+Patient 601 has no data before eval_time 663.0, using default row.
+Patient 602 has no data before eval_time 663.0, using default row.
+Evaluation dataset shape: (1815, 10)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0    1          0      166.0       0       0  0.056222
+1    1          1      357.0       0       0  0.117877
+2    1          2      663.0       0       0  0.220511
+3    3          6      166.0       0       0  0.000033
+4    3          7      357.0       0       0  0.000054
+Original test patients: 182
+Test patients with eval data: 182
+Example y_train_surv: [( True, 1568.) ( True,   63.) (False, 1596.) ( True,  350.)
+ (False, 1561.)]
+Example y_test_surv: [(False, 2400.) (False,  802.) ( True,   91.) (False,  364.)
+ ( True,  803.)]
+Example time-dependent risks:
+   pid  eval_time      risk
+0    1      166.0  0.056222
+1    1      357.0  0.167472
+2    1      663.0  0.351054
+3    3      166.0  0.000033
+4    3      357.0  0.000087
+5    3      663.0  0.000184
+6    7      166.0  0.974262
+7    7      357.0  0.999948
+8    7      663.0  1.000000
+9   10      166.0  0.000033
+IPCW C-index at time 166.00: 0.8575
+IPCW C-index at time 357.00: 0.8852
+IPCW C-index at time 663.00: 0.8676
+==================================================
+
+Processing dataset: heart
+Original dataset shape: (172, 8)
+Evaluation times: [ 19.5  66.  175.5]
+Patient 1 has no data before eval_time 19.5, using default row.
+Patient 4 has no data before eval_time 19.5, using default row.
+Patient 7 has no data before eval_time 19.5, using default row.
+Patient 8 has no data before eval_time 19.5, using default row.
+Patient 9 has no data before eval_time 19.5, using default row.
+Patient 11 has no data before eval_time 19.5, using default row.
+Patient 14 has no data before eval_time 19.5, using default row.
+Patient 16 has no data before eval_time 19.5, using default row.
+Patient 17 has no data before eval_time 19.5, using default row.
+Patient 18 has no data before eval_time 19.5, using default row.
+Patient 19 has no data before eval_time 19.5, using default row.
+Patient 24 has no data before eval_time 19.5, using default row.
+Patient 25 has no data before eval_time 19.5, using default row.
+Patient 26 has no data before eval_time 19.5, using default row.
+Patient 27 has no data before eval_time 19.5, using default row.
+Patient 28 has no data before eval_time 19.5, using default row.
+Patient 29 has no data before eval_time 19.5, using default row.
+Patient 33 has no data before eval_time 19.5, using default row.
+Patient 34 has no data before eval_time 19.5, using default row.
+Patient 36 has no data before eval_time 19.5, using default row.
+Patient 40 has no data before eval_time 19.5, using default row.
+Patient 41 has no data before eval_time 19.5, using default row.
+Patient 44 has no data before eval_time 19.5, using default row.
+Patient 47 has no data before eval_time 19.5, using default row.
+Patient 49 has no data before eval_time 19.5, using default row.
+Patient 50 has no data before eval_time 19.5, using default row.
+Patient 51 has no data before eval_time 19.5, using default row.
+Patient 52 has no data before eval_time 19.5, using default row.
+Patient 53 has no data before eval_time 19.5, using default row.
+Patient 56 has no data before eval_time 19.5, using default row.
+Patient 57 has no data before eval_time 19.5, using default row.
+Patient 58 has no data before eval_time 19.5, using default row.
+Patient 59 has no data before eval_time 19.5, using default row.
+Patient 62 has no data before eval_time 19.5, using default row.
+Patient 63 has no data before eval_time 19.5, using default row.
+Patient 64 has no data before eval_time 19.5, using default row.
+Patient 66 has no data before eval_time 19.5, using default row.
+Patient 67 has no data before eval_time 19.5, using default row.
+Patient 71 has no data before eval_time 19.5, using default row.
+Patient 73 has no data before eval_time 19.5, using default row.
+Patient 76 has no data before eval_time 19.5, using default row.
+Patient 77 has no data before eval_time 19.5, using default row.
+Patient 78 has no data before eval_time 19.5, using default row.
+Patient 79 has no data before eval_time 19.5, using default row.
+Patient 80 has no data before eval_time 19.5, using default row.
+Patient 82 has no data before eval_time 19.5, using default row.
+Patient 83 has no data before eval_time 19.5, using default row.
+Patient 84 has no data before eval_time 19.5, using default row.
+Patient 87 has no data before eval_time 19.5, using default row.
+Patient 88 has no data before eval_time 19.5, using default row.
+Patient 89 has no data before eval_time 19.5, using default row.
+Patient 90 has no data before eval_time 19.5, using default row.
+Patient 91 has no data before eval_time 19.5, using default row.
+Patient 92 has no data before eval_time 19.5, using default row.
+Patient 93 has no data before eval_time 19.5, using default row.
+Patient 97 has no data before eval_time 19.5, using default row.
+Patient 98 has no data before eval_time 19.5, using default row.
+Patient 99 has no data before eval_time 19.5, using default row.
+Patient 100 has no data before eval_time 19.5, using default row.
+Patient 101 has no data before eval_time 19.5, using default row.
+Patient 9 has no data before eval_time 66.0, using default row.
+Patient 24 has no data before eval_time 66.0, using default row.
+Patient 26 has no data before eval_time 66.0, using default row.
+Patient 27 has no data before eval_time 66.0, using default row.
+Patient 28 has no data before eval_time 66.0, using default row.
+Patient 50 has no data before eval_time 66.0, using default row.
+Patient 52 has no data before eval_time 66.0, using default row.
+Patient 56 has no data before eval_time 66.0, using default row.
+Patient 57 has no data before eval_time 66.0, using default row.
+Patient 59 has no data before eval_time 66.0, using default row.
+Patient 62 has no data before eval_time 66.0, using default row.
+Patient 78 has no data before eval_time 66.0, using default row.
+Patient 79 has no data before eval_time 66.0, using default row.
+Patient 82 has no data before eval_time 66.0, using default row.
+Patient 89 has no data before eval_time 66.0, using default row.
+Patient 90 has no data before eval_time 66.0, using default row.
+Patient 91 has no data before eval_time 66.0, using default row.
+Patient 92 has no data before eval_time 66.0, using default row.
+Patient 98 has no data before eval_time 66.0, using default row.
+Patient 26 has no data before eval_time 175.5, using default row.
+Patient 27 has no data before eval_time 175.5, using default row.
+Patient 78 has no data before eval_time 175.5, using default row.
+Patient 82 has no data before eval_time 175.5, using default row.
+Patient 91 has no data before eval_time 175.5, using default row.
+Patient 92 has no data before eval_time 175.5, using default row.
+Evaluation dataset shape: (309, 9)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0  1.0          0       19.5       0       0  0.000531
+1  1.0          1       66.0       1       1  0.764480
+2  1.0          2      175.5       1       1  0.964253
+3  5.0         12       19.5       1       1  0.852209
+4  5.0         13       66.0       1       1  0.967887
+Original test patients: 31
+Test patients with eval data: 31
+Example y_train_surv: [( True,   8.) (False,  11.) (False, 942.) ( True,  35.) ( True,  78.)]
+Example y_test_surv: [( True,  50.) ( True,  18.) ( True,  58.) ( True, 153.) ( True,  81.)]
+Example time-dependent risks:
+    pid  eval_time      risk
+0   1.0       19.5  0.000531
+1   1.0       66.0  0.764605
+2   1.0      175.5  0.991585
+3   5.0       19.5  0.852209
+4   5.0       66.0  0.995254
+5   5.0      175.5  0.999900
+6  10.0       19.5  0.670611
+7  10.0       66.0  0.996808
+8  10.0      175.5  0.999992
+9  11.0       19.5  0.000531
+IPCW C-index at time 19.50: 0.7634
+IPCW C-index at time 66.00: 0.7700
+IPCW C-index at time 175.50: 0.7971
+==================================================
+
+Processing dataset: heartvalve
+Original dataset shape: (984, 23)
+Evaluation times: [2.48356164 4.45342466 5.6130137 ]
+Patient 2 has no data before eval_time 2.48356164383525, using default row.
+Patient 6 has no data before eval_time 2.48356164383525, using default row.
+Patient 10 has no data before eval_time 2.48356164383525, using default row.
+Patient 20 has no data before eval_time 2.48356164383525, using default row.
+Patient 25 has no data before eval_time 2.48356164383525, using default row.
+Patient 32 has no data before eval_time 2.48356164383525, using default row.
+Patient 36 has no data before eval_time 2.48356164383525, using default row.
+Patient 37 has no data before eval_time 2.48356164383525, using default row.
+Patient 42 has no data before eval_time 2.48356164383525, using default row.
+Patient 44 has no data before eval_time 2.48356164383525, using default row.
+Patient 45 has no data before eval_time 2.48356164383525, using default row.
+Patient 49 has no data before eval_time 2.48356164383525, using default row.
+Patient 51 has no data before eval_time 2.48356164383525, using default row.
+Patient 55 has no data before eval_time 2.48356164383525, using default row.
+Patient 57 has no data before eval_time 2.48356164383525, using default row.
+Patient 59 has no data before eval_time 2.48356164383525, using default row.
+Patient 61 has no data before eval_time 2.48356164383525, using default row.
+Patient 65 has no data before eval_time 2.48356164383525, using default row.
+Patient 71 has no data before eval_time 2.48356164383525, using default row.
+Patient 86 has no data before eval_time 2.48356164383525, using default row.
+Patient 97 has no data before eval_time 2.48356164383525, using default row.
+Patient 103 has no data before eval_time 2.48356164383525, using default row.
+Patient 110 has no data before eval_time 2.48356164383525, using default row.
+Patient 115 has no data before eval_time 2.48356164383525, using default row.
+Patient 121 has no data before eval_time 2.48356164383525, using default row.
+Patient 123 has no data before eval_time 2.48356164383525, using default row.
+Patient 124 has no data before eval_time 2.48356164383525, using default row.
+Patient 128 has no data before eval_time 2.48356164383525, using default row.
+Patient 129 has no data before eval_time 2.48356164383525, using default row.
+Patient 132 has no data before eval_time 2.48356164383525, using default row.
+Patient 134 has no data before eval_time 2.48356164383525, using default row.
+Patient 140 has no data before eval_time 2.48356164383525, using default row.
+Patient 150 has no data before eval_time 2.48356164383525, using default row.
+Patient 158 has no data before eval_time 2.48356164383525, using default row.
+Patient 165 has no data before eval_time 2.48356164383525, using default row.
+Patient 167 has no data before eval_time 2.48356164383525, using default row.
+Patient 168 has no data before eval_time 2.48356164383525, using default row.
+Patient 172 has no data before eval_time 2.48356164383525, using default row.
+Patient 173 has no data before eval_time 2.48356164383525, using default row.
+Patient 176 has no data before eval_time 2.48356164383525, using default row.
+Patient 180 has no data before eval_time 2.48356164383525, using default row.
+Patient 181 has no data before eval_time 2.48356164383525, using default row.
+Patient 182 has no data before eval_time 2.48356164383525, using default row.
+Patient 185 has no data before eval_time 2.48356164383525, using default row.
+Patient 186 has no data before eval_time 2.48356164383525, using default row.
+Patient 195 has no data before eval_time 2.48356164383525, using default row.
+Patient 211 has no data before eval_time 2.48356164383525, using default row.
+Patient 213 has no data before eval_time 2.48356164383525, using default row.
+Patient 221 has no data before eval_time 2.48356164383525, using default row.
+Patient 231 has no data before eval_time 2.48356164383525, using default row.
+Patient 238 has no data before eval_time 2.48356164383525, using default row.
+Patient 243 has no data before eval_time 2.48356164383525, using default row.
+Patient 246 has no data before eval_time 2.48356164383525, using default row.
+Patient 247 has no data before eval_time 2.48356164383525, using default row.
+Patient 2 has no data before eval_time 4.4534246575345, using default row.
+Patient 6 has no data before eval_time 4.4534246575345, using default row.
+Patient 20 has no data before eval_time 4.4534246575345, using default row.
+Patient 25 has no data before eval_time 4.4534246575345, using default row.
+Patient 32 has no data before eval_time 4.4534246575345, using default row.
+Patient 37 has no data before eval_time 4.4534246575345, using default row.
+Patient 45 has no data before eval_time 4.4534246575345, using default row.
+Patient 51 has no data before eval_time 4.4534246575345, using default row.
+Patient 57 has no data before eval_time 4.4534246575345, using default row.
+Patient 61 has no data before eval_time 4.4534246575345, using default row.
+Patient 86 has no data before eval_time 4.4534246575345, using default row.
+Patient 97 has no data before eval_time 4.4534246575345, using default row.
+Patient 103 has no data before eval_time 4.4534246575345, using default row.
+Patient 110 has no data before eval_time 4.4534246575345, using default row.
+Patient 124 has no data before eval_time 4.4534246575345, using default row.
+Patient 128 has no data before eval_time 4.4534246575345, using default row.
+Patient 129 has no data before eval_time 4.4534246575345, using default row.
+Patient 134 has no data before eval_time 4.4534246575345, using default row.
+Patient 140 has no data before eval_time 4.4534246575345, using default row.
+Patient 158 has no data before eval_time 4.4534246575345, using default row.
+Patient 165 has no data before eval_time 4.4534246575345, using default row.
+Patient 231 has no data before eval_time 4.4534246575345, using default row.
+Patient 246 has no data before eval_time 4.4534246575345, using default row.
+Patient 2 has no data before eval_time 5.6130136986300005, using default row.
+Patient 6 has no data before eval_time 5.6130136986300005, using default row.
+Patient 25 has no data before eval_time 5.6130136986300005, using default row.
+Patient 32 has no data before eval_time 5.6130136986300005, using default row.
+Patient 37 has no data before eval_time 5.6130136986300005, using default row.
+Patient 51 has no data before eval_time 5.6130136986300005, using default row.
+Patient 57 has no data before eval_time 5.6130136986300005, using default row.
+Patient 86 has no data before eval_time 5.6130136986300005, using default row.
+Patient 97 has no data before eval_time 5.6130136986300005, using default row.
+Patient 103 has no data before eval_time 5.6130136986300005, using default row.
+Patient 124 has no data before eval_time 5.6130136986300005, using default row.
+Patient 128 has no data before eval_time 5.6130136986300005, using default row.
+Patient 129 has no data before eval_time 5.6130136986300005, using default row.
+Patient 231 has no data before eval_time 5.6130136986300005, using default row.
+Patient 246 has no data before eval_time 5.6130136986300005, using default row.
+Evaluation dataset shape: (768, 24)
+Rows per patient: 3.0
+Online prediction results:
+   pid  row_index  eval_time  y_true  y_pred   p_event
+0    7         18   2.483562       0       0  0.024244
+1    7         19   4.453425       0       0  0.001500
+2    7         20   5.613014       0       0  0.000500
+3   10         27   2.483562       0       0  0.000084
+4   10         28   4.453425       0       0  0.182730
+Original test patients: 77
+Test patients with eval data: 77
+Example y_train_surv: [(False, 8.936986  ) ( True, 7.54246575) (False, 4.04383562)
+ (False, 4.74246575) (False, 7.21369863)]
+Example y_test_surv: [(False, 7.98082192) (False, 8.47123288) (False, 9.53424658)
+ (False, 3.191781  ) (False, 9.8739726 )]
+Example time-dependent risks:
+   pid  eval_time      risk
+0    7   2.483562  0.024244
+1    7   4.453425  0.025708
+2    7   5.613014  0.026195
+3   10   2.483562  0.000084
+4   10   4.453425  0.182798
+5   10   5.613014  0.187798
+6   11   2.483562  0.041778
+7   11   4.453425  0.060318
+8   11   5.613014  0.139288
+9   16   2.483562  0.104807
+IPCW C-index at time 2.48: 0.8274
+IPCW C-index at time 4.45: 0.8237
+IPCW C-index at time 5.61: 0.9752
+Total runtime: 0h 16m 24s

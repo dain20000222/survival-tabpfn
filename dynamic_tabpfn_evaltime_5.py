@@ -24,7 +24,7 @@ data_dir = os.path.join("data")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV path
-csv_path = "dynamic_tabpfn_evaluation1.csv"
+csv_path = "dynamic_tabpfn_evaluation5.csv"
 
 def prepare_evaluation_data(df: pd.DataFrame, times):
     """
@@ -88,7 +88,7 @@ def build_xy_for_pids(df: pd.DataFrame, feature_cols, pids):
 
 def train_base(df, feature_cols, pid_train, device="cuda"):
     X_train, y_train, _ = build_xy_for_pids(df, feature_cols, pid_train)
-    clf = TabPFNClassifier(device=device)
+    clf = TabPFNClassifier(device=device, ignore_pretraining_limits=True)
     clf.fit(X_train, y_train)
     return clf, X_train, y_train
 
@@ -125,10 +125,10 @@ def online_predict_autoregressive_eval(eval_df, feature_cols, pid_test, base_X, 
                 X_aug, y_aug = base_X, base_y
 
             # Fit on augmented context, then predict current query
-            clf = TabPFNClassifier(device=device)
+            clf = TabPFNClassifier(device=device, ignore_pretraining_limits=True)
             clf.fit(X_aug, y_aug)
             proba = clf.predict_proba(x_query)[0]
-            yhat = int(proba.argmax())
+            yhat = int(proba.argmax()) 
 
             results.append({
                 "pid": pid,
@@ -221,7 +221,7 @@ for file_name in dataset_files:
     train_eval_df = eval_df[eval_df["pid"].isin(pid_train)].copy()
     X_base, y_base, _ = build_xy_for_pids(train_eval_df, feature_cols, pid_train)
     
-    clf_base = TabPFNClassifier(device="cuda")
+    clf_base = TabPFNClassifier(device="cuda", ignore_pretraining_limits=True)
     clf_base.fit(X_base, y_base)
     
     # Autoregressive prediction on test evaluation data

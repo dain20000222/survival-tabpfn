@@ -7,7 +7,7 @@ def load_and_compare_results():
     # Load the four CSV files
     deephit = pd.read_csv('dynamic_deephit_evaluation.csv')
     tabpfn = pd.read_csv('dynamic_tabpfn_evaluation.csv')
-    tabpfn_eval = pd.read_csv('dynamic_tabpfn_evaluation1.csv')
+    tabpfn_eval = pd.read_csv('dynamic_tabpfn.csv')
     cox = pd.read_csv('landmark_cox_evaluation.csv')
     
     # Add model names
