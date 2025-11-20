@@ -23,8 +23,40 @@ data_dir = os.path.join("data")
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
-# CSV path
-csv_path = "dynamic_tabpfn.csv"
+# CSV paths and checkpoint setup
+csv_path = "dynamic_tabpfn_evaluation_3timepoint.csv"
+checkpoint_file = "dynamic_tabpfn_checkpoint.txt"
+risk_csv_path = "dynamic_tabpfn_risks_3timepoint.csv"
+
+# Load processed datasets from checkpoint
+def load_checkpoint():
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, 'r') as f:
+            processed = [line.strip() for line in f.readlines()]
+        print(f"Loaded checkpoint: {len(processed)} datasets already processed")
+        return set(processed)
+    return set()
+
+# Save checkpoint
+def save_checkpoint(dataset_name):
+    with open(checkpoint_file, 'a') as f:
+        f.write(f"{dataset_name}\n")
+    print(f"Checkpoint saved for dataset: {dataset_name}")
+
+# Load already processed datasets
+processed_datasets = load_checkpoint()
+
+# Filter out already processed datasets
+remaining_datasets = [f for f in dataset_files if f.replace(".csv", "") not in processed_datasets]
+
+print(f"Total datasets: {len(dataset_files)}")
+print(f"Already processed: {len(processed_datasets)}")
+print(f"Remaining to process: {len(remaining_datasets)}")
+
+if remaining_datasets:
+    print(f"Next datasets to process: {remaining_datasets}")  # Show all remaining datasets
+else:
+    print("All datasets have been processed!")
 
 def prepare_evaluation_data(df: pd.DataFrame, times):
     """
@@ -229,7 +261,7 @@ for file_name in dataset_files:
     dataset_name = file_name.replace(".csv", "")
     file_path = os.path.join(data_dir, file_name)
     print("="*50)
-    print(f"\nProcessing dataset: {dataset_name}")
+    print(f"\nProcessing dataset: {dataset_name} ({remaining_datasets.index(file_name) + 1}/{len(remaining_datasets)})")
 
     # Load original dataset
     original_df = pd.read_csv(file_path)
@@ -291,6 +323,10 @@ for file_name in dataset_files:
     print(f"Example time-dependent risks:")
     print(risk_df.head(10))
 
+    # Save risk_df to CSV
+    risk_df['dataset'] = dataset_name
+    risk_df.to_csv(risk_csv_path, mode='a', header=not os.path.exists(risk_csv_path), index=False)
+
     # Compute time-specific C-index for each evaluation time
     c_ipcw_times = []
     for t in times:
@@ -328,3 +364,5 @@ for file_name in dataset_files:
                 'cindex': c_index
             }
             writer.writerow(uniform_result)
+    
+    save_checkpoint(dataset_name)
