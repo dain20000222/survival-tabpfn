@@ -9,12 +9,18 @@ from ddh.ddh_api import DynamicDeepHit
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import ParameterGrid
 from sksurv.metrics import concordance_index_ipcw
+import torch
 warnings.filterwarnings("ignore")
 
 # Set random seeds for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 # Directory containing the datasets
 data_dir = os.path.join("data")
@@ -22,19 +28,21 @@ data_dir = os.path.join("data")
 # List all CSV files in the directory
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
-# CSV path
+# CSV paths
 csv_path = "dynamic_deephit_evaluation.csv"
+risk_csv_path = "dynamic_deephit_risk.csv"
 
 def convert_to_sequential_format(df, covariates):
     """
     Convert longitudinal data to sequential format for DDH.
-    Use full dynamic data, not landmark approach.
     """
     x_data = []
     t_data = []
     e_data = []
+    pid_data = []
     
-    for pid in df['pid'].unique():
+    # Sort PIDs to ensure consistent order
+    for pid in sorted(df['pid'].unique()):  
         patient_data = df[df['pid'] == pid].sort_values('time2')
         
         # Extract features for this patient (all time points)
@@ -61,8 +69,18 @@ def convert_to_sequential_format(df, covariates):
         x_data.append(np.array(patient_features, dtype=np.float32))
         t_data.append(np.array(patient_times, dtype=np.float32))
         e_data.append(np.array(patient_events, dtype=np.float32))
+        pid_data.append(pid)  # Store the patient ID
 
-    return np.array(x_data, dtype=object), np.array(t_data, dtype=object), np.array(e_data, dtype=object)
+    return (np.array(x_data, dtype=object), np.array(t_data, dtype=object), 
+            np.array(e_data, dtype=object), np.array(pid_data))
+
+# Initialize risk CSV file
+risk_file_exists = os.path.isfile(risk_csv_path)
+if not risk_file_exists:
+    with open(risk_csv_path, 'w', newline='') as csvfile:
+        fieldnames = ['pid', 'eval_time', 'risk', 'dataset']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
 
 for file_name in dataset_files:
     dataset_name = file_name.replace(".csv", "")
@@ -108,49 +126,85 @@ for file_name in dataset_files:
         df[col] = pd.to_numeric(df[col], errors='coerce')
         df[col] = df[col].fillna(0.0)  # Fill any remaining NaN with 0
 
-    # Get event times for landmark calculation
+    # Get event times for evaluation time calculation
     event_times = df[df[event_col] == 1]["time2"].values
     if len(event_times) == 0:
         print(f"Skipping {dataset_name}: No events observed")
         continue
-
-    # Convert to sequential format for DDH - use full dynamic data
-    x, t, e = convert_to_sequential_format(df, covariates)
-
-    n = len(x)
     
-    tr_size = int(n*0.70)
-    te_size = n - tr_size
-
-    x_train = np.array(x[:tr_size], dtype=object)
-    x_test = np.array(x[tr_size:], dtype=object)
-    t_train = np.array(t[:tr_size], dtype=object) 
-    t_test = np.array(t[tr_size:], dtype=object)
-    e_train = np.array(e[:tr_size], dtype=object)
-    e_test = np.array(e[tr_size:], dtype=object)
-        
+    # Calculate evaluation times from ALL data (before splitting)
     horizons = [0.25, 0.5, 0.75]
-    times = np.quantile([t_[-1] for t_, e_ in zip(t, e) if e_[-1] == 1], horizons).tolist()
+    times = np.quantile(event_times, horizons).tolist()
     print(f"Evaluation times: {times}")
+
+    # Split by patient ID (70-30 train-test split)
+    original_pids = df["pid"].unique()
+    pid_train, pid_test = train_test_split(original_pids, test_size=0.3, random_state=SEED)
+    
+    # Create train/test dataframes
+    df_train = df[df['pid'].isin(pid_train)]
+    df_test = df[df['pid'].isin(pid_test)]
+    
+    print(f"Train patients: {len(pid_train)}, Test patients: {len(pid_test)}")
+
+    # Convert to sequential format for each split
+    x_train, t_train, e_train, train_pids = convert_to_sequential_format(df_train, covariates)
+    x_test, t_test, e_test, test_pids = convert_to_sequential_format(df_test, covariates)
+    
+    print(f"Train shape: {len(x_train)} patients, Test shape: {len(x_test)} patients")
+
+    # Calculate default values from TRAIN set for imputation
+    default_values = {}
+    for col in numerical_cols:
+        default_values[col] = df_train[col].mean()
+    for col in categorical_cols:
+        default_values[col] = df_train[col].mode().iloc[0] if not df_train[col].mode().empty else df_train[col].iloc[0]
+    
+    # Add default rows to TEST set
+    first_eval_time = times[0]
+    default_rows_test = []
+    for pid in test_pids:
+        patient_data = df_test[df_test['pid'] == pid]
+        min_visit_time = patient_data['time2'].min()
+        
+        if min_visit_time > first_eval_time:
+            default_row = default_values.copy()
+            default_row["pid"] = pid
+            default_row["time"] = 0.0
+            default_row["time2"] = first_eval_time
+            default_row["event"] = 0.0
+            default_rows_test.append(default_row)
+    
+    if len(default_rows_test) > 0:
+        default_df = pd.DataFrame(default_rows_test)
+        df_test = pd.concat([df_test, default_df], ignore_index=True)
+        df_test = df_test.sort_values(['pid', 'time2']).reset_index(drop=True)
+        print(f"Added {len(default_rows_test)} default rows to test set")
+        
+        x_test, t_test, e_test, test_pids = convert_to_sequential_format(df_test, covariates)
+        print(f"Updated test shape: {len(x_test)} patients")
 
     layers = [[], [100], [100, 100], [100, 100, 100]]
 
-    # Simplified parameter grid (no validation tuning)
+    # Parameter grid
     param_grid = {
-            'layers_rnn': [2],
-            'hidden_long': [[100]],
-            'hidden_rnn': [100],
-            'hidden_att': [[100]],
-            'hidden_cs': [[100]],
-            'sigma': [1],
+            'layers_rnn': [2, 3],
+            'hidden_long': layers,
+            'hidden_rnn': [50, 100],
+            'hidden_att': layers,
+            'hidden_cs': layers,
+            'sigma': [0.1, 1, 3],
             'learning_rate' : [1e-3],
             }
+            
     params = ParameterGrid(param_grid)
     
-    # Train single model (no validation-based selection)
+    # Train first successful model
     model = None
-    for param in params:
-        try: 
+    for param_idx, param in enumerate(params):
+        try:
+            print(f"\n[{param_idx+1}/{len(list(params))}] Training with params: {param}")
+            
             model = DynamicDeepHit(
                         layers_rnn = param['layers_rnn'],
                         hidden_rnn = param['hidden_rnn'], 
@@ -158,13 +212,17 @@ for file_name in dataset_files:
                         att_param = {'layers': param['hidden_att'], 'dropout': 0.3}, 
                         cs_param = {'layers': param['hidden_cs'], 'dropout': 0.3},
                         sigma = param['sigma'],
-                        split = [0] + times + [np.max([t_.max() for t_ in t])])
-            # The fit method is called to train the model
+                        split = [0] + times + [np.max([t_.max() for t_ in t_train])])
+            
+            # Train the model
             model.fit(x_train, t_train, e_train, iters = 10, 
                     learning_rate = param['learning_rate'])
+            
+            print(f"Model trained successfully!")
             break  # Use first successful model
+            
         except Exception as e:
-            print(f"Error training model with params {param}: {e}")
+            print(f"Error training model: {e}")
             model = None
             continue
 
@@ -172,7 +230,9 @@ for file_name in dataset_files:
         print(f"Skipping {dataset_name}: No models were successfully trained")
         continue
 
+    # Use the model for test predictions
     out_risk = model.predict_risk(x_test, times, all_step = True)
+    print(f"Risk prediction shape: {out_risk.shape}")
 
     cis = []
 
@@ -182,38 +242,61 @@ for file_name in dataset_files:
     et_test = np.array([(e_test[i][j], t_test[i][j]) for i in range(len(e_test)) for j in range(len(e_test[i]))],
                         dtype = [('e', bool), ('t', float)])
 
-
     for i, eval_time in enumerate(times):
-        risk_scores = out_risk[:, i]
+        risk_scores = out_risk[:, i]  # Shape: (n_test, max_seq_len)
         
-        # Extract the final risk score for each patient (last non-NaN value)
+        # Extract risk score from most recent visit BEFORE eval_time
         final_risk_scores = []
-        for patient_risks in risk_scores:
-            # Get the last non-NaN risk score for this patient
-            valid_risks = patient_risks[~np.isnan(patient_risks)]
-            if len(valid_risks) > 0:
-                final_risk_scores.append(valid_risks[-1])  # Take the last valid risk
-            else:
-                final_risk_scores.append(np.nan)
+        for patient_idx, patient_risks in enumerate(risk_scores):
+            # Get this patient's visit times
+            patient_visit_times = t_test[patient_idx]  # Array of visit times
+            
+            # Find visits that occurred before or at eval_time
+            valid_visits_mask = patient_visit_times <= eval_time
+            
+            # Get the index of the most recent valid visit
+            valid_visit_indices = np.where(valid_visits_mask)[0]
+            most_recent_visit_idx = valid_visit_indices[-1]
+            
+            # Get the risk score from that visit
+            risk_at_visit = patient_risks[most_recent_visit_idx]
+            
+            final_risk_scores.append(risk_at_visit)
         
         final_risk_scores = np.array(final_risk_scores)
         
-        # Handle NaN values
-        valid_mask = np.isfinite(final_risk_scores)
+        # Store risk scores for this evaluation time
+        if i == 0:
+            # Initialize dictionary to store all risks for each patient
+            patient_risks_dict = {pid: [] for pid in test_pids}
         
-        if np.sum(valid_mask) > 5:  # Need at least some valid predictions
-            et_test_final = np.array([(e_test[i][-1], t_test[i][-1]) for i in range(len(e_test))],
-                                    dtype = [('e', bool), ('t', float)])
+        # Append risks for this evaluation time
+        for pid, risk in zip(test_pids, final_risk_scores):
+            patient_risks_dict[pid].append((eval_time, risk))
+    
+        et_test_final = np.array([(e_test[i][-1], t_test[i][-1]) for i in range(len(e_test))],
+                                dtype = [('e', bool), ('t', float)])
 
-            c_index, *_ = concordance_index_ipcw(et_train, et_test_final[valid_mask], 
-                                                final_risk_scores[valid_mask], eval_time)
-                                                
-            cis.append(c_index)
-            print(f"C-index at time {eval_time:.2f}: {c_index:.4f}")
+        c_index, *_ = concordance_index_ipcw(et_train, et_test_final, 
+                                            final_risk_scores, eval_time)
+                                            
+        cis.append(c_index)
+        print(f"C-index at time {eval_time:.2f}: {c_index:.4f}")
 
-        else:
-            print(f"Warning: Too many NaN predictions for time {eval_time:.2f}")
-            cis.append(np.nan)
+    # Save all risk predictions to CSV (grouped by patient)
+    with open(risk_csv_path, 'a', newline='') as csvfile:
+        fieldnames = ['pid', 'eval_time', 'risk', 'dataset']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        # Write all evaluation times for each patient together
+        for pid in test_pids:
+            for eval_time, risk in patient_risks_dict[pid]:
+                writer.writerow({
+                    'pid': pid,
+                    'eval_time': eval_time,
+                    'risk': risk if np.isfinite(risk) else np.nan,
+                    'dataset': dataset_name
+                })
 
     # Save to CSV with uniform format (same as other two models)
     file_exists = os.path.isfile(csv_path)
@@ -234,3 +317,4 @@ for file_name in dataset_files:
             writer.writerow(uniform_result)
     
     print(f"\nResults saved to {csv_path}")
+    print(f"Risk predictions saved to {risk_csv_path}")
