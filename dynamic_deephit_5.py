@@ -78,7 +78,7 @@ def convert_to_sequential_format(df, covariates):
 risk_file_exists = os.path.isfile(risk_csv_path)
 if not risk_file_exists:
     with open(risk_csv_path, 'w', newline='') as csvfile:
-        fieldnames = ['pid', 'eval_time', 'risk', 'dataset']
+        fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -153,15 +153,40 @@ for file_name in dataset_files:
     
     print(f"Train shape: {len(x_train)} patients, Test shape: {len(x_test)} patients")
 
-    # Calculate default values from TRAIN set for imputation
+    # Calculate default values from WHOLE dataset for imputation
     default_values = {}
     for col in numerical_cols:
-        default_values[col] = df_train[col].mean()
+        default_values[col] = df[col].mean()
     for col in categorical_cols:
-        default_values[col] = df_train[col].mode().iloc[0] if not df_train[col].mode().empty else df_train[col].iloc[0]
+        default_values[col] = df[col].mode().iloc[0] if not df[col].mode().empty else df[col].iloc[0]
+    
+    print(f"Default values calculated from whole dataset")
+
+    # Add default rows to TRAIN set
+    first_eval_time = times[0]
+    default_rows_train = []
+    for pid in train_pids:
+        patient_data = df_train[df_train['pid'] == pid]
+        min_visit_time = patient_data['time2'].min()
+        
+        if min_visit_time > first_eval_time:
+            default_row = default_values.copy()
+            default_row["pid"] = pid
+            default_row["time"] = 0.0
+            default_row["time2"] = first_eval_time
+            default_row["event"] = 0.0
+            default_rows_train.append(default_row)
+    
+    if len(default_rows_train) > 0:
+        default_df = pd.DataFrame(default_rows_train)
+        df_train = pd.concat([df_train, default_df], ignore_index=True)
+        df_train = df_train.sort_values(['pid', 'time2']).reset_index(drop=True)
+        print(f"Added {len(default_rows_train)} default rows to train set")
+        
+        x_train, t_train, e_train, train_pids = convert_to_sequential_format(df_train, covariates)
+        print(f"Updated train shape: {len(x_train)} patients")
     
     # Add default rows to TEST set
-    first_eval_time = times[0]
     default_rows_test = []
     for pid in test_pids:
         patient_data = df_test[df_test['pid'] == pid]
@@ -285,36 +310,34 @@ for file_name in dataset_files:
 
     # Save all risk predictions to CSV (grouped by patient)
     with open(risk_csv_path, 'a', newline='') as csvfile:
-        fieldnames = ['pid', 'eval_time', 'risk', 'dataset']
+        fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
-        # Write all evaluation times for each patient together
-        for pid in test_pids:
-            for eval_time, risk in patient_risks_dict[pid]:
+        # Write risk data for each patient
+        for pid, risks in patient_risks_dict.items():
+            for eval_time, risk in risks:
+                # Find the corresponding survival probability (1 - risk)
+                surv_prob = 1 - risk
+                
                 writer.writerow({
                     'pid': pid,
                     'eval_time': eval_time,
-                    'risk': risk if np.isfinite(risk) else np.nan,
+                    'risk': risk,
+                    'surv_prob': surv_prob,
                     'dataset': dataset_name
                 })
 
-    # Save to CSV with uniform format (same as other two models)
-    file_exists = os.path.isfile(csv_path)
+    # Save evaluation metrics (C-index) to CSV
     with open(csv_path, 'a', newline='') as csvfile:
-        fieldnames = ['dataset', 'time', 'cindex']
+        fieldnames = ['dataset', 'eval_time', 'c_index']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
-        if not file_exists:
-            writer.writeheader()
-        
-        # Write each evaluation time result
-        for i, (eval_time, c_index) in enumerate(zip(times, cis)):
-            uniform_result = {
+        # Write C-index data
+        for eval_time, c_index in zip(times, cis):
+            writer.writerow({
                 'dataset': dataset_name,
-                'time': eval_time,
-                'cindex': c_index
-            }
-            writer.writerow(uniform_result)
-    
-    print(f"\nResults saved to {csv_path}")
-    print(f"Risk predictions saved to {risk_csv_path}")
+                'eval_time': eval_time,
+                'c_index': c_index
+            })
+
+print("Processing complete.")
