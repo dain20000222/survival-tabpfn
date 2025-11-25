@@ -37,13 +37,6 @@ def get_censoring_prob(kmf_censoring, t):
         return kmf_censoring.survival_function_at_times(kmf_censoring.timeline[-1]).iloc[0]
     return kmf_censoring.survival_function_at_times(t).iloc[0]
 
-def create_pid_mappings(predictions_df, observed_times, observed_events):
-    """Create mappings from pid to observed data"""
-    pids = predictions_df['pid'].unique()
-    pid_to_time = dict(zip(pids, observed_times))
-    pid_to_event = dict(zip(pids, observed_events))
-    return pid_to_time, pid_to_event
-
 def dynamic_c_index(predictions_df, pid_to_time, pid_to_event, tau_k, dataset=None):
     """
     Calculate dynamic C-index at time tau_k
@@ -138,90 +131,60 @@ def dynamic_auc(predictions_df, pid_to_time, pid_to_event, tau_k, tau_k_minus_1,
     
     return numerator / denominator if denominator > 0 else np.nan
 
-def brier_score_at_time(predictions_df, pid_to_time, pid_to_event, kmf_censoring, t, tau_k, dataset=None):
+
+def dynamic_brier_score(predictions_df, pid_to_time, pid_to_event, kmf_censoring, tau_k, tau_k_minus_1, dataset=None):
     """
-    Calculate Brier Score at time t given tau_k
+    Calculate dynamic Brier Score between tau_{k-1} and tau_k
     
-    BS(t|tau_k) = 1/n * sum_i { [0 - S_{i,tau_k}(t)]^2 * I(tau_k < T_i ≤ t, δ_i = 1) / G(T_i) +
-                               [1 - S_{i,tau_k}(t)]^2 * I(T_i > t) / G(t) }
+    BS(tau_k, tau_{k-1}) = 1/n * sum_i { [0 - S_{i,tau_{k-1}}(tau_k)]^2 * I(tau_{k-1} < T_i ≤ tau_k, δ_i = 1) / G(T_i) +
+                                        [1 - S_{i,tau_{k-1}}(tau_k)]^2 * I(T_i > tau_k) / G(tau_k) }
     """
-    # Get predictions at tau_k
+    # Get predictions at tau_{k-1} (we use survival probabilities from tau_{k-1} to predict tau_k)
     if dataset:
-        pred_at_tau = predictions_df[
-            (predictions_df['eval_time'] == tau_k) & 
+        pred_at_tau_minus_1 = predictions_df[
+            (predictions_df['eval_time'] == tau_k_minus_1) & 
             (predictions_df['dataset'] == dataset)
         ]
     else:
-        pred_at_tau = predictions_df[predictions_df['eval_time'] == tau_k]
+        pred_at_tau_minus_1 = predictions_df[predictions_df['eval_time'] == tau_k_minus_1]
     
-    if len(pred_at_tau) == 0:
+    if len(pred_at_tau_minus_1) == 0:
         return np.nan
     
     bs_sum = 0
     n = 0
     
-    for _, row in pred_at_tau.iterrows():
+    G_tau_k = get_censoring_prob(kmf_censoring, tau_k)
+    
+    for _, row in pred_at_tau_minus_1.iterrows():
         pid = row['pid']
+        if pid not in pid_to_time:
+            continue
+            
         T_i = pid_to_time[pid]
         delta_i = pid_to_event[pid]
         
-        # Get survival probability at time t (assuming it's available or can be interpolated)
-        # For simplicity, using surv_prob from the row (this assumes eval_time == t)
-        S_it = row['surv_prob']
+        # S_{i,tau_{k-1}}(tau_k) - survival probability from tau_{k-1} to tau_k
+        # This should be the survival probability at tau_k given information up to tau_{k-1}
+        S_i_tau_k = row['surv_prob']  # This represents survival up to eval_time (tau_{k-1})
         
-        G_Ti = get_censoring_prob(kmf_censoring, T_i)
-        G_t = get_censoring_prob(kmf_censoring, t)
+        # We need to extrapolate/estimate survival to tau_k
+        # For simplicity, assuming the surv_prob represents survival to the next evaluation time
+        # In practice, you might need to interpolate or use a different approach
         
-        if tau_k < T_i <= t and delta_i == 1:
-            # Patient had event in (tau_k, t]
+        if tau_k_minus_1 < T_i <= tau_k and delta_i == 1:
+            # Patient had event in (tau_{k-1}, tau_k]
+            G_Ti = get_censoring_prob(kmf_censoring, T_i)
             if G_Ti > 0:
-                bs_sum += (0 - S_it)**2 / G_Ti
-        elif T_i > t:
-            # Patient survived beyond t
-            if G_t > 0:
-                bs_sum += (1 - S_it)**2 / G_t
+                bs_sum += (0 - S_i_tau_k)**2 / G_Ti
+        elif T_i > tau_k:
+            # Patient survived beyond tau_k
+            if G_tau_k > 0:
+                bs_sum += (1 - S_i_tau_k)**2 / G_tau_k
         
         n += 1
     
     return bs_sum / n if n > 0 else np.nan
-
-def dynamic_ibs(predictions_df, pid_to_time, pid_to_event, observed_times, tau_k, tau_m=None, dataset=None):
-    """
-    Calculate dynamic Integrated Brier Score
-    
-    IBS(tau_k) = ∫_{tau_k}^{tau_m} BS(t|tau_k) dw(t)
-    
-    Using uniform weight w(t) = 1/(tau_m - tau_k)
-    """
-    if tau_m is None:
-        tau_m = np.max(observed_times)
-    
-    if tau_k >= tau_m:
-        return np.nan
-    
-    # Fit censoring distribution
-    observed_events = np.array([pid_to_event[pid] for pid in predictions_df['pid'].unique()])
-    kmf_censoring = fit_censoring_distribution(observed_times, observed_events)
-    
-    # Get unique time points for integration
-    time_points = np.linspace(tau_k, tau_m, num=50)  # Adjust num for precision
-    
-    def bs_function(t):
-        return brier_score_at_time(predictions_df, pid_to_time, pid_to_event, kmf_censoring, t, tau_k, dataset)
-    
-    # Numerical integration
-    try:
-        ibs_value, _ = integrate.quad(bs_function, tau_k, tau_m)
-        return ibs_value / (tau_m - tau_k)  # Normalize by interval length
-    except:
-        # Fallback to trapezoidal rule
-        bs_values = [brier_score_at_time(predictions_df, pid_to_time, pid_to_event, kmf_censoring, t, tau_k, dataset) 
-                    for t in time_points]
-        bs_values = [bs for bs in bs_values if not np.isnan(bs)]
-        if len(bs_values) > 1:
-            return np.trapz(bs_values, time_points[:len(bs_values)]) / (tau_m - tau_k)
-        else:
-            return np.nan
 
 def dynamic_d_calibration(predictions_df, pid_to_event, tau_k, a, b, dataset=None):
     """
@@ -255,6 +218,23 @@ def dynamic_d_calibration(predictions_df, pid_to_event, tau_k, a, b, dataset=Non
     
     return count / total if total > 0 else np.nan
 
+def create_pid_mappings(predictions_df, pids, observed_times, observed_events):
+    """Create mappings from pid to observed data, filtering to only include patients in predictions"""
+    # Get unique patient IDs that actually appear in predictions
+    prediction_pids = set(predictions_df['pid'].unique())
+    
+    # Filter to only include patients that appear in both datasets
+    pid_to_time = {}
+    pid_to_event = {}
+    
+    for i, pid in enumerate(pids):
+        if pid in prediction_pids:
+            pid_to_time[pid] = observed_times[i]
+            pid_to_event[pid] = observed_events[i]
+    
+    print(f"Mapped {len(pid_to_time)} patients (intersection of predictions and original data)")
+    return pid_to_time, pid_to_event
+
 def main():
     # Load the predictions CSV file
     df = pd.read_csv('dynamic_tabpfn_risks.csv')
@@ -269,12 +249,28 @@ def main():
         # Load actual observed survival data for this dataset
         try:
             pids, observed_times, observed_events = load_original_survival_data(dataset)
-            print(f"Loaded {len(pids)} patients from {dataset}")
+            print(f"Loaded {len(pids)} patients from original {dataset}")
             
-            # Create mappings
-            pid_to_time, pid_to_event = create_pid_mappings(df, observed_times, observed_events)
+            # Get patients that appear in predictions for this dataset
+            dataset_predictions = df[df['dataset'] == dataset]
+            prediction_pids = dataset_predictions['pid'].unique()
+            print(f"Found {len(prediction_pids)} patients in predictions for {dataset}")
             
-            dataset_times = sorted(df[df['dataset'] == dataset]['eval_time'].unique())
+            # Create mappings (only for patients that appear in both datasets)
+            pid_to_time, pid_to_event = create_pid_mappings(dataset_predictions, pids, observed_times, observed_events)
+            
+            # Check if we have any valid mappings
+            if len(pid_to_time) == 0:
+                print(f"No matching patients found between predictions and original data for {dataset}")
+                continue
+            
+            # Fit censoring distribution for this dataset
+            valid_pids = list(pid_to_time.keys())
+            observed_events_valid = np.array([pid_to_event[pid] for pid in valid_pids])
+            observed_times_valid = np.array([pid_to_time[pid] for pid in valid_pids])
+            kmf_censoring = fit_censoring_distribution(observed_times_valid, observed_events_valid)
+            
+            dataset_times = sorted(dataset_predictions['eval_time'].unique())
             
             for i, tau_k in enumerate(dataset_times):
                 result = {'dataset': dataset, 'tau_k': tau_k}
@@ -283,36 +279,39 @@ def main():
                 c_index = dynamic_c_index(df, pid_to_time, pid_to_event, tau_k, dataset)
                 result['c_index'] = c_index
                 
-                # Dynamic AUC (if not the first time point)
+                # Dynamic AUC and Brier Score (if not the first time point)
                 if i > 0:
                     tau_k_minus_1 = dataset_times[i-1]
                     auc = dynamic_auc(df, pid_to_time, pid_to_event, tau_k, tau_k_minus_1, dataset)
                     result['auc'] = auc
+                    
+                    # Dynamic Brier Score between tau_{k-1} and tau_k
+                    bs = dynamic_brier_score(df, pid_to_time, pid_to_event, kmf_censoring, tau_k, tau_k_minus_1, dataset)
+                    result['brier_score'] = bs
                 else:
                     result['auc'] = np.nan
+                    result['brier_score'] = np.nan
                 
-                # Dynamic IBS
-                ibs = dynamic_ibs(df, pid_to_time, pid_to_event, observed_times, tau_k, dataset=dataset)
-                result['ibs'] = ibs
-                
-                # Dynamic D-calibration (example: for survival prob in (0.3, 0.7])
+                # Dynamic D-calibration
                 dcal = dynamic_d_calibration(df, pid_to_event, tau_k, 0.3, 0.7, dataset)
                 result['dcal_0.3_0.7'] = dcal
                 
                 results.append(result)
                 
                 print(f"  τ_k = {tau_k:.2f}: C-index = {c_index:.4f}, AUC = {result['auc']:.4f}, "
-                      f"IBS = {ibs:.4f}, D-cal(0.3,0.7] = {dcal:.4f}")
+                      f"BS = {result['brier_score']:.4f}, D-cal(0.3,0.7] = {dcal:.4f}")
         
         except Exception as e:
-            print(f"Error loading dataset {dataset}: {e}")
+            print(f"Error processing dataset {dataset}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
     # Convert results to DataFrame
     results_df = pd.DataFrame(results)
-    results_df.to_csv('dynamic_metrics_results.csv', index=False)
-    print(f"\nResults saved to 'dynamic_metrics_results.csv'")
-    
+    results_df.to_csv('dynamic_tabpfn_results.csv', index=False)
+    print(f"\nResults saved to 'dynamic_tabpfn_results.csv'")
+
     return results_df
 
 if __name__ == "__main__":
