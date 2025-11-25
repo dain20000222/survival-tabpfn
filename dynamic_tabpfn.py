@@ -24,9 +24,9 @@ data_dir = os.path.join("data")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV paths and checkpoint setup
-csv_path = "dynamic_tabpfn_evaluation_3timepoint.csv"
+csv_path = "dynamic_tabpfn_evaluation.csv"
 checkpoint_file = "dynamic_tabpfn_checkpoint.txt"
-risk_csv_path = "dynamic_tabpfn_risks_3timepoint.csv"
+risk_csv_path = "dynamic_tabpfn_risks.csv"
 
 # Load processed datasets from checkpoint
 def load_checkpoint():
@@ -234,8 +234,8 @@ def subject_time_event_eval(df: pd.DataFrame, pids, original_df: pd.DataFrame):
 
 def patient_risk_from_online_eval_time_dependent(online_out: pd.DataFrame, times):
     """
-    Convert per-eval-time p_event into time-dependent risk scores.
-    Each patient gets a separate risk score for each evaluation time.
+    Convert per-eval-time p_event into time-dependent risk scores and survival probabilities.
+    Each patient gets a separate risk score and survival probability for each evaluation time.
     """
     risk_rows = []
     for pid, g in online_out.sort_values(["pid", "eval_time"]).groupby("pid", sort=False):
@@ -251,7 +251,8 @@ def patient_risk_from_online_eval_time_dependent(online_out: pd.DataFrame, times
             risk_rows.append({
                 "pid": pid,
                 "eval_time": row["eval_time"],
-                "risk": risk_at_time
+                "risk": risk_at_time,
+                "surv_prob": cumulative_survival  # Add survival probability
             })
     
     risk_df = pd.DataFrame(risk_rows)
