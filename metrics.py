@@ -8,8 +8,6 @@ from sksurv.metrics import (
     cumulative_dynamic_auc,
     concordance_index_censored,  # Harrell's C
 )
-import matplotlib.pyplot as plt
-import math
 
 # -----------------------------------------------------------
 # 1. Helper: read survival dataset and collapse to (T_i, δ_i)

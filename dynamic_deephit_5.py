@@ -8,7 +8,6 @@ import random
 from ddh.ddh_api import DynamicDeepHit
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import ParameterGrid
-from sksurv.metrics import concordance_index_ipcw
 import torch
 warnings.filterwarnings("ignore")
 
@@ -29,7 +28,6 @@ data_dir = os.path.join("data")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV paths
-csv_path = "dynamic_deephit_evaluation_5.csv"
 risk_csv_path = "dynamic_deephit_risk_5.csv"
 
 def convert_to_sequential_format(df, covariates):
@@ -153,14 +151,14 @@ for file_name in dataset_files:
     
     print(f"Train shape: {len(x_train)} patients, Test shape: {len(x_test)} patients")
 
-    # Calculate default values from WHOLE dataset for imputation
+    # Calculate default values from TRAIN set only for imputation
     default_values = {}
     for col in numerical_cols:
-        default_values[col] = df[col].mean()
+        default_values[col] = df_train[col].mean()
     for col in categorical_cols:
-        default_values[col] = df[col].mode().iloc[0] if not df[col].mode().empty else df[col].iloc[0]
+        default_values[col] = df_train[col].mode().iloc[0] if not df_train[col].mode().empty else df_train[col].iloc[0]
     
-    print(f"Default values calculated from whole dataset")
+    print(f"Default values calculated from train set")
 
     # Add default rows to TRAIN set
     first_eval_time = times[0]
@@ -240,7 +238,7 @@ for file_name in dataset_files:
                         split = [0] + times + [np.max([t_.max() for t_ in t_train])])
             
             # Train the model
-            model.fit(x_train, t_train, e_train, iters = 10, 
+            model.fit(x_train, t_train, e_train, iters = 500, 
                     learning_rate = param['learning_rate'])
             
             print(f"Model trained successfully!")
@@ -259,13 +257,8 @@ for file_name in dataset_files:
     out_risk = model.predict_risk(x_test, times, all_step = True)
     print(f"Risk prediction shape: {out_risk.shape}")
 
-    cis = []
-
-    et_train = np.array([(e_train[i][j], t_train[i][j]) for i in range(len(e_train)) for j in range(len(e_train[i]))],
-                        dtype = [('e', bool), ('t', float)])
-
-    et_test = np.array([(e_test[i][j], t_test[i][j]) for i in range(len(e_test)) for j in range(len(e_test[i]))],
-                        dtype = [('e', bool), ('t', float)])
+    # Initialize dictionary to store all risks for each patient
+    patient_risks_dict = {pid: [] for pid in test_pids}
 
     for i, eval_time in enumerate(times):
         risk_scores = out_risk[:, i]  # Shape: (n_test, max_seq_len)
@@ -290,23 +283,9 @@ for file_name in dataset_files:
         
         final_risk_scores = np.array(final_risk_scores)
         
-        # Store risk scores for this evaluation time
-        if i == 0:
-            # Initialize dictionary to store all risks for each patient
-            patient_risks_dict = {pid: [] for pid in test_pids}
-        
         # Append risks for this evaluation time
         for pid, risk in zip(test_pids, final_risk_scores):
             patient_risks_dict[pid].append((eval_time, risk))
-    
-        et_test_final = np.array([(e_test[i][-1], t_test[i][-1]) for i in range(len(e_test))],
-                                dtype = [('e', bool), ('t', float)])
-
-        c_index, *_ = concordance_index_ipcw(et_train, et_test_final, 
-                                            final_risk_scores, eval_time)
-                                            
-        cis.append(c_index)
-        print(f"C-index at time {eval_time:.2f}: {c_index:.4f}")
 
     # Save all risk predictions to CSV (grouped by patient)
     with open(risk_csv_path, 'a', newline='') as csvfile:
@@ -326,18 +305,5 @@ for file_name in dataset_files:
                     'surv_prob': surv_prob,
                     'dataset': dataset_name
                 })
-
-    # Save evaluation metrics (C-index) to CSV
-    with open(csv_path, 'a', newline='') as csvfile:
-        fieldnames = ['dataset', 'eval_time', 'c_index']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
-        # Write C-index data
-        for eval_time, c_index in zip(times, cis):
-            writer.writerow({
-                'dataset': dataset_name,
-                'eval_time': eval_time,
-                'c_index': c_index
-            })
 
 print("Processing complete.")
