@@ -5,7 +5,6 @@ import csv
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sksurv.linear_model import CoxPHSurvivalAnalysis
-from sksurv.metrics import concordance_index_ipcw
 from sksurv.util import Surv
 import warnings
 import random
@@ -23,7 +22,6 @@ data_dir = os.path.join("data")
 dataset_files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
 
 # CSV paths
-csv_path = "landmark_cox_evaluation.csv"
 risk_csv_path = "landmark_cox_risk.csv"
 
 # Initialize risk CSV file
@@ -51,10 +49,11 @@ def build_patient_outcome(df):
 
 def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, default_values):
     """
-    Landmarking with LOCF for both TRAIN and TEST sets.
-    Keep ALL patients.
-    - If patient has visits before landmark_time: use LOCF
-    - If patient has no visits before landmark_time: use default (mean) values
+    Apply LOCF landmarking for a given landmark_time.
+
+    - If t_event > landmark_time: residual_time = t_event - landmark_time, event as original
+    - If t_event <= landmark_time: residual_time = 0 (or ~0), event = 0 (not at risk after landmark)
+    - Covariates taken from last observation before (or at) landmark; if none, use defaults.
     """
     rows = []
     for pid, patient in df.groupby("pid"):
@@ -62,40 +61,41 @@ def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, default_
         t_event = patient_outcome.loc[pid, "t_event"]
         status_event = patient_outcome.loc[pid, "status_event"]
 
-        # Calculate time to event from landmark
-        time_to_event = max(float(t_event - landmark_time), 0)
-        
-        # Check if patient has visits before landmark
-        valid = patient[patient["time2"] <= landmark_time]
-        
-        if not valid.empty:
-            # Use LOCF: last observation before landmark
-            latest = valid.iloc[-1]
-            new_row = {"pid": pid,
-                       "time": time_to_event,
-                       "event": int(status_event) if t_event > landmark_time else 0}
-            for c in covariates:
-                new_row[c] = latest[c]
+        # Case A: patient experiences event AFTER the landmark -> normal residual time
+        if t_event > landmark_time:
+            residual_time = float(t_event - landmark_time)
+            event_indicator = int(status_event)
         else:
-            # No visits before landmark: use default values
-            new_row = {"pid": pid,
-                       "time": 0,
-                       "event": 0}
+            # Case B: event before (or at) landmark -> keep but set as NOT at risk
+            residual_time = 0.0
+            event_indicator = 0
+
+        # LOCF covariates up to landmark_time
+        valid = patient[patient["time2"] <= landmark_time]
+        if not valid.empty:
+            latest = valid.iloc[-1]
+            row = {"pid": pid, "time": residual_time, "event": event_indicator}
             for c in covariates:
-                new_row[c] = default_values[c]
-        
-        rows.append(new_row)
+                row[c] = latest[c]
+        else:
+            # No observation → use defaults
+            row = {"pid": pid, "time": residual_time, "event": event_indicator}
+            for c in covariates:
+                row[c] = default_values[c]
+
+        rows.append(row)
 
     return pd.DataFrame(rows)
+
 
 for file_name in dataset_files:
     try:
         dataset_name = file_name.replace(".csv", "")
         file_path = os.path.join(data_dir, file_name)
-        print("="*50)
+        print("=" * 50)
         print(f"\nProcessing dataset: {dataset_name}")
 
-        # Load datasets
+        # Load dataset
         df = pd.read_csv(file_path)
         shape = df.shape
         print(f"Dataset shape: {shape}")
@@ -107,7 +107,7 @@ for file_name in dataset_files:
 
         covariates = df.columns.difference([time_col, time2_col, event_col, 'pid']).tolist()
 
-        # Get event times for landmark calculation
+        # Get event times for landmark calculation (on original scale)
         event_times = df[df[event_col] == 1]["time2"].values
         if len(event_times) == 0:
             print(f"Skipping {dataset_name}: No events observed")
@@ -117,7 +117,7 @@ for file_name in dataset_files:
         times = np.quantile(event_times, [0.25, 0.5, 0.75])
         print(f"Landmark times: {times}")
 
-        # Identify categorical and numerical columns (from whole dataset)
+        # Identify categorical and numerical covariates
         categorical_cols = []
         numerical_cols = []
         for col in covariates:
@@ -125,51 +125,54 @@ for file_name in dataset_files:
                 categorical_cols.append(col)
             else:
                 numerical_cols.append(col)
-        
-        # Calculate default values from WHOLE dataset for imputation
-        default_values = {}
-        for col in numerical_cols:
-            default_values[col] = df[col].mean()
-        for col in categorical_cols:
-            mode_val = df[col].mode()
-            default_values[col] = mode_val.iloc[0] if not mode_val.empty else df[col].iloc[0]
-        
-        print(f"Default values calculated from whole dataset")
 
-        # Split patient IDs into train (70%), test (30%)
+        # Split patient IDs into train (70%) and test (30%)
         all_pids = df['pid'].unique()
         pids_train, pids_test = train_test_split(
             all_pids, test_size=0.3, random_state=SEED
         )
-        
+
         # Split dataframe by patient IDs
         df_train = df[df['pid'].isin(pids_train)]
         df_test = df[df['pid'].isin(pids_test)]
-        
+
         print(f"Train patients: {len(pids_train)}, Test patients: {len(pids_test)}")
-        
+
+        # Compute global prediction horizon from train set BEFORE landmarking (on original time scale)
+        train_event_times = df_train["time2"].values
+        GLOBAL_HORIZON = float(np.quantile(train_event_times, 0.5))
+        print(f"GLOBAL_HORIZON for {dataset_name}: {GLOBAL_HORIZON:.4f}")
+
+        # Calculate default values from train set for imputation
+        default_values = {}
+        for col in numerical_cols:
+            default_values[col] = df_train[col].mean()
+        for col in categorical_cols:
+            mode_val = df_train[col].mode()
+            default_values[col] = mode_val.iloc[0] if not mode_val.empty else df_train[col].iloc[0]
+
+        print("Default values calculated from train set")
+
         # Build patient outcome DataFrame (from full data)
         patient_outcome = build_patient_outcome(df)
-        
-        results = []
-        
-        # Dictionary to store risk scores and survival probabilities for all patients
+
+        # Dictionary to store risk scores and survival probabilities for all test patients
         patient_risks_dict = {pid: [] for pid in pids_test}
-        
+
         for i, landmark_time in enumerate(times):
-            print(f"\nProcessing landmark time {i+1}: {landmark_time:.2f}")
-            
-            # Apply LOCF for both train and test (ALL patients, with default imputation)
+            print(f"\nProcessing landmark time {i + 1}: {landmark_time:.2f}")
+
+            # Apply LOCF landmarking for both train and test
             train_df = apply_locf_landmark(
                 df_train, landmark_time, covariates, patient_outcome, default_values
             )
-            
+
             test_df = apply_locf_landmark(
                 df_test, landmark_time, covariates, patient_outcome, default_values
             )
 
             print(f"Train: {len(train_df)} patients, Events: {train_df['event'].sum()}")
-            print(f"Test: {len(test_df)} patients, Events: {test_df['event'].sum()}")
+            print(f"Test:  {len(test_df)} patients, Events: {test_df['event'].sum()}")
 
             if len(train_df) < 10 or train_df['event'].sum() < 5:
                 print(f"Skipping landmark {landmark_time:.2f}: insufficient train data")
@@ -178,15 +181,15 @@ for file_name in dataset_files:
             if len(test_df) < 5:
                 print(f"Skipping landmark {landmark_time:.2f}: insufficient test data")
                 continue
-            
+
             # Extract covariates
             x_train = train_df[covariates].copy()
             x_test = test_df[covariates].copy()
-            
+
             # One-hot encode categorical variables
             x_train_ohe = pd.get_dummies(x_train, drop_first=True)
             x_test_ohe = pd.get_dummies(x_test, drop_first=True)
-            
+
             # Align columns between train and test
             all_columns = x_train_ohe.columns.union(x_test_ohe.columns)
             for col in all_columns:
@@ -194,142 +197,77 @@ for file_name in dataset_files:
                     x_train_ohe[col] = 0
                 if col not in x_test_ohe.columns:
                     x_test_ohe[col] = 0
-            
+
             x_train_ohe = x_train_ohe.reindex(columns=sorted(all_columns))
             x_test_ohe = x_test_ohe.reindex(columns=sorted(all_columns))
-            
+
             # Impute missing values
             imputer = SimpleImputer(strategy='median')
             x_train_imputed = pd.DataFrame(
-                imputer.fit_transform(x_train_ohe), 
+                imputer.fit_transform(x_train_ohe),
                 columns=x_train_ohe.columns,
-                index=x_train_ohe.index
+                index=x_train_ohe.index,
             )
             x_test_imputed = pd.DataFrame(
                 imputer.transform(x_test_ohe),
                 columns=x_test_ohe.columns,
-                index=x_test_ohe.index
+                index=x_test_ohe.index,
             )
-            
+
             # Remove constant columns to avoid singularity
             constant_cols = x_train_imputed.columns[x_train_imputed.std() == 0]
             if len(constant_cols) > 0:
                 print(f"Removing {len(constant_cols)} constant columns")
                 x_train_imputed = x_train_imputed.drop(columns=constant_cols)
                 x_test_imputed = x_test_imputed.drop(columns=constant_cols)
-                
-            # Prepare survival data
+
+            # Prepare survival data (residual time since landmark)
             y_train = Surv.from_dataframe('event', 'time', train_df)
             y_test = Surv.from_dataframe('event', 'time', test_df)
-                
-            # Fit Cox model
-            cox_model = CoxPHSurvivalAnalysis()
-            cox_model.fit(x_train_imputed, y_train)
 
-            # Evaluate on test set
-            test_risk_scores = cox_model.predict(x_test_imputed)
-            
-            # Define prediction horizon - use multiple fallback strategies
-            prediction_horizon = np.median(train_df['time'])
-            
-            # If median is too large, try smaller horizons
-            max_train_time = np.max(train_df[train_df['event'] == 0]['time']) if (train_df['event'] == 0).any() else np.max(train_df['time'])
-            
-            # Try multiple tau values in order
-            tau_candidates = [
-                prediction_horizon,
-                np.percentile(train_df['time'], 75),
-                np.percentile(train_df['time'], 50),
-                np.percentile(train_df['time'], 25),
-                max_train_time * 0.8,
-            ]
-            
-            test_cindex = None
-            for tau in tau_candidates:
-                if tau <= 0:
-                    continue
-                try:
-                    test_cindex, *_ = concordance_index_ipcw(y_train, y_test, test_risk_scores, tau)
-                    print(f"C-index calculated with tau={tau:.2f}")
-                    break  # Success, exit loop
-                except (ValueError, np.linalg.LinAlgError) as e:
-                    continue  # Try next tau
-            
-            if test_cindex is None:
-                print(f"Skipping landmark {landmark_time:.2f}: could not calculate C-index with any tau")
+            # Fit Cox model at this landmark
+            cox_model = CoxPHSurvivalAnalysis()
+            try:
+                cox_model.fit(x_train_imputed, y_train)
+            except Exception as e:
+                print(f"Error fitting Cox model at landmark {landmark_time:.2f}: {e}")
                 continue
 
-            # Get survival functions for test patients
+            # Get linear predictors (risk scores) for test set
+            test_risk_scores = cox_model.predict(x_test_imputed)
+
+            # Get survival functions for test patients (residual time from τ)
             surv_funcs = cox_model.predict_survival_function(x_test_imputed)
-            
-            # Use the successful tau for survival probability as well
+            prediction_horizon = GLOBAL_HORIZON
+
             # Store risk scores and survival probabilities for each test patient at this landmark time
             for idx, pid in enumerate(test_df['pid'].values):
                 risk_score = test_risk_scores[idx]
-                
-                # Get survival probability at the prediction horizon from landmark
                 surv_func = surv_funcs[idx]
-                
-                # Use the tau that worked for C-index
-                surv_prob = surv_func(tau)
-                
+                surv_prob = surv_func(prediction_horizon)
+
                 patient_risks_dict[pid].append((landmark_time, risk_score, surv_prob))
 
-            # Save result
-            result = {
-                'dataset': dataset_name,
-                'landmark_time': landmark_time,
-                'n_train': len(train_df),
-                'n_test': len(test_df),
-                'n_events_train': train_df['event'].sum(),
-                'test_cindex': test_cindex,
-            }
-                    
-            results.append(result)
-                    
-            print(f"Test C-index: {test_cindex:.4f}")
+            print(f"Predictions saved for {len(test_df)} patients at landmark {landmark_time:.2f}")
 
         # Save all risk predictions to CSV (grouped by patient)
         with open(risk_csv_path, 'a', newline='') as csvfile:
             fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            
-            # Write all evaluation times for each patient together
+
             for pid in sorted(pids_test):
                 if pid in patient_risks_dict and len(patient_risks_dict[pid]) > 0:
                     for eval_time, risk, surv_prob in patient_risks_dict[pid]:
                         writer.writerow({
                             'pid': pid,
-                            'eval_time': eval_time,
+                            'eval_time': eval_time,  # landmark time
                             'risk': risk if np.isfinite(risk) else np.nan,
                             'surv_prob': surv_prob if np.isfinite(surv_prob) else np.nan,
-                            'dataset': dataset_name
+                            'dataset': dataset_name,
                         })
 
-        # Save results for this dataset
-        if results:
-            # Save to CSV
-            file_exists = os.path.isfile(csv_path)
-            with open(csv_path, 'a', newline='') as csvfile:
-                fieldnames = ['dataset', 'time', 'cindex']
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                
-                if not file_exists:
-                    writer.writeheader()
-                
-                # Write each landmark time result
-                for result in results:
-                    uniform_result = {
-                        'dataset': result['dataset'],
-                        'time': result['landmark_time'],
-                        'cindex': result['test_cindex']
-                    }
-                    writer.writerow(uniform_result)
-        else:
-            print(f"No valid results for dataset {dataset_name}")
-            
         print(f"\nRisk predictions saved to {risk_csv_path}")
-            
+
     except Exception as e:
         print(f"Error processing dataset {dataset_name}: {str(e)}")
         import traceback
