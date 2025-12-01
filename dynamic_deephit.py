@@ -252,7 +252,7 @@ for file_name in dataset_files:
                         split = [0] + times + [np.max([t_.max() for t_ in t_train])])
             
             # Train the model
-            model.fit(x_train, t_train, e_train, iters = 500, 
+            model.fit(x_train, t_train, e_train, iters = 10, 
                     learning_rate = param['learning_rate'])
             
             print(f"Model trained successfully!")
