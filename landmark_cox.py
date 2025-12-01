@@ -129,11 +129,6 @@ for file_name in dataset_files:
 
         print(f"Train patients: {len(pids_train)}, Test patients: {len(pids_test)}")
 
-        # Compute global prediction horizon from train set BEFORE landmarking (on original time scale)
-        train_event_times = df_train["time2"].values
-        GLOBAL_HORIZON = float(np.quantile(train_event_times, 0.5))
-        print(f"GLOBAL_HORIZON for {dataset_name}: {GLOBAL_HORIZON:.4f}")
-
         # ========== PREPROCESS DATA BEFORE LANDMARKING ==========
         # --- One-hot encode categorical variables ---
         # Fit on TRAIN only
@@ -180,6 +175,10 @@ for file_name in dataset_files:
 
         for i, landmark_time in enumerate(times):
             print(f"\nProcessing landmark time {i + 1}: {landmark_time:.2f}")
+                        
+            mask = patient_outcome["t_event"] > landmark_time
+            residual_times = patient_outcome.loc[mask, "t_event"] - landmark_time
+            prediction_horizon = float(np.median(residual_times))
 
             # Apply LOCF landmarking for both train and test (using processed features)
             train_df = apply_locf_landmark(
@@ -229,9 +228,8 @@ for file_name in dataset_files:
             # Get linear predictors (risk scores) for test set
             test_risk_scores = cox_model.predict(x_test_landmark)
 
-            # Get survival functions for test patients (residual time from τ)
+            # Get survival functions for test patients at this landmark
             surv_funcs = cox_model.predict_survival_function(x_test_landmark)
-            prediction_horizon = GLOBAL_HORIZON
 
             # Store risk scores and survival probabilities for each test patient at this landmark time
             for idx, pid in enumerate(test_df['pid'].values):
