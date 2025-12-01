@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import warnings
 import random
 from ddh.ddh_api import DynamicDeepHit
-from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import ParameterGrid
 import torch
 warnings.filterwarnings("ignore")
@@ -98,7 +98,7 @@ for file_name in dataset_files:
 
     covariates = df.columns.difference([time_col, time2_col, event_col, 'pid']).tolist()
     
-    # Handle categorical variables with label encoding
+    # Handle categorical variables
     categorical_cols = []
     numerical_cols = []
     
@@ -107,22 +107,6 @@ for file_name in dataset_files:
             categorical_cols.append(col)
         else:
             numerical_cols.append(col)
-    
-    # Use label encoding instead of one-hot encoding
-    for col in categorical_cols:
-        le = LabelEncoder()
-        df[col] = df[col].fillna('Unknown')
-        df[col] = le.fit_transform(df[col])
-    
-    # Handle missing values in numerical columns
-    for col in numerical_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce')  # Convert to numeric, NaN for invalid
-        df[col] = df[col].fillna(df[col].median())
-        
-    # Ensure all covariates are numeric
-    for col in covariates:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-        df[col] = df[col].fillna(0.0)  # Fill any remaining NaN with 0
 
     # Get event times for evaluation time calculation
     event_times = df[df[event_col] == 1]["time2"].values
@@ -145,6 +129,39 @@ for file_name in dataset_files:
     
     print(f"Train patients: {len(pid_train)}, Test patients: {len(pid_test)}")
 
+    # --- One-hot encode categorical variables ---
+    # Fit on TRAIN only
+    x_train = pd.get_dummies(df_train[covariates], drop_first=True)
+    x_test = pd.get_dummies(df_test[covariates], drop_first=True)
+
+    # Align columns with union of train+test
+    all_columns = x_train.columns.union(x_test.columns)
+    x_train = x_train.reindex(columns=all_columns, fill_value=0)
+    x_test = x_test.reindex(columns=all_columns, fill_value=0)
+
+    # --- Impute missing values ---
+    imputer = SimpleImputer(strategy='median')
+
+    x_train = pd.DataFrame(imputer.fit_transform(x_train),
+                        columns=x_train.columns,
+                        index=x_train.index)
+
+    x_test = pd.DataFrame(imputer.transform(x_test),
+                        columns=x_test.columns,
+                        index=x_test.index)
+
+    # Store back into df_train/df_test while preserving time2/event/pid
+    df_train = pd.concat([df_train[['pid','time','time2','event']].reset_index(drop=True),
+                                    x_train.reset_index(drop=True)],
+                                    axis=1)
+    
+    df_test = pd.concat([df_test[['pid','time','time2','event']].reset_index(drop=True),
+                                x_test.reset_index(drop=True)],
+                                axis=1)
+
+    # Update covariates after encoding
+    covariates = df_train.columns.difference(['pid','time','time2','event']).tolist()
+
     # Convert to sequential format for each split
     x_train, t_train, e_train, train_pids = convert_to_sequential_format(df_train, covariates)
     x_test, t_test, e_test, test_pids = convert_to_sequential_format(df_test, covariates)
@@ -153,11 +170,8 @@ for file_name in dataset_files:
 
     # Calculate default values from TRAIN set only for imputation
     default_values = {}
-    for col in numerical_cols:
+    for col in covariates:
         default_values[col] = df_train[col].mean()
-    for col in categorical_cols:
-        default_values[col] = df_train[col].mode().iloc[0] if not df_train[col].mode().empty else df_train[col].iloc[0]
-    
     print(f"Default values calculated from train set")
 
     # Add default rows to TRAIN set
