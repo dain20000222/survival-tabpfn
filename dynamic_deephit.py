@@ -221,7 +221,7 @@ for file_name in dataset_files:
         x_test, t_test, e_test, test_pids = convert_to_sequential_format(df_test, covariates)
         print(f"Updated test shape: {len(x_test)} patients")
 
-    layers = [[], [100], [100, 100], [100, 100, 100]]
+    layers = [[100], [100, 100], [100, 100, 100]]
 
     # Parameter grid
     param_grid = {

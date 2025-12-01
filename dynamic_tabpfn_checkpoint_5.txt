@@ -2,6 +2,3 @@ FRTCS
 Rossi
 aids
 csl
-epileptic
-heart
-heartvalve

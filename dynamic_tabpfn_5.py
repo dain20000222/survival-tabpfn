@@ -1,12 +1,9 @@
 import pandas as pd
 import numpy as np
 import os
-import csv
-from sklearn.preprocessing import OrdinalEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from tabpfn import TabPFNClassifier
-from sksurv.util import Surv
 import warnings
 import random
 warnings.filterwarnings("ignore")
@@ -60,16 +57,16 @@ def prepare_evaluation_data(df: pd.DataFrame, times, default_values):
     """
     For each evaluation time, select the latest observed row for each patient
     before that evaluation time. If no row exists, create a default row with
-    provided default values.
-    
+    provided default values (already in processed feature space).
+
     Parameters:
     -----------
     df : pd.DataFrame
-        Input dataframe
+        Input dataframe (processed, numeric)
     times : array-like
         Evaluation times
     default_values : dict
-        Dictionary of default values for features (calculated from train data)
+        Dictionary of default values for features (calculated from processed train data)
     """
     eval_rows = []
     has_time2 = "time2" in df.columns
@@ -87,7 +84,7 @@ def prepare_evaluation_data(df: pd.DataFrame, times, default_values):
                 latest_row["eval_time"] = eval_time
                 eval_rows.append(latest_row)
             else:
-                # Create default row with provided default values
+                # Create default row with provided default values (features + event)
                 default_row = default_values.copy()
                 default_row["pid"] = pid
                 default_row["eval_time"] = eval_time
@@ -101,29 +98,6 @@ def prepare_evaluation_data(df: pd.DataFrame, times, default_values):
     eval_df = pd.DataFrame(eval_rows).reset_index(drop=True)
     return eval_df
 
-def prepare_data_for_evaluation(df: pd.DataFrame):
-    """Modified prepare_data function for evaluation dataset"""
-    df = df.copy()
-    
-    # Sort by patient and evaluation time
-    df = df.sort_values(["pid", "eval_time"]).reset_index(drop=True)
-    
-    num_cols = [c for c in df.columns if c.startswith("num_")]
-    fac_cols = [c for c in df.columns if c.startswith("fac_")]
-    
-    # Ordinal-encode categoricals to integers
-    enc = None
-    if fac_cols:
-        enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1, dtype=np.int64)
-        df[fac_cols] = enc.fit_transform(df[fac_cols].astype("category"))
-    
-    # Use eval_time instead of time/time2
-    feature_cols = num_cols + fac_cols + ["eval_time"]
-    
-    X_all = df[feature_cols].to_numpy(dtype=float)
-    y_all = df["event"].to_numpy(dtype=int)
-    
-    return df, feature_cols, X_all, y_all, enc
 
 def build_xy_for_pids(df: pd.DataFrame, feature_cols, pids):
     sub = df[df["pid"].isin(pids)].copy()
@@ -205,45 +179,94 @@ for i, file_name in enumerate(remaining_datasets, start=1):
     original_df = pd.read_csv(file_path)
     print(f"Original dataset shape: {original_df.shape}")
 
-    # Define evaluation times (unique event times)
+    # Define evaluation times (quantiles of event times from ORIGINAL data)
     has_time2 = "time2" in original_df.columns
     time_col = "time2" if has_time2 else "time"
     event_times = original_df[original_df['event'] == 1][time_col].values
     times = np.quantile(event_times, [0.1, 0.3, 0.5, 0.7, 0.9])
     print(f"Evaluation times: {times}")
 
-    # Split by patient ID FIRST (before calculating default values)
+    # 1) TRAIN/TEST SPLIT (by patient ID)
     original_pids = original_df["pid"].unique()
     pid_train, pid_test = train_test_split(original_pids, test_size=0.3, random_state=SEED)
-    
-    # Get train data only
-    train_df = original_df[original_df["pid"].isin(pid_train)].copy()
-    
-    # Calculate default values from TRAIN data only
-    num_cols = [c for c in train_df.columns if c.startswith("num_")]
-    fac_cols = [c for c in train_df.columns if c.startswith("fac_")]
-    
-    default_values = {}
-    for col in num_cols:
-        default_values[col] = train_df[col].mean()
-    for col in fac_cols:
-        default_values[col] = train_df[col].mode().iloc[0] if not train_df[col].mode().empty else train_df[col].iloc[0]
-    
-    # Set default event to 0 (no event)
-    default_values["event"] = 0
-    
-    print(f"Default values calculated from {len(pid_train)} train patients only")
+    print(f"Train patients: {len(pid_train)}, Test patients: {len(pid_test)}")
 
-    # Create evaluation dataset with latest rows before each eval time
-    # Pass default_values to the function
-    eval_df = prepare_evaluation_data(original_df, times, default_values)
+    # Identify raw feature columns (before preprocessing)
+    num_cols = [c for c in original_df.columns if c.startswith("num_")]
+    fac_cols = [c for c in original_df.columns if c.startswith("fac_")]
+    raw_feature_cols = num_cols + fac_cols
+
+    # 2) DATA PREPROCESSING (OHE + SimpleImputer, fit on TRAIN, transform TRAIN and TEST)
+
+    train_df = original_df[original_df["pid"].isin(pid_train)].copy()
+    test_df  = original_df[original_df["pid"].isin(pid_test)].copy()
+
+    x_train_raw = train_df[raw_feature_cols]
+    x_test_raw  = test_df[raw_feature_cols]
+
+    # One-hot encode categorical features (pd.get_dummies)
+    x_train_ohe = pd.get_dummies(x_train_raw, drop_first=True)
+    x_test_ohe  = pd.get_dummies(x_test_raw,  drop_first=True)
+
+    # Align columns between train and test
+    all_columns = x_train_ohe.columns.union(x_test_ohe.columns)
+    x_train_ohe = x_train_ohe.reindex(columns=all_columns, fill_value=0)
+    x_test_ohe  = x_test_ohe.reindex(columns=all_columns, fill_value=0)
+
+    # Impute missing values with median (fit on TRAIN, transform TRAIN and TEST)
+    imputer = SimpleImputer(strategy="median")
+    x_train_proc = pd.DataFrame(
+        imputer.fit_transform(x_train_ohe),
+        columns=all_columns,
+        index=x_train_ohe.index,
+    )
+    x_test_proc = pd.DataFrame(
+        imputer.transform(x_test_ohe),
+        columns=all_columns,
+        index=x_test_ohe.index,
+    )
+
+    # Rebuild fully processed longitudinal dataframes
+    non_feature_cols = [c for c in original_df.columns if c not in raw_feature_cols]
+
+    train_processed = pd.concat(
+        [train_df[non_feature_cols].reset_index(drop=True),
+         x_train_proc.reset_index(drop=True)],
+        axis=1,
+    )
+    test_processed = pd.concat(
+        [test_df[non_feature_cols].reset_index(drop=True),
+         x_test_proc.reset_index(drop=True)],
+        axis=1,
+    )
+
+    # Combine back into one processed longitudinal dataframe
+    df_processed = pd.concat([train_processed, test_processed], ignore_index=True)
+
+    # 3) CALCULATE DEFAULT VALUES (means from PROCESSED TRAIN patients)
+    feature_cols_processed = all_columns.tolist()
+    train_mask = df_processed["pid"].isin(pid_train)
+
+    default_values = {}
+    for col in feature_cols_processed:
+        default_values[col] = df_processed.loc[train_mask, col].mean()
+
+    # For event, explicitly set default to 0 (no event)
+    default_values["event"] = 0
+
+    print(f"Default values calculated from processed train data ({len(pid_train)} patients)")
+
+    # 4) BUILD EVALUATION DATA (from PROCESSED longitudinal data)
+    eval_df = prepare_evaluation_data(df_processed, times, default_values)
     print(f"Evaluation dataset shape: {eval_df.shape}")
     print(f"Rows per patient: {len(eval_df) / len(original_df['pid'].unique()):.1f}")
 
-    # Prepare evaluation data
-    eval_df, feature_cols, X_all, y_all, enc = prepare_data_for_evaluation(eval_df)
+    # Sort evaluation dataframe and define final feature columns (processed features + eval_time)
+    eval_df = eval_df.sort_values(["pid", "eval_time"]).reset_index(drop=True)
 
-    # Build base context from training patients only
+    feature_cols = feature_cols_processed + ["eval_time"]
+
+    # Build base context from TRAIN patients using processed features
     train_eval_df = eval_df[eval_df["pid"].isin(pid_train)].copy()
     X_base, y_base, _ = build_xy_for_pids(train_eval_df, feature_cols, pid_train)
     

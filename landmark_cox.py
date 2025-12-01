@@ -117,15 +117,6 @@ for file_name in dataset_files:
         times = np.quantile(event_times, [0.25, 0.5, 0.75])
         print(f"Landmark times: {times}")
 
-        # Identify categorical and numerical covariates
-        categorical_cols = []
-        numerical_cols = []
-        for col in covariates:
-            if df[col].dtype == 'object' or df[col].dtype.name == 'category':
-                categorical_cols.append(col)
-            else:
-                numerical_cols.append(col)
-
         # Split patient IDs into train (70%) and test (30%)
         all_pids = df['pid'].unique()
         pids_train, pids_test = train_test_split(
@@ -133,8 +124,8 @@ for file_name in dataset_files:
         )
 
         # Split dataframe by patient IDs
-        df_train = df[df['pid'].isin(pids_train)]
-        df_test = df[df['pid'].isin(pids_test)]
+        df_train = df[df['pid'].isin(pids_train)].copy()
+        df_test = df[df['pid'].isin(pids_test)].copy()
 
         print(f"Train patients: {len(pids_train)}, Test patients: {len(pids_test)}")
 
@@ -143,15 +134,43 @@ for file_name in dataset_files:
         GLOBAL_HORIZON = float(np.quantile(train_event_times, 0.5))
         print(f"GLOBAL_HORIZON for {dataset_name}: {GLOBAL_HORIZON:.4f}")
 
-        # Calculate default values from train set for imputation
-        default_values = {}
-        for col in numerical_cols:
-            default_values[col] = df_train[col].mean()
-        for col in categorical_cols:
-            mode_val = df_train[col].mode()
-            default_values[col] = mode_val.iloc[0] if not mode_val.empty else df_train[col].iloc[0]
+        # ========== PREPROCESS DATA BEFORE LANDMARKING ==========
+        # --- One-hot encode categorical variables ---
+        # Fit on TRAIN only
+        x_train = pd.get_dummies(df_train[covariates], drop_first=True)
+        x_test = pd.get_dummies(df_test[covariates], drop_first=True)
 
-        print("Default values calculated from train set")
+        # Align columns with union of train+test
+        all_columns = x_train.columns.union(x_test.columns)
+        x_train = x_train.reindex(columns=all_columns, fill_value=0)
+        x_test = x_test.reindex(columns=all_columns, fill_value=0)
+
+        # --- Impute missing values ---
+        imputer = SimpleImputer(strategy='median')
+
+        x_train = pd.DataFrame(imputer.fit_transform(x_train),
+                            columns=x_train.columns,
+                            index=x_train.index)
+
+        x_test = pd.DataFrame(imputer.transform(x_test),
+                            columns=x_test.columns,
+                            index=x_test.index)
+
+        # Calculate default values from PROCESSED train set
+        default_values = {}
+        for col in x_train.columns:
+            default_values[col] = x_train[col].mean()
+
+        print(f"Default values calculated from processed train set ({len(default_values)} features)")
+
+        # Update dataframes with processed features
+        df_train_processed = df_train[['pid', 'time', 'time2', 'event']].copy()
+        df_train_processed = df_train_processed.join(x_train)
+
+        df_test_processed = df_test[['pid', 'time', 'time2', 'event']].copy()
+        df_test_processed = df_test_processed.join(x_test)
+
+        processed_feature_cols = list(x_train.columns)
 
         # Build patient outcome DataFrame (from full data)
         patient_outcome = build_patient_outcome(df)
@@ -162,13 +181,15 @@ for file_name in dataset_files:
         for i, landmark_time in enumerate(times):
             print(f"\nProcessing landmark time {i + 1}: {landmark_time:.2f}")
 
-            # Apply LOCF landmarking for both train and test
+            # Apply LOCF landmarking for both train and test (using processed features)
             train_df = apply_locf_landmark(
-                df_train, landmark_time, covariates, patient_outcome, default_values
+                df_train_processed, landmark_time, processed_feature_cols, 
+                patient_outcome, default_values
             )
 
             test_df = apply_locf_landmark(
-                df_test, landmark_time, covariates, patient_outcome, default_values
+                df_test_processed, landmark_time, processed_feature_cols, 
+                patient_outcome, default_values
             )
 
             print(f"Train: {len(train_df)} patients, Events: {train_df['event'].sum()}")
@@ -182,44 +203,16 @@ for file_name in dataset_files:
                 print(f"Skipping landmark {landmark_time:.2f}: insufficient test data")
                 continue
 
-            # Extract covariates
-            x_train = train_df[covariates].copy()
-            x_test = test_df[covariates].copy()
-
-            # One-hot encode categorical variables
-            x_train_ohe = pd.get_dummies(x_train, drop_first=True)
-            x_test_ohe = pd.get_dummies(x_test, drop_first=True)
-
-            # Align columns between train and test
-            all_columns = x_train_ohe.columns.union(x_test_ohe.columns)
-            for col in all_columns:
-                if col not in x_train_ohe.columns:
-                    x_train_ohe[col] = 0
-                if col not in x_test_ohe.columns:
-                    x_test_ohe[col] = 0
-
-            x_train_ohe = x_train_ohe.reindex(columns=sorted(all_columns))
-            x_test_ohe = x_test_ohe.reindex(columns=sorted(all_columns))
-
-            # Impute missing values
-            imputer = SimpleImputer(strategy='median')
-            x_train_imputed = pd.DataFrame(
-                imputer.fit_transform(x_train_ohe),
-                columns=x_train_ohe.columns,
-                index=x_train_ohe.index,
-            )
-            x_test_imputed = pd.DataFrame(
-                imputer.transform(x_test_ohe),
-                columns=x_test_ohe.columns,
-                index=x_test_ohe.index,
-            )
+            # Extract covariates (already processed)
+            x_train_landmark = train_df[processed_feature_cols].copy()
+            x_test_landmark = test_df[processed_feature_cols].copy()
 
             # Remove constant columns to avoid singularity
-            constant_cols = x_train_imputed.columns[x_train_imputed.std() == 0]
+            constant_cols = x_train_landmark.columns[x_train_landmark.std() == 0]
             if len(constant_cols) > 0:
                 print(f"Removing {len(constant_cols)} constant columns")
-                x_train_imputed = x_train_imputed.drop(columns=constant_cols)
-                x_test_imputed = x_test_imputed.drop(columns=constant_cols)
+                x_train_landmark = x_train_landmark.drop(columns=constant_cols)
+                x_test_landmark = x_test_landmark.drop(columns=constant_cols)
 
             # Prepare survival data (residual time since landmark)
             y_train = Surv.from_dataframe('event', 'time', train_df)
@@ -228,16 +221,16 @@ for file_name in dataset_files:
             # Fit Cox model at this landmark
             cox_model = CoxPHSurvivalAnalysis()
             try:
-                cox_model.fit(x_train_imputed, y_train)
+                cox_model.fit(x_train_landmark, y_train)
             except Exception as e:
                 print(f"Error fitting Cox model at landmark {landmark_time:.2f}: {e}")
                 continue
 
             # Get linear predictors (risk scores) for test set
-            test_risk_scores = cox_model.predict(x_test_imputed)
+            test_risk_scores = cox_model.predict(x_test_landmark)
 
             # Get survival functions for test patients (residual time from τ)
-            surv_funcs = cox_model.predict_survival_function(x_test_imputed)
+            surv_funcs = cox_model.predict_survival_function(x_test_landmark)
             prediction_horizon = GLOBAL_HORIZON
 
             # Store risk scores and survival probabilities for each test patient at this landmark time
