@@ -7,6 +7,7 @@ from sksurv.metrics import (
     brier_score,
     cumulative_dynamic_auc,
     concordance_index_censored,  # Harrell's C
+    concordance_index_ipcw,  # IPCW C-index
 )
 
 # -----------------------------------------------------------
@@ -201,7 +202,107 @@ def dynamic_cindex_landmark(
 
 
 # -----------------------------------------------------------
-# 5. Loop through all models & datasets and collect scores
+# 5. Dynamic IPCW C-index: C_IPCW(t | tau_landmark)
+# -----------------------------------------------------------
+
+def dynamic_cindex_ipcw(
+    survival_train,
+    survival_test,
+    pids_test,
+    pred_df,
+    tau_landmark,
+    eval_time
+):
+    """
+    IPCW C-index: C_IPCW(t | τ)
+    
+    Measures concordance at evaluation time t, given survival past τ.
+    
+    Formula:
+        C_IPCW(t | τ) = P(r_i(t) > r_j(t) | τ < T_i ≤ t < T_j)
+    
+    where:
+        - τ = tau_landmark (conditioning time)
+        - t = eval_time (evaluation/prediction horizon)
+        - r_i(t) = risk score for patient i at time t
+        - Weights adjusted by censoring distribution G(T_i | τ)
+    
+    Parameters:
+    -----------
+    survival_train : structured array
+        Training survival data (for censoring distribution estimation)
+    survival_test : structured array
+        Test survival data
+    pids_test : array
+        Test patient IDs
+    pred_df : DataFrame
+        Predictions with columns: pid, eval_time, risk
+    tau_landmark : float
+        Landmark time (conditioning time τ)
+    eval_time : float
+        Evaluation/prediction horizon time t (must be > tau_landmark)
+    
+    Returns:
+    --------
+    float : C-index value or np.nan if cannot be computed
+    """
+    
+    if eval_time <= tau_landmark:
+        return np.nan
+    
+    # 1) Subset to test subjects alive at τ (T > τ)
+    at_risk_test = survival_test["time"] > tau_landmark
+    y_test_k = survival_test[at_risk_test]
+    pids_at_risk = pids_test[at_risk_test]
+    
+    if len(pids_at_risk) == 0:
+        return np.nan
+    
+    # 2) Subset training subjects alive at τ (for conditional censoring distribution)
+    at_risk_train = survival_train["time"] > tau_landmark
+    y_train_k = survival_train[at_risk_train]
+    
+    if len(y_train_k) == 0:
+        return np.nan
+    
+    # 3) Get risk scores at eval_time for patients alive at τ
+    df_k = pred_df[
+        (pred_df["pid"].isin(pids_at_risk)) &
+        (pred_df["eval_time"] == float(eval_time))
+    ][["pid", "risk"]]
+    
+    if df_k.empty:
+        return np.nan
+    
+    # Align risk scores with pids_at_risk
+    risk_series = df_k.set_index("pid")["risk"].reindex(pids_at_risk)
+    estimate = risk_series.to_numpy()
+    
+    # If any missing risk scores, bail out
+    if np.any(pd.isna(estimate)):
+        return np.nan
+    
+    # 4) Call sksurv's IPCW C-index
+    try:
+        cindex, concordant, discordant, tied_risk, tied_time = concordance_index_ipcw(
+            survival_train=y_train_k,
+            survival_test=y_test_k,
+            estimate=estimate,
+            tau=None
+        )
+        return cindex
+    except ValueError as e:
+        # Handle cases like insufficient data, censoring issues, etc.
+        if "censoring survival function is zero" in str(e) or \
+           "time must be smaller than largest observed time point" in str(e):
+            return np.nan
+        else:
+            # Re-raise unexpected errors
+            raise
+
+
+# -----------------------------------------------------------
+# 6. Loop through all models & datasets and collect scores
 # -----------------------------------------------------------
 
 data_dir = "data"
@@ -352,9 +453,44 @@ for model_name, pred_path in models:
         rows.append({"model": model_name, "dataset": dname, "metric": "cindex",
                      "tau_start": τ3, "tau_end": τ3, "value": c_τ3})
 
+        # ----- IPCW C-index: C(t | τ_k) -----
+        c_τ2_given_τ1 = dynamic_cindex_ipcw(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ1,
+            eval_time=τ2,
+        )
+        
+        c_τ3_given_τ1 = dynamic_cindex_ipcw(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ1,
+            eval_time=τ3,
+        )
+        
+        c_τ3_given_τ2 = dynamic_cindex_ipcw(
+                survival_train=y_train,
+                survival_test=y_test,
+                pids_test=pids_test,
+                pred_df=pred_df_ds,
+                tau_landmark=τ2,
+                eval_time=τ3,
+            )
+
+        # Store results with tau_start = τ, tau_end = t
+        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
+                     "tau_start": τ1, "tau_end": τ2, "value": c_τ2_given_τ1})
+        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
+                     "tau_start": τ1, "tau_end": τ3, "value": c_τ3_given_τ1})
+        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
+                     "tau_start": τ2, "tau_end": τ3, "value": c_τ3_given_τ2})
 
 # -----------------------------------------------------------
-# 6. Save final results
+# 7. Save final results
 # -----------------------------------------------------------
 
 results_df = pd.DataFrame(rows)

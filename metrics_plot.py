@@ -16,7 +16,7 @@ MODEL_LABELS = {
     "landmark_cox": "Landmark Cox",
 }
 MODELS = list(MODEL_LABELS.keys())          # order in plots
-METRICS = ["brier", "auc", "cindex"]        # metrics to plot
+METRICS = ["brier", "auc", "cindex", "cindex_ipcw"]        # metrics to plot
 
 
 # ---------------------------------------------------------
@@ -59,11 +59,11 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 # ---------------------------------------------------------
-# Helper: grouped bar plot for Brier / AUC for one dataset
+# Helper: grouped bar plot for Brier / AUC / IPCW C-index for one dataset
 # ---------------------------------------------------------
-def plot_brier_or_auc(df_metric, metric_name, dname, out_dir):
+def plot_brier_auc_or_ipcw(df_metric, metric_name, dname, out_dir):
     """
-    df_metric: rows for a single dataset & metric ('brier' or 'auc')
+    df_metric: rows for a single dataset & metric ('brier', 'auc', or 'cindex_ipcw')
     """
     df_metric = df_metric.copy()
     df_metric["interval"] = list(zip(df_metric["tau_start"], df_metric["tau_end"]))
@@ -101,17 +101,22 @@ def plot_brier_or_auc(df_metric, metric_name, dname, out_dir):
                 fontsize=8,
             )
 
-    # x tick labels: BS(t_k | t_{k-1}) or AUC(t_k | t_{k-1})
+    # x tick labels: BS(t_k | t_{k-1}), AUC(t_k | t_{k-1}), or C(t_k | t_{k-1})
     if metric_name == "brier":
         x_labels = [f"BS({e:g}|{s:g})" for (s, e) in intervals]
         ylabel = "Brier Score"
         title_metric = "Brier Score"
         file_prefix = "brier"
-    else:  # auc
+    elif metric_name == "auc":
         x_labels = [f"AUC({e:g}|{s:g})" for (s, e) in intervals]
         ylabel = "AUC"
         title_metric = "AUC"
         file_prefix = "auc"
+    else:  # cindex_ipcw
+        x_labels = [f"C({e:g}|{s:g})" for (s, e) in intervals]
+        ylabel = "IPCW C-index"
+        title_metric = "IPCW C-index"
+        file_prefix = "cindex_ipcw"
 
     plt.xticks(x, x_labels, rotation=0)
     plt.ylim(0.0, 1.0)
@@ -193,15 +198,19 @@ for dname in common_datasets:
 
     # Brier
     df_brier = df_ds[df_ds["metric"] == "brier"].copy()
-    plot_brier_or_auc(df_brier, "brier", dname, OUTPUT_DIR)
+    plot_brier_auc_or_ipcw(df_brier, "brier", dname, OUTPUT_DIR)
 
     # AUC
     df_auc = df_ds[df_ds["metric"] == "auc"].copy()
-    plot_brier_or_auc(df_auc, "auc", dname, OUTPUT_DIR)
+    plot_brier_auc_or_ipcw(df_auc, "auc", dname, OUTPUT_DIR)
 
-    # C-index
+    # C-index (Harrell's landmark)
     df_cidx = df_ds[df_ds["metric"] == "cindex"].copy()
     plot_cindex(df_cidx, dname, OUTPUT_DIR)
+
+    # IPCW C-index
+    df_cidx_ipcw = df_ds[df_ds["metric"] == "cindex_ipcw"].copy()
+    plot_brier_auc_or_ipcw(df_cidx_ipcw, "cindex_ipcw", dname, OUTPUT_DIR)
 
 # ---------------------------------------------------------
 # Boxplots: distribution of each metric by model (blue fill only)
@@ -260,10 +269,14 @@ for metric in METRICS:
         ylabel = "AUC"
         title = "AUC Distribution by Model"
         fname = "auc_boxplot.png"
-    else:  # cindex
+    elif metric == "cindex":
         ylabel = "C-index"
         title = "C-index Distribution by Model"
         fname = "cindex_boxplot.png"
+    else:  # cindex_ipcw
+        ylabel = "IPCW C-index"
+        title = "IPCW C-index Distribution by Model"
+        fname = "cindex_ipcw_boxplot.png"
 
     plt.ylabel(ylabel)
     plt.title(title)
