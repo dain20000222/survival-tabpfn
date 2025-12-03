@@ -364,9 +364,22 @@ for model_name, pred_path in models:
             print(f"Not enough τ for dataset {dname}. Need ≥ 3.")
             continue
 
+        # Add τ₀ = 0 as the initial landmark
+        τ0 = 0.0
         τ1, τ2, τ3 = taus[:3]
 
         # ----- Brier -----
+        # From τ₀=0: BS(τ₁|0), BS(τ₂|0), BS(τ₃|0)
+        times_b0, bs_0 = dynamic_brier(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ0,
+            eval_times=[τ1, τ2, τ3],
+        )
+        
+        # From τ₁: BS(τ₂|τ₁), BS(τ₃|τ₁)
         times_b1, bs_1 = dynamic_brier(
             survival_train=y_train,
             survival_test=y_test,
@@ -375,6 +388,8 @@ for model_name, pred_path in models:
             tau_landmark=τ1,
             eval_times=[τ2, τ3],
         )
+        
+        # From τ₂: BS(τ₃|τ₂)
         times_b2, bs_2 = dynamic_brier(
             survival_train=y_train,
             survival_test=y_test,
@@ -384,17 +399,42 @@ for model_name, pred_path in models:
             eval_times=[τ3],
         )
 
+        # Store Brier scores from τ₀
+        if bs_0.size > 0:
+            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
+                         "tau_start": τ0, "tau_end": τ1, "value": bs_0[0]})
+        if bs_0.size > 1:
+            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
+                         "tau_start": τ0, "tau_end": τ2, "value": bs_0[1]})
+        if bs_0.size > 2:
+            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
+                         "tau_start": τ0, "tau_end": τ3, "value": bs_0[2]})
+        
+        # Store Brier scores from τ₁
         if bs_1.size > 0:
             rows.append({"model": model_name, "dataset": dname, "metric": "brier",
                          "tau_start": τ1, "tau_end": τ2, "value": bs_1[0]})
         if bs_1.size > 1:
             rows.append({"model": model_name, "dataset": dname, "metric": "brier",
                          "tau_start": τ1, "tau_end": τ3, "value": bs_1[1]})
+        
+        # Store Brier scores from τ₂
         if bs_2.size > 0:
             rows.append({"model": model_name, "dataset": dname, "metric": "brier",
                          "tau_start": τ2, "tau_end": τ3, "value": bs_2[0]})
 
         # ----- AUC -----
+        # From τ₀=0: AUC(τ₁|0), AUC(τ₂|0), AUC(τ₃|0)
+        times_a0, auc_0 = dynamic_auc(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ0,
+            eval_times=[τ1, τ2, τ3],
+        )
+        
+        # From τ₁: AUC(τ₂|τ₁), AUC(τ₃|τ₁)
         times_a1, auc_1 = dynamic_auc(
             survival_train=y_train,
             survival_test=y_test,
@@ -403,6 +443,8 @@ for model_name, pred_path in models:
             tau_landmark=τ1,
             eval_times=[τ2, τ3],
         )
+        
+        # From τ₂: AUC(τ₃|τ₂)
         times_a2, auc_2 = dynamic_auc(
             survival_train=y_train,
             survival_test=y_test,
@@ -412,17 +454,32 @@ for model_name, pred_path in models:
             eval_times=[τ3],
         )
 
+        # Store AUC scores from τ₀
+        if auc_0.size > 0:
+            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
+                         "tau_start": τ0, "tau_end": τ1, "value": auc_0[0]})
+        if auc_0.size > 1:
+            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
+                         "tau_start": τ0, "tau_end": τ2, "value": auc_0[1]})
+        if auc_0.size > 2:
+            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
+                         "tau_start": τ0, "tau_end": τ3, "value": auc_0[2]})
+        
+        # Store AUC scores from τ₁
         if auc_1.size > 0:
             rows.append({"model": model_name, "dataset": dname, "metric": "auc",
                          "tau_start": τ1, "tau_end": τ2, "value": auc_1[0]})
         if auc_1.size > 1:
             rows.append({"model": model_name, "dataset": dname, "metric": "auc",
                          "tau_start": τ1, "tau_end": τ3, "value": auc_1[1]})
+        
+        # Store AUC scores from τ₂
         if auc_2.size > 0:
             rows.append({"model": model_name, "dataset": dname, "metric": "auc",
                          "tau_start": τ2, "tau_end": τ3, "value": auc_2[0]})
 
         # ----- Landmark Harrell C(τ_k) -----
+        # NOTE: No C-index at τ₀=0 because there are no risk predictions at t=0
         c_τ1 = dynamic_cindex_landmark(
             survival_train=y_train,
             survival_test=y_test,
@@ -454,6 +511,33 @@ for model_name, pred_path in models:
                      "tau_start": τ3, "tau_end": τ3, "value": c_τ3})
 
         # ----- IPCW C-index: C(t | τ_k) -----
+        # From τ₀=0: C(τ₁|0), C(τ₂|0), C(τ₃|0)
+        c_τ1_given_τ0 = dynamic_cindex_ipcw(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ0,
+            eval_time=τ1,
+        )
+        c_τ2_given_τ0 = dynamic_cindex_ipcw(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ0,
+            eval_time=τ2,
+        )
+        c_τ3_given_τ0 = dynamic_cindex_ipcw(
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ0,
+            eval_time=τ3,
+        )
+        
+        # From τ₁: C(τ₂|τ₁), C(τ₃|τ₁)
         c_τ2_given_τ1 = dynamic_cindex_ipcw(
             survival_train=y_train,
             survival_test=y_test,
@@ -462,7 +546,6 @@ for model_name, pred_path in models:
             tau_landmark=τ1,
             eval_time=τ2,
         )
-        
         c_τ3_given_τ1 = dynamic_cindex_ipcw(
             survival_train=y_train,
             survival_test=y_test,
@@ -472,22 +555,34 @@ for model_name, pred_path in models:
             eval_time=τ3,
         )
         
+        # From τ₂: C(τ₃|τ₂)
         c_τ3_given_τ2 = dynamic_cindex_ipcw(
-                survival_train=y_train,
-                survival_test=y_test,
-                pids_test=pids_test,
-                pred_df=pred_df_ds,
-                tau_landmark=τ2,
-                eval_time=τ3,
-            )
+            survival_train=y_train,
+            survival_test=y_test,
+            pids_test=pids_test,
+            pred_df=pred_df_ds,
+            tau_landmark=τ2,
+            eval_time=τ3,
+        )
 
-        # Store results with tau_start = τ, tau_end = t
+        # Store IPCW C-index from τ₀
+        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
+                     "tau_start": τ0, "tau_end": τ1, "value": c_τ1_given_τ0})
+        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
+                     "tau_start": τ0, "tau_end": τ2, "value": c_τ2_given_τ0})
+        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
+                     "tau_start": τ0, "tau_end": τ3, "value": c_τ3_given_τ0})
+        
+        # Store IPCW C-index from τ₁
         rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
                      "tau_start": τ1, "tau_end": τ2, "value": c_τ2_given_τ1})
         rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
                      "tau_start": τ1, "tau_end": τ3, "value": c_τ3_given_τ1})
+        
+        # Store IPCW C-index from τ₂
         rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
                      "tau_start": τ2, "tau_end": τ3, "value": c_τ3_given_τ2})
+
 
 # -----------------------------------------------------------
 # 7. Save final results
