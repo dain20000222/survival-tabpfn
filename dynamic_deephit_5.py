@@ -76,7 +76,7 @@ def convert_to_sequential_format(df, covariates):
 risk_file_exists = os.path.isfile(risk_csv_path)
 if not risk_file_exists:
     with open(risk_csv_path, 'w', newline='') as csvfile:
-        fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
+        fieldnames = ['pid', 'tau', 't', 'risk', 'surv_prob', 'dataset']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -108,16 +108,16 @@ for file_name in dataset_files:
         else:
             numerical_cols.append(col)
 
-    # Get event times for evaluation time calculation
+    # Get event times for landmark calculation
     event_times = df[df[event_col] == 1]["time2"].values
     if len(event_times) == 0:
         print(f"Skipping {dataset_name}: No events observed")
         continue
     
-    # Calculate evaluation times from ALL data (before splitting)
-    horizons = [0.1, 0.3, 0.5, 0.7, 0.9]
-    times = np.quantile(event_times, horizons).tolist()
-    print(f"Evaluation times: {times}")
+    # Calculate 5 landmark times (10, 30, 50, 70, 90 quantiles)
+    τ1, τ2, τ3, τ4, τ5 = np.quantile(event_times, [0.1, 0.3, 0.5, 0.7, 0.9])
+    landmark_times = [τ1, τ2, τ3, τ4, τ5]
+    print(f"Landmark times: τ1={τ1:.2f}, τ2={τ2:.2f}, τ3={τ3:.2f}, τ4={τ4:.2f}, τ5={τ5:.2f}")
 
     # Split by patient ID (70-30 train-test split)
     original_pids = df["pid"].unique()
@@ -175,7 +175,7 @@ for file_name in dataset_files:
     print(f"Default values calculated from train set")
 
     # Add default rows to TRAIN set
-    first_eval_time = times[0]
+    first_eval_time = landmark_times[0]
     default_rows_train = []
     for pid in train_pids:
         patient_data = df_train[df_train['pid'] == pid]
@@ -249,7 +249,7 @@ for file_name in dataset_files:
                         att_param = {'layers': param['hidden_att'], 'dropout': 0.3}, 
                         cs_param = {'layers': param['hidden_cs'], 'dropout': 0.3},
                         sigma = param['sigma'],
-                        split = [0] + times + [np.max([t_.max() for t_ in t_train])])
+                        split = [0] + landmark_times + [np.max([t_.max() for t_ in t_train])])
             
             # Train the model
             model.fit(x_train, t_train, e_train, iters = 10, 
@@ -267,57 +267,105 @@ for file_name in dataset_files:
         print(f"Skipping {dataset_name}: No models were successfully trained")
         continue
 
-    # Use the model for test predictions
-    out_risk = model.predict_risk(x_test, times, all_step = True)
-    print(f"Risk prediction shape: {out_risk.shape}")
+    # ========== Dynamic Landmark Evaluation (aligned with landmark_cox.py) ==========
+    print(f"\n{'='*50}")
+    print("Performing dynamic landmark evaluation...")
+    print(f"{'='*50}")
 
-    # Initialize dictionary to store all risks for each patient
-    patient_risks_dict = {pid: [] for pid in test_pids}
+    # Dictionary to store predictions for all test patients
+    patient_predictions = {pid: {} for pid in test_pids}
 
-    for i, eval_time in enumerate(times):
-        risk_scores = out_risk[:, i]  # Shape: (n_test, max_seq_len)
+    # For each landmark time
+    for idx, tau in enumerate(landmark_times, 1):
+        print(f"\n{'='*50}")
+        print(f"Processing landmark time τ{idx} = {tau:.2f}")
+        print(f"{'='*50}")
         
-        # Extract risk score from most recent visit BEFORE eval_time
-        final_risk_scores = []
-        for patient_idx, patient_risks in enumerate(risk_scores):
-            # Get this patient's visit times
-            patient_visit_times = t_test[patient_idx]  # Array of visit times
+        # Predict risk at all future landmark times using information only up to tau
+        future_times = [landmark_times[i] for i in range(idx-1, len(landmark_times))]
+        
+        # Get risk predictions - shape: (n_test, n_future_times, max_seq_len)
+        out_risk = model.predict_risk(x_test, future_times, all_step=True)
+        
+        # For each test patient, extract the risk score at tau
+        for patient_idx, pid in enumerate(test_pids):
+            patient_visit_times = t_test[patient_idx]
             
-            # Find visits that occurred before or at eval_time
-            valid_visits_mask = patient_visit_times <= eval_time
+            # Find the most recent visit at or before tau
+            valid_visits_mask = patient_visit_times <= tau
             
-            # Get the index of the most recent valid visit
+            if not np.any(valid_visits_mask):
+                # No visits before tau - skip this patient for this landmark
+                continue
+            
             valid_visit_indices = np.where(valid_visits_mask)[0]
             most_recent_visit_idx = valid_visit_indices[-1]
             
-            # Get the risk score from that visit
-            risk_at_visit = patient_risks[most_recent_visit_idx]
+            # Extract risk score at tau (first future time, which is tau itself or next landmark)
+            # Risk score at tau for predicting event by tau
+            risk_at_tau = out_risk[patient_idx, 0, most_recent_visit_idx]
             
-            final_risk_scores.append(risk_at_visit)
-        
-        final_risk_scores = np.array(final_risk_scores)
-        
-        # Append risks for this evaluation time
-        for pid, risk in zip(test_pids, final_risk_scores):
-            patient_risks_dict[pid].append((eval_time, risk))
+            # Extract survival probabilities for future landmarks
+            surv_probs = {}
+            for future_idx in range(idx, len(landmark_times)):
+                # Index in out_risk for this future time
+                risk_idx = future_idx - idx + 1
+                if risk_idx < out_risk.shape[1]:
+                    risk_future = out_risk[patient_idx, risk_idx, most_recent_visit_idx]
+                    # Survival probability = 1 - risk
+                    surv_probs[f'surv_tau{future_idx+1}'] = 1.0 - risk_future
+            
+            # Store predictions
+            patient_predictions[pid][f'tau{idx}'] = {
+                'risk': risk_at_tau,
+                **surv_probs
+            }
+            
+        print(f"✓ Predictions extracted for {len([p for p in patient_predictions.values() if f'tau{idx}' in p])} patients at τ{idx}")
 
-    # Save all risk predictions to CSV (grouped by patient)
+    # ========== Save all predictions to CSV (same format as landmark_cox.py) ==========
+    print(f"\n{'='*50}")
+    print("Saving predictions to CSV...")
+    print(f"{'='*50}")
+
     with open(risk_csv_path, 'a', newline='') as csvfile:
-        fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
+        fieldnames = ['pid', 'tau', 't', 'risk', 'surv_prob', 'dataset']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
-        # Write risk data for each patient
-        for pid, risks in patient_risks_dict.items():
-            for eval_time, risk in risks:
-                # Find the corresponding survival probability (1 - risk)
-                surv_prob = 1 - risk
-                
-                writer.writerow({
-                    'pid': pid,
-                    'eval_time': eval_time,
-                    'risk': risk,
-                    'surv_prob': surv_prob,
-                    'dataset': dataset_name
-                })
 
-print("Processing complete.")
+        for pid in sorted(test_pids):
+            pred = patient_predictions[pid]
+            
+            # First, write all risk scores (τ1, τ2, τ3, τ4, τ5)
+            for idx, tau in enumerate(landmark_times, 1):
+                if f'tau{idx}' in pred:
+                    writer.writerow({
+                        'pid': pid,
+                        'tau': tau,
+                        't': np.nan,
+                        'risk': pred[f'tau{idx}']['risk'] if np.isfinite(pred[f'tau{idx}']['risk']) else np.nan,
+                        'surv_prob': np.nan,
+                        'dataset': dataset_name,
+                    })
+            
+            # Then, write all survival probabilities
+            for idx, tau in enumerate(landmark_times, 1):
+                if f'tau{idx}' in pred:
+                    # Write survival probabilities for all future timepoints
+                    for future_idx in range(idx, len(landmark_times)):
+                        future_tau = landmark_times[future_idx]
+                        surv_key = f'surv_tau{future_idx+1}'
+                        if surv_key in pred[f'tau{idx}']:
+                            writer.writerow({
+                                'pid': pid,
+                                'tau': tau,
+                                't': future_tau,
+                                'risk': np.nan,
+                                'surv_prob': pred[f'tau{idx}'][surv_key] if np.isfinite(pred[f'tau{idx}'][surv_key]) else np.nan,
+                                'dataset': dataset_name,
+                            })
+
+    print(f"✓ Risk predictions saved to {risk_csv_path}")
+
+print("\n" + "="*50)
+print("Processing complete!")
+print("="*50)
