@@ -28,7 +28,7 @@ risk_csv_path = "landmark_cox_risk_5.csv"
 risk_file_exists = os.path.isfile(risk_csv_path)
 if not risk_file_exists:
     with open(risk_csv_path, 'w', newline='') as csvfile:
-        fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
+        fieldnames = ['pid', 'tau', 't', 'risk', 'surv_prob', 'dataset']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -113,9 +113,10 @@ for file_name in dataset_files:
             print(f"Skipping {dataset_name}: No events observed")
             continue
 
-        # Pick three landmark times (25, 50, 75 quantiles of event times)
-        times = np.quantile(event_times, [0.1, 0.3, 0.5, 0.7, 0.9])
-        print(f"Landmark times: {times}")
+        # Pick five landmark times (10, 30, 50, 70, 90 quantiles of event times)
+        τ1, τ2, τ3, τ4, τ5 = np.quantile(event_times, [0.1, 0.3, 0.5, 0.7, 0.9])
+        landmark_times = [τ1, τ2, τ3, τ4, τ5]
+        print(f"Landmark times: τ1={τ1:.2f}, τ2={τ2:.2f}, τ3={τ3:.2f}, τ4={τ4:.2f}, τ5={τ5:.2f}")
 
         # Split patient IDs into train (70%) and test (30%)
         all_pids = df['pid'].unique()
@@ -170,97 +171,124 @@ for file_name in dataset_files:
         # Build patient outcome DataFrame (from full data)
         patient_outcome = build_patient_outcome(df)
 
-        # Dictionary to store risk scores and survival probabilities for all test patients
-        patient_risks_dict = {pid: [] for pid in pids_test}
+        # Dictionary to store predictions for all test patients
+        patient_predictions = {pid: {} for pid in pids_test}
 
-        for i, landmark_time in enumerate(times):
-            print(f"\nProcessing landmark time {i + 1}: {landmark_time:.2f}")
+        # ========== Process each landmark time ==========
+        for idx, tau in enumerate(landmark_times, 1):
+            print(f"\n{'='*50}")
+            print(f"Processing landmark time τ{idx} = {tau:.2f}")
+            print(f"{'='*50}")
+
+            train_df_tau = apply_locf_landmark(
+                df_train_processed, tau, processed_feature_cols, 
+                patient_outcome, default_values
+            )
+
+            test_df_tau = apply_locf_landmark(
+                df_test_processed, tau, processed_feature_cols, 
+                patient_outcome, default_values
+            )
+
+            print(f"Train: {len(train_df_tau)} patients, Events: {train_df_tau['event'].sum()}")
+            print(f"Test:  {len(test_df_tau)} patients, Events: {test_df_tau['event'].sum()}")
+
+            if len(train_df_tau) >= 10 and train_df_tau['event'].sum() >= 5 and len(test_df_tau) >= 5:
+                # Extract covariates
+                x_train_tau = train_df_tau[processed_feature_cols].copy()
+                x_test_tau = test_df_tau[processed_feature_cols].copy()
+
+                # Remove constant columns
+                constant_cols = x_train_tau.columns[x_train_tau.std() == 0]
+                if len(constant_cols) > 0:
+                    print(f"Removing {len(constant_cols)} constant columns")
+                    x_train_tau = x_train_tau.drop(columns=constant_cols)
+                    x_test_tau = x_test_tau.drop(columns=constant_cols)
+
+                # Prepare survival data
+                y_train_tau = Surv.from_dataframe('event', 'time', train_df_tau)
+
+                # Fit Cox model
+                cox_model_tau = CoxPHSurvivalAnalysis()
+                try:
+                    cox_model_tau.fit(x_train_tau, y_train_tau)
+
+                    # Get risk scores
+                    test_risk_scores_tau = cox_model_tau.predict(x_test_tau)
+
+                    # Get survival functions
+                    surv_funcs_tau = cox_model_tau.predict_survival_function(x_test_tau)
+
+                    # Store predictions for each test patient
+                    for test_idx, pid in enumerate(test_df_tau['pid'].values):
+                        risk = test_risk_scores_tau[test_idx]
+                        surv_func = surv_funcs_tau[test_idx]
                         
-            mask = patient_outcome["t_event"] > landmark_time
-            residual_times = patient_outcome.loc[mask, "t_event"] - landmark_time
-            prediction_horizon = float(np.median(residual_times))
+                        # Calculate survival probabilities at all future landmark times
+                        surv_probs = {}
+                        for future_idx in range(idx, len(landmark_times)):
+                            future_tau = landmark_times[future_idx]
+                            surv_probs[f'surv_tau{future_idx+1}'] = surv_func(future_tau - tau)
+                        
+                        patient_predictions[pid][f'tau{idx}'] = {
+                            'risk': risk,
+                            **surv_probs
+                        }
 
-            # Apply LOCF landmarking for both train and test (using processed features)
-            train_df = apply_locf_landmark(
-                df_train_processed, landmark_time, processed_feature_cols, 
-                patient_outcome, default_values
-            )
+                except Exception as e:
+                    print(f"✗ Error fitting Cox model at τ{idx}: {e}")
+            else:
+                print(f"✗ Skipping τ{idx}: insufficient data")
 
-            test_df = apply_locf_landmark(
-                df_test_processed, landmark_time, processed_feature_cols, 
-                patient_outcome, default_values
-            )
+        # ========== Save all predictions to CSV ==========
+        print(f"\n{'='*50}")
+        print("Saving predictions to CSV...")
+        print(f"{'='*50}")
 
-            print(f"Train: {len(train_df)} patients, Events: {train_df['event'].sum()}")
-            print(f"Test:  {len(test_df)} patients, Events: {test_df['event'].sum()}")
-
-            if len(train_df) < 10 or train_df['event'].sum() < 5:
-                print(f"Skipping landmark {landmark_time:.2f}: insufficient train data")
-                continue
-
-            if len(test_df) < 5:
-                print(f"Skipping landmark {landmark_time:.2f}: insufficient test data")
-                continue
-
-            # Extract covariates (already processed)
-            x_train_landmark = train_df[processed_feature_cols].copy()
-            x_test_landmark = test_df[processed_feature_cols].copy()
-
-            # Remove constant columns to avoid singularity
-            constant_cols = x_train_landmark.columns[x_train_landmark.std() == 0]
-            if len(constant_cols) > 0:
-                print(f"Removing {len(constant_cols)} constant columns")
-                x_train_landmark = x_train_landmark.drop(columns=constant_cols)
-                x_test_landmark = x_test_landmark.drop(columns=constant_cols)
-
-            # Prepare survival data (residual time since landmark)
-            y_train = Surv.from_dataframe('event', 'time', train_df)
-            y_test = Surv.from_dataframe('event', 'time', test_df)
-
-            # Fit Cox model at this landmark
-            cox_model = CoxPHSurvivalAnalysis()
-            try:
-                cox_model.fit(x_train_landmark, y_train)
-            except Exception as e:
-                print(f"Error fitting Cox model at landmark {landmark_time:.2f}: {e}")
-                continue
-
-            # Get linear predictors (risk scores) for test set
-            test_risk_scores = cox_model.predict(x_test_landmark)
-
-            # Get survival functions for test patients at this landmark
-            surv_funcs = cox_model.predict_survival_function(x_test_landmark)
-
-            # Store risk scores and survival probabilities for each test patient at this landmark time
-            for idx, pid in enumerate(test_df['pid'].values):
-                risk_score = test_risk_scores[idx]
-                surv_func = surv_funcs[idx]
-                surv_prob = surv_func(prediction_horizon)
-
-                patient_risks_dict[pid].append((landmark_time, risk_score, surv_prob))
-
-            print(f"Predictions saved for {len(test_df)} patients at landmark {landmark_time:.2f}")
-
-        # Save all risk predictions to CSV (grouped by patient)
         with open(risk_csv_path, 'a', newline='') as csvfile:
-            fieldnames = ['pid', 'eval_time', 'risk', 'surv_prob', 'dataset']
+            fieldnames = ['pid', 'tau', 't', 'risk', 'surv_prob', 'dataset']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             for pid in sorted(pids_test):
-                if pid in patient_risks_dict and len(patient_risks_dict[pid]) > 0:
-                    for eval_time, risk, surv_prob in patient_risks_dict[pid]:
+                pred = patient_predictions[pid]
+                
+                # First, write all risk scores (τ1, τ2, τ3, τ4, τ5)
+                for idx, tau in enumerate(landmark_times, 1):
+                    if f'tau{idx}' in pred:
                         writer.writerow({
                             'pid': pid,
-                            'eval_time': eval_time,  # landmark time
-                            'risk': risk if np.isfinite(risk) else np.nan,
-                            'surv_prob': surv_prob if np.isfinite(surv_prob) else np.nan,
+                            'tau': tau,
+                            't': np.nan,
+                            'risk': pred[f'tau{idx}']['risk'] if np.isfinite(pred[f'tau{idx}']['risk']) else np.nan,
+                            'surv_prob': np.nan,
                             'dataset': dataset_name,
                         })
+                
+                # Then, write all survival probabilities
+                for idx, tau in enumerate(landmark_times, 1):
+                    if f'tau{idx}' in pred:
+                        # Write survival probabilities for all future timepoints
+                        for future_idx in range(idx, len(landmark_times)):
+                            future_tau = landmark_times[future_idx]
+                            surv_key = f'surv_tau{future_idx+1}'
+                            if surv_key in pred[f'tau{idx}']:
+                                writer.writerow({
+                                    'pid': pid,
+                                    'tau': tau,
+                                    't': future_tau,
+                                    'risk': np.nan,
+                                    'surv_prob': pred[f'tau{idx}'][surv_key] if np.isfinite(pred[f'tau{idx}'][surv_key]) else np.nan,
+                                    'dataset': dataset_name,
+                                })
 
-        print(f"\nRisk predictions saved to {risk_csv_path}")
+        print(f"✓ Risk predictions saved to {risk_csv_path}")
 
     except Exception as e:
-        print(f"Error processing dataset {dataset_name}: {str(e)}")
+        print(f"✗ Error processing dataset {dataset_name}: {str(e)}")
         import traceback
         traceback.print_exc()
         continue
+
+print("\n" + "="*50)
+print("All datasets processed!")
+print("="*50)
