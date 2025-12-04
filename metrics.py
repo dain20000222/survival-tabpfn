@@ -3,18 +3,17 @@ import numpy as np
 import pandas as pd
 
 from sksurv.util import Surv
-from sksurv.metrics import (
-    brier_score,
-    cumulative_dynamic_auc,
-    concordance_index_censored,  # Harrell's C
-    concordance_index_ipcw,  # IPCW C-index
-)
+from sksurv.metrics import concordance_index_censored, concordance_index_ipcw, cumulative_dynamic_auc, brier_score
 
 # -----------------------------------------------------------
 # 1. Helper: read survival dataset and collapse to (T_i, δ_i)
 # -----------------------------------------------------------
 
 def load_survival_dataset(path):
+    """
+    Load survival dataset and get final outcome for each patient.
+    Returns DataFrame with columns: pid, time, event
+    """
     df = pd.read_csv(path)
     pat_df = (
         df.groupby("pid", as_index=False)
@@ -25,572 +24,596 @@ def load_survival_dataset(path):
 
 
 # -----------------------------------------------------------
-# 2. Dynamic Brier score: BS(t | tau_landmark)
+# 2. Harrell's C-index at each landmark time
 # -----------------------------------------------------------
 
-def dynamic_brier(
-    survival_train,
+def compute_harrell_cindex_at_landmarks(
     survival_test,
-    pids_test,
     pred_df,
-    tau_landmark,
-    eval_times
-):
-    eval_times = np.asarray(eval_times, dtype=float)
-    eval_times = np.sort(eval_times)
-
-    # test subjects alive at τ
-    at_risk_test = survival_test["time"] > tau_landmark
-    y_test_k = survival_test[at_risk_test]
-    pids_at_risk = pids_test[at_risk_test]
-
-    # training subjects alive at τ (for conditional censoring)
-    at_risk_train = survival_train["time"] > tau_landmark
-    y_train_k = survival_train[at_risk_train]
-
-    # select predictions for those subjects and future times
-    mask_pred = (
-        pred_df["pid"].isin(pids_at_risk)
-        & pred_df["eval_time"].isin(eval_times)
-        & (pred_df["eval_time"] > tau_landmark)
-    )
-    df_k = pred_df.loc[mask_pred, ["pid", "eval_time", "surv_prob"]]
-
-    pivot = (
-        df_k.pivot(index="pid", columns="eval_time", values="surv_prob")
-            .reindex(index=pids_at_risk, columns=eval_times)
-    )
-    # drop columns with all-NaN (no predictions at that time)
-    pivot = pivot.loc[:, pivot.notna().any(axis=0)]
-    times_used = pivot.columns.to_numpy(dtype=float)
-    estimate = pivot.to_numpy()
-
-    if estimate.size == 0:
-        return np.array([]), np.array([])
-
-    times_out, bs_values = brier_score(
-        survival_train=y_train_k,
-        survival_test=y_test_k,
-        estimate=estimate,
-        times=times_used,
-    )
-    return times_out, bs_values
-
-
-# -----------------------------------------------------------
-# 3. Dynamic AUC: AUC(t | tau_landmark) with NaN on censoring failure
-# -----------------------------------------------------------
-
-def dynamic_auc(
-    survival_train,
-    survival_test,
-    pids_test,
-    pred_df,
-    tau_landmark,
-    eval_times
-):
-    eval_times = np.asarray(eval_times, dtype=float)
-    eval_times = np.sort(eval_times)
-
-    # test subjects alive at τ
-    at_risk_test = survival_test["time"] > tau_landmark
-    y_test_k = survival_test[at_risk_test]
-    pids_at_risk = pids_test[at_risk_test]
-
-    # training subjects alive at τ (for conditional censoring)
-    at_risk_train = survival_train["time"] > tau_landmark
-    y_train_k = survival_train[at_risk_train]
-
-    # select predictions for those subjects and future times
-    mask_pred = (
-        pred_df["pid"].isin(pids_at_risk)
-        & pred_df["eval_time"].isin(eval_times)
-        & (pred_df["eval_time"] > tau_landmark)
-    )
-    df_k = pred_df.loc[mask_pred, ["pid", "eval_time", "risk"]]
-
-    pivot = (
-        df_k.pivot(index="pid", columns="eval_time", values="risk")
-            .reindex(index=pids_at_risk, columns=eval_times)
-    )
-    pivot = pivot.loc[:, pivot.notna().any(axis=0)]
-    times_used = pivot.columns.to_numpy(dtype=float)
-    estimate = pivot.to_numpy()
-
-    if estimate.size == 0:
-        # return NaNs for requested times (keeps shape for caller)
-        return times_used, np.full(len(times_used), np.nan)
-
-    try:
-        auc_values, mean_auc = cumulative_dynamic_auc(
-            survival_train=y_train_k,
-            survival_test=y_test_k,
-            estimate=estimate,
-            times=times_used,
-        )
-        return times_used, auc_values
-    except ValueError as e:
-        if "censoring survival function is zero" in str(e) or \
-           "time must be smaller than largest observed time point" in str(e):
-            return times_used, np.full(len(times_used), np.nan)
-        else:
-            raise
-
-
-# -----------------------------------------------------------
-# 4. Dynamic landmark C-index using Harrell's C
-# -----------------------------------------------------------
-
-def dynamic_cindex_landmark(
-    survival_train,   # kept for compatibility, not used with Harrell's C
-    survival_test,
-    pids_test,
-    pred_df,
-    tau_landmark,
+    landmark_times
 ):
     """
-    Landmarked Harrell C-index at τ = tau_landmark:
-
-        C_Harrell(τ) = P( higher risk at τ for the subject who fails first after τ )
-
-    Implementation:
-      - restrict test to subjects with T > τ (alive at τ)
-      - use risk scores at eval_time == τ
-      - compute Harrell's C on these truncated test outcomes
-    """
-
-    # 1) test subjects alive at τ
-    at_risk_test = survival_test["time"] > tau_landmark
-    y_test_k = survival_test[at_risk_test]
-    pids_at_risk = pids_test[at_risk_test]
-
-    if len(pids_at_risk) == 0:
-        return np.nan
-
-    # 2) risk scores at landmark τ (NOT at future t)
-    df_k = pred_df[
-        (pred_df["pid"].isin(pids_at_risk)) &
-        (pred_df["eval_time"] == float(tau_landmark))
-    ][["pid", "risk"]]
-
-    if df_k.empty:
-        return np.nan
-
-    risk_series = df_k.set_index("pid")["risk"].reindex(pids_at_risk)
-    estimate = risk_series.to_numpy()
-
-    # if any missing risk, bail out
-    if np.any(pd.isna(estimate)):
-        return np.nan
-
-    # 3) Harrell's C on truncated test data
-    event_indicator = y_test_k["event"].astype(bool)
-    event_time = y_test_k["time"]
-
-    try:
-        cindex, concordant, discordant, tied_risk, tied_time = (
-            concordance_index_censored(
-                event_indicator=event_indicator,
-                event_time=event_time,
-                estimate=estimate,
-            )
-        )
-        return cindex
-    except ValueError:
-        # degenerate cases (e.g., no comparable pairs)
-        return np.nan
-
-
-# -----------------------------------------------------------
-# 5. Dynamic IPCW C-index: C_IPCW(t | tau_landmark)
-# -----------------------------------------------------------
-
-def dynamic_cindex_ipcw(
-    survival_train,
-    survival_test,
-    pids_test,
-    pred_df,
-    tau_landmark,
-    eval_time
-):
-    """
-    IPCW C-index: C_IPCW(t | τ)
+    Compute Harrell's C-index at each landmark time τ.
     
-    Measures concordance at evaluation time t, given survival past τ.
+    For 3 landmarks [τ1, τ2, τ3], compute:
+    - C-index for model trained using info up to τ1
+    - C-index for model trained using info up to τ2
+    - C-index for model trained using info up to τ3
     
-    Formula:
-        C_IPCW(t | τ) = P(r_i(t) > r_j(t) | τ < T_i ≤ t < T_j)
+    Formula: C(τ_k) = Σ δ_i * 1(τ_k < T_i < T_j) * 1(r_i > r_j) / Σ δ_i * 1(τ_k < T_i < T_j)
     
-    where:
-        - τ = tau_landmark (conditioning time)
-        - t = eval_time (evaluation/prediction horizon)
-        - r_i(t) = risk score for patient i at time t
-        - Weights adjusted by censoring distribution G(T_i | τ)
+    Only includes patients with T > τ_k (alive at landmark).
     
     Parameters:
     -----------
-    survival_train : structured array
-        Training survival data (for censoring distribution estimation)
-    survival_test : structured array
-        Test survival data
-    pids_test : array
-        Test patient IDs
+    survival_test : DataFrame
+        Test patient outcomes with columns: pid, time, event
     pred_df : DataFrame
-        Predictions with columns: pid, eval_time, risk
-    tau_landmark : float
-        Landmark time (conditioning time τ)
-    eval_time : float
-        Evaluation/prediction horizon time t (must be > tau_landmark)
+        Predictions with columns: pid, tau, t, risk, surv_prob, dataset
+    landmark_times : list
+        List of landmark times [τ1, τ2, τ3]
     
     Returns:
     --------
-    float : C-index value or np.nan if cannot be computed
+    tuple: (list of C-index values, list of n_patients) for each landmark
     """
     
-    if eval_time <= tau_landmark:
-        return np.nan
+    cindices = []
+    n_patients_list = []
     
-    # 1) Subset to test subjects alive at τ (T > τ)
-    at_risk_test = survival_test["time"] > tau_landmark
-    y_test_k = survival_test[at_risk_test]
-    pids_at_risk = pids_test[at_risk_test]
+    for tau in landmark_times:
+        # 1) Subset to patients with T > τ_k (alive at landmark)
+        at_risk = survival_test[survival_test["time"] > tau].copy()
+        
+        if len(at_risk) < 2:
+            cindices.append(np.nan)
+            n_patients_list.append(0)
+            continue
+        
+        # 2) Get risk scores at this landmark (where tau matches and t is NaN)
+        risk_data = pred_df[
+            (pred_df["tau"] == tau) &
+            (pred_df["t"].isna())
+        ][["pid", "risk"]].copy()
+        
+        if risk_data.empty:
+            cindices.append(np.nan)
+            n_patients_list.append(0)
+            continue
+        
+        # 3) Merge risk scores with at-risk patient outcomes
+        merged = at_risk.merge(risk_data, on="pid", how="inner")
+        
+        if len(merged) < 2:
+            cindices.append(np.nan)
+            n_patients_list.append(len(merged))
+            continue
+        
+        # Check if there's variation in events
+        if merged["event"].sum() == 0 or merged["event"].sum() == len(merged):
+            cindices.append(np.nan)
+            n_patients_list.append(len(merged))
+            continue
+        
+        # 4) Compute Harrell's C-index using patients with T > τ_k
+        try:
+            cindex, concordant, discordant, tied_risk, tied_time = (
+                concordance_index_censored(
+                    event_indicator=merged["event"].astype(bool).values,
+                    event_time=merged["time"].values,
+                    estimate=merged["risk"].values,
+                )
+            )
+            cindices.append(cindex)
+            n_patients_list.append(len(merged))
+        except Exception as e:
+            print(f"  Error computing C-index at τ={tau}: {e}")
+            cindices.append(np.nan)
+            n_patients_list.append(len(merged))
     
-    if len(pids_at_risk) == 0:
-        return np.nan
-    
-    # 2) Subset training subjects alive at τ (for conditional censoring distribution)
-    at_risk_train = survival_train["time"] > tau_landmark
-    y_train_k = survival_train[at_risk_train]
-    
-    if len(y_train_k) == 0:
-        return np.nan
-    
-    # 3) Get risk scores at eval_time for patients alive at τ
-    df_k = pred_df[
-        (pred_df["pid"].isin(pids_at_risk)) &
-        (pred_df["eval_time"] == float(eval_time))
-    ][["pid", "risk"]]
-    
-    if df_k.empty:
-        return np.nan
-    
-    # Align risk scores with pids_at_risk
-    risk_series = df_k.set_index("pid")["risk"].reindex(pids_at_risk)
-    estimate = risk_series.to_numpy()
-    
-    # If any missing risk scores, bail out
-    if np.any(pd.isna(estimate)):
-        return np.nan
-    
-    # 4) Call sksurv's IPCW C-index
-    try:
-        cindex, concordant, discordant, tied_risk, tied_time = concordance_index_ipcw(
-            survival_train=y_train_k,
-            survival_test=y_test_k,
-            estimate=estimate,
-            tau=None
-        )
-        return cindex
-    except ValueError as e:
-        # Handle cases like insufficient data, censoring issues, etc.
-        if "censoring survival function is zero" in str(e) or \
-           "time must be smaller than largest observed time point" in str(e):
-            return np.nan
-        else:
-            # Re-raise unexpected errors
-            raise
+    return cindices, n_patients_list
 
 
 # -----------------------------------------------------------
-# 6. Loop through all models & datasets and collect scores
+# 3. IPCW C-index at each landmark time
+# -----------------------------------------------------------
+
+def compute_ipcw_cindex_at_landmarks(
+    survival_train,
+    survival_test,
+    pred_df,
+    landmark_times
+):
+    """
+    Compute IPCW C-index at each landmark time τ.
+    
+    For 3 landmarks [τ1, τ2, τ3], compute:
+    - C-index for model trained using info up to τ1
+    - C-index for model trained using info up to τ2
+    - C-index for model trained using info up to τ3
+    
+    Formula: C_IPCW(τ_k) = Σ [δ_i * 1(τ_k < T_i < T_j) / G(T_i|τ_k)²] * 1(r_i > r_j) 
+                           / Σ [δ_i * 1(τ_k < T_i < T_j) / G(T_i|τ_k)²]
+    
+    Only includes patients with T > τ_k (alive at landmark) in both train and test.
+    
+    Parameters:
+    -----------
+    survival_train : DataFrame
+        Train patient outcomes with columns: pid, time, event (used for censoring weights)
+    survival_test : DataFrame
+        Test patient outcomes with columns: pid, time, event
+    pred_df : DataFrame
+        Predictions with columns: pid, tau, t, risk, surv_prob, dataset
+    landmark_times : list
+        List of landmark times [τ1, τ2, τ3]
+    
+    Returns:
+    --------
+    tuple: (list of IPCW C-index values, list of n_patients) for each landmark
+    """
+    
+    cindices = []
+    n_patients_list = []
+    
+    for tau in landmark_times:
+        # 1) Subset TRAIN to patients with T > τ_k (alive at landmark)
+        train_at_risk = survival_train[survival_train["time"] > tau].copy()
+        
+        if len(train_at_risk) < 2:
+            cindices.append(np.nan)
+            n_patients_list.append(0)
+            continue
+        
+        # Create structured array for train set (for censoring weight estimation)
+        y_train = Surv.from_dataframe("event", "time", train_at_risk)
+        
+        # 2) Subset TEST to patients with T > τ_k (alive at landmark)
+        test_at_risk = survival_test[survival_test["time"] > tau].copy()
+        
+        if len(test_at_risk) < 2:
+            cindices.append(np.nan)
+            n_patients_list.append(0)
+            continue
+        
+        # 3) Get risk scores at this landmark (where tau matches and t is NaN)
+        risk_data = pred_df[
+            (pred_df["tau"] == tau) &
+            (pred_df["t"].isna())
+        ][["pid", "risk"]].copy()
+        
+        if risk_data.empty:
+            cindices.append(np.nan)
+            n_patients_list.append(0)
+            continue
+        
+        # 4) Merge risk scores with at-risk test patient outcomes
+        merged = test_at_risk.merge(risk_data, on="pid", how="inner")
+        
+        if len(merged) < 2:
+            cindices.append(np.nan)
+            n_patients_list.append(len(merged))
+            continue
+        
+        # Check if there's variation in events
+        if merged["event"].sum() == 0 or merged["event"].sum() == len(merged):
+            cindices.append(np.nan)
+            n_patients_list.append(len(merged))
+            continue
+        
+        # 5) Create structured array for test set
+        y_test = Surv.from_dataframe("event", "time", merged)
+        
+        # 6) Compute IPCW C-index
+        try:
+            # Use tau as the evaluation time
+            cindex, concordant, discordant, tied_risk, tied_time = (
+                concordance_index_ipcw(
+                    survival_train=y_train,
+                    survival_test=y_test,
+                    estimate=merged["risk"].values,
+                    tau=None
+                )
+            )
+            cindices.append(cindex)
+            n_patients_list.append(len(merged))
+        except Exception as e:
+            print(f"  Error computing IPCW C-index at τ={tau}: {e}")
+            cindices.append(np.nan)
+            n_patients_list.append(len(merged))
+    
+    return cindices, n_patients_list
+
+
+# -----------------------------------------------------------
+# 4. IPCW AUC at each landmark time and horizon
+# -----------------------------------------------------------
+
+def compute_ipcw_auc_at_landmarks(
+    survival_train,
+    survival_test,
+    pred_df,
+    landmark_times
+):
+    """
+    Compute IPCW AUC using risk scores from earlier landmarks to predict later times.
+    
+    For 3 landmarks [τ1, τ2, τ3], compute:
+    - AUC(τ2), model trained using info up to τ1 
+    - AUC(τ3), model trained using info up to τ1 
+    - AUC(τ3), model trained using info up to τ2 
+    
+    Parameters:
+    -----------
+    survival_train : DataFrame
+        Train patient outcomes with columns: pid, time, event
+    survival_test : DataFrame
+        Test patient outcomes with columns: pid, time, event
+    pred_df : DataFrame
+        Predictions with columns: pid, tau, t, risk, surv_prob, dataset
+    landmark_times : list
+        List of landmark times [τ1, τ2, τ3]
+    
+    Returns:
+    --------
+    list of dicts with keys: tau, t, auc, n_patients
+    """
+    
+    results = []
+    
+    # For each landmark tau_i, use risk scores to predict AUC at later landmarks tau_j (j > i)
+    for i, tau_risk in enumerate(landmark_times[:-1]):  # Exclude last landmark
+        # Get risk scores at tau_risk
+        risk_data = pred_df[
+            (pred_df["tau"] == tau_risk) &
+            (pred_df["t"].isna())
+        ][["pid", "risk"]].copy()
+        
+        if risk_data.empty:
+            continue
+        
+        # For each later landmark time
+        for j in range(i+1, len(landmark_times)):
+            tau_eval = landmark_times[j]
+            
+            # 1) Subset TRAIN to patients with T > tau_risk (alive at risk landmark)
+            train_at_risk = survival_train[survival_train["time"] > tau_risk].copy()
+            
+            if len(train_at_risk) < 2:
+                continue
+            
+            # Create structured array for train set
+            y_train = Surv.from_dataframe("event", "time", train_at_risk)
+            
+            # 2) Subset TEST to patients with T > tau_risk (alive at risk landmark)
+            test_at_risk = survival_test[survival_test["time"] > tau_risk].copy()
+            
+            if len(test_at_risk) < 2:
+                continue
+            
+            # 3) Merge risk scores with test patient outcomes
+            merged = test_at_risk.merge(risk_data, on="pid", how="inner")
+            
+            if len(merged) < 2:
+                continue
+            
+            # Create structured array for test set
+            y_test = Surv.from_dataframe("event", "time", merged)
+            
+            # 4) Compute AUC at tau_eval using risk scores from tau_risk
+            try:
+                auc_scores, mean_auc = cumulative_dynamic_auc(
+                    survival_train=y_train,
+                    survival_test=y_test,
+                    estimate=merged["risk"].values,
+                    times=[tau_eval]
+                )
+                
+                results.append({
+                    "tau": tau_risk,
+                    "t": tau_eval,
+                    "auc": auc_scores[0],
+                    "n_patients": len(merged)
+                })
+            except Exception as e:
+                print(f"  Error computing AUC at τ={tau_risk}, t={tau_eval}: {e}")
+                results.append({
+                    "tau": tau_risk,
+                    "t": tau_eval,
+                    "auc": np.nan,
+                    "n_patients": len(merged)
+                })
+    
+    return results
+
+
+# -----------------------------------------------------------
+# 5. Brier Score at each landmark time and horizon
+# -----------------------------------------------------------
+
+def compute_brier_score_at_landmarks(
+    survival_train,
+    survival_test,
+    pred_df,
+    landmark_times
+):
+    """
+    Compute Brier Score using survival probabilities from earlier landmarks to predict later times.
+    
+    For 3 landmarks [τ1, τ2, τ3], compute:
+    - BS(τ2) using survival prob at τ2, model trained using info up to τ1
+    - BS(τ3) using survival prob at τ3, model trained using info up to τ1
+    - BS(τ3) using survival prob at τ3, model trained using info up to τ2
+    
+    Parameters:
+    -----------
+    survival_train : DataFrame
+        Train patient outcomes with columns: pid, time, event
+    survival_test : DataFrame
+        Test patient outcomes with columns: pid, time, event
+    pred_df : DataFrame
+        Predictions with columns: pid, tau, t, risk, surv_prob, dataset
+    landmark_times : list
+        List of landmark times [τ1, τ2, τ3]
+    
+    Returns:
+    --------
+    list of dicts with keys: tau, t, bs, n_patients
+    """
+    
+    results = []
+    
+    # For each landmark tau_i, use survival probabilities to predict BS at later landmarks tau_j (j > i)
+    for i, tau_risk in enumerate(landmark_times[:-1]):  # Exclude last landmark
+        
+        # For each later landmark time
+        for j in range(i+1, len(landmark_times)):
+            tau_eval = landmark_times[j]
+            
+            # 1) Get survival probabilities: trained at tau_risk, evaluated at tau_eval
+            # These are in rows where tau=tau_risk and t=tau_eval
+            surv_data = pred_df[
+                (pred_df["tau"] == tau_risk) &
+                (pred_df["t"] == tau_eval)
+            ][["pid", "surv_prob"]].copy()
+            
+            if surv_data.empty:
+                print(f"  WARNING: No survival probabilities found for τ={tau_risk}, t={tau_eval}")
+                continue
+            
+            # 2) Subset TRAIN to patients with T > tau_risk (alive at risk landmark)
+            train_at_risk = survival_train[survival_train["time"] > tau_risk].copy()
+            
+            if len(train_at_risk) < 2:
+                print(f"  WARNING: Not enough train patients at τ={tau_risk}")
+                continue
+            
+            # Create structured array for train set
+            y_train = Surv.from_dataframe("event", "time", train_at_risk)
+            
+            # 3) Subset TEST to patients with T > tau_risk (alive at risk landmark)
+            test_at_risk = survival_test[survival_test["time"] > tau_risk].copy()
+            
+            if len(test_at_risk) < 2:
+                print(f"  WARNING: Not enough test patients at τ={tau_risk}")
+                continue
+            
+            # 4) Merge survival probabilities with test patient outcomes
+            merged = test_at_risk.merge(surv_data, on="pid", how="inner")
+            
+            if len(merged) < 2:
+                print(f"  WARNING: Not enough merged patients at τ={tau_risk}, t={tau_eval}")
+                continue
+            
+            # Create structured array for test set
+            y_test = Surv.from_dataframe("event", "time", merged)
+            
+            # 5) Compute Brier Score at tau_eval
+            try:
+                # Create survival probability array - shape (n_samples, n_times)
+                surv_probs = merged["surv_prob"].values.reshape(-1, 1)
+                
+                # brier_score returns (times, scores) tuple
+                # scores is an array of length n_times
+                times, bs_scores = brier_score(
+                    survival_train=y_train,
+                    survival_test=y_test,
+                    estimate=surv_probs,
+                    times=[tau_eval]
+                )
+                
+                # Extract the score - it's just bs_scores[0] since we have one time point
+                bs_value = bs_scores[0]
+                
+                results.append({
+                    "tau": tau_risk,
+                    "t": tau_eval,
+                    "bs": bs_value,
+                    "n_patients": len(merged)
+                })
+                print(f"  BS at τ={tau_risk}, t={tau_eval}: {bs_value:.4f} (n={len(merged)})")
+                
+            except Exception as e:
+                print(f"  Error computing BS at τ={tau_risk}, t={tau_eval}: {e}")
+                import traceback
+                traceback.print_exc()
+                results.append({
+                    "tau": tau_risk,
+                    "t": tau_eval,
+                    "bs": np.nan,
+                    "n_patients": len(merged)
+                })
+    
+    return results
+
+
+# -----------------------------------------------------------
+# 6. Main evaluation loop
 # -----------------------------------------------------------
 
 data_dir = "data"
 rows = []
 
 models = [
-    ("tabpfn", "dynamic_tabpfn_risks.csv"),
     ("landmark_cox", "landmark_cox_risk.csv"),
     ("deephit", "dynamic_deephit_risk.csv"),
 ]
 
 for model_name, pred_path in models:
-    print(f"\n=== Processing model: {model_name} ({pred_path}) ===")
+    print(f"\n{'='*60}")
+    print(f"Processing model: {model_name} ({pred_path})")
+    print(f"{'='*60}")
 
     if not os.path.exists(pred_path):
         print(f"WARNING: missing predictions file {pred_path}, skipping model.")
         continue
 
-    # load predictions for this model
+    # Load predictions
     pred_df = pd.read_csv(pred_path)
-    pred_df["eval_time"] = pred_df["eval_time"].astype(float)
     datasets = pred_df["dataset"].unique()
 
     for dname in datasets:
-        print(f"\n### Processing dataset: {dname} (model: {model_name})")
+        print(f"\n### Dataset: {dname}")
 
         csv_path = os.path.join(data_dir, f"{dname}.csv")
         if not os.path.exists(csv_path):
             print(f"WARNING: missing file {csv_path}, skipping dataset.")
             continue
 
+        # Load patient outcomes
         pat_df = load_survival_dataset(csv_path)
 
+        # Get predictions for this dataset
         pred_df_ds = pred_df[pred_df["dataset"] == dname].copy()
         test_pids = np.sort(pred_df_ds["pid"].unique())
 
+        # Split into train and test patients
         is_test = pat_df["pid"].isin(test_pids)
-        pat_test = pat_df[is_test].copy()
         pat_train = pat_df[~is_test].copy()
+        pat_test = pat_df[is_test].copy()
 
-        if pat_test.empty or pat_train.empty:
-            print(f"WARNING: no test or no train patients for {dname}. Skipping.")
+        if pat_test.empty:
+            print(f"WARNING: no test patients for {dname}. Skipping.")
+            continue
+        
+        if pat_train.empty:
+            print(f"WARNING: no train patients for {dname}. Skipping.")
             continue
 
-        y_train = Surv.from_arrays(
-            event=pat_train["event"].astype(bool).values,
-            time=pat_train["time"].values,
-        )
-        y_test = Surv.from_arrays(
-            event=pat_test["event"].astype(bool).values,
-            time=pat_test["time"].values,
-        )
-
-        pids_train = pat_train["pid"].values
-        pids_test = pat_test["pid"].values
-
-        taus = np.sort(pred_df_ds["eval_time"].unique())
-        if len(taus) < 3:
-            print(f"Not enough τ for dataset {dname}. Need ≥ 3.")
+        # Get landmark times from predictions
+        landmark_times = sorted(pred_df_ds[pred_df_ds["t"].isna()]["tau"].unique())
+        
+        if len(landmark_times) < 3:
+            print(f"WARNING: Not enough landmarks for dataset {dname}. Need ≥ 3, got {len(landmark_times)}.")
             continue
 
-        # Add τ₀ = 0 as the initial landmark
-        τ0 = 0.0
-        τ1, τ2, τ3 = taus[:3]
+        # Take first 3 landmark times
+        landmark_times = landmark_times[:3]
+        print(f"Landmark times: τ1={landmark_times[0]:.2f}, τ2={landmark_times[1]:.2f}, τ3={landmark_times[2]:.2f}")
 
-        # ----- Brier -----
-        # From τ₀=0: BS(τ₁|0), BS(τ₂|0), BS(τ₃|0)
-        times_b0, bs_0 = dynamic_brier(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
+        # Compute Harrell's C-index at each landmark
+        print("\n  Computing Harrell's C-index...")
+        cindices_harrell, n_patients_harrell = compute_harrell_cindex_at_landmarks(
+            survival_test=pat_test,
             pred_df=pred_df_ds,
-            tau_landmark=τ0,
-            eval_times=[τ1, τ2, τ3],
-        )
-        
-        # From τ₁: BS(τ₂|τ₁), BS(τ₃|τ₁)
-        times_b1, bs_1 = dynamic_brier(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ1,
-            eval_times=[τ2, τ3],
-        )
-        
-        # From τ₂: BS(τ₃|τ₂)
-        times_b2, bs_2 = dynamic_brier(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ2,
-            eval_times=[τ3],
+            landmark_times=landmark_times
         )
 
-        # Store Brier scores from τ₀
-        if bs_0.size > 0:
-            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
-                         "tau_start": τ0, "tau_end": τ1, "value": bs_0[0]})
-        if bs_0.size > 1:
-            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
-                         "tau_start": τ0, "tau_end": τ2, "value": bs_0[1]})
-        if bs_0.size > 2:
-            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
-                         "tau_start": τ0, "tau_end": τ3, "value": bs_0[2]})
-        
-        # Store Brier scores from τ₁
-        if bs_1.size > 0:
-            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
-                         "tau_start": τ1, "tau_end": τ2, "value": bs_1[0]})
-        if bs_1.size > 1:
-            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
-                         "tau_start": τ1, "tau_end": τ3, "value": bs_1[1]})
-        
-        # Store Brier scores from τ₂
-        if bs_2.size > 0:
-            rows.append({"model": model_name, "dataset": dname, "metric": "brier",
-                         "tau_start": τ2, "tau_end": τ3, "value": bs_2[0]})
-
-        # ----- AUC -----
-        # From τ₀=0: AUC(τ₁|0), AUC(τ₂|0), AUC(τ₃|0)
-        times_a0, auc_0 = dynamic_auc(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
+        # Store Harrell C-index results
+        for tau, cindex, n_patients in zip(landmark_times, cindices_harrell, n_patients_harrell):
+            rows.append({
+                "model": model_name,
+                "dataset": dname,
+                "metric": "cindex_harrell",
+                "tau": tau,
+                "t": np.nan,
+                "value": cindex,
+                "n_patients": n_patients
+            })
+          
+        # Compute IPCW C-index at each landmark
+        print("\n  Computing IPCW C-index...")
+        cindices_ipcw, n_patients_ipcw = compute_ipcw_cindex_at_landmarks(
+            survival_train=pat_train,
+            survival_test=pat_test,
             pred_df=pred_df_ds,
-            tau_landmark=τ0,
-            eval_times=[τ1, τ2, τ3],
-        )
-        
-        # From τ₁: AUC(τ₂|τ₁), AUC(τ₃|τ₁)
-        times_a1, auc_1 = dynamic_auc(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ1,
-            eval_times=[τ2, τ3],
-        )
-        
-        # From τ₂: AUC(τ₃|τ₂)
-        times_a2, auc_2 = dynamic_auc(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ2,
-            eval_times=[τ3],
+            landmark_times=landmark_times
         )
 
-        # Store AUC scores from τ₀
-        if auc_0.size > 0:
-            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
-                         "tau_start": τ0, "tau_end": τ1, "value": auc_0[0]})
-        if auc_0.size > 1:
-            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
-                         "tau_start": τ0, "tau_end": τ2, "value": auc_0[1]})
-        if auc_0.size > 2:
-            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
-                         "tau_start": τ0, "tau_end": τ3, "value": auc_0[2]})
-        
-        # Store AUC scores from τ₁
-        if auc_1.size > 0:
-            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
-                         "tau_start": τ1, "tau_end": τ2, "value": auc_1[0]})
-        if auc_1.size > 1:
-            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
-                         "tau_start": τ1, "tau_end": τ3, "value": auc_1[1]})
-        
-        # Store AUC scores from τ₂
-        if auc_2.size > 0:
-            rows.append({"model": model_name, "dataset": dname, "metric": "auc",
-                         "tau_start": τ2, "tau_end": τ3, "value": auc_2[0]})
-
-        # ----- Landmark Harrell C(τ_k) -----
-        # NOTE: No C-index at τ₀=0 because there are no risk predictions at t=0
-        c_τ1 = dynamic_cindex_landmark(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
+        # Store IPCW C-index results
+        for tau, cindex, n_patients in zip(landmark_times, cindices_ipcw, n_patients_ipcw):
+            rows.append({
+                "model": model_name,
+                "dataset": dname,
+                "metric": "cindex_ipcw",
+                "tau": tau,
+                "t": np.nan,
+                "value": cindex,
+                "n_patients": n_patients
+            })
+      
+        # Compute IPCW AUC at each landmark and horizon
+        print("\n  Computing IPCW AUC...")
+        auc_results = compute_ipcw_auc_at_landmarks(
+            survival_train=pat_train,
+            survival_test=pat_test,
             pred_df=pred_df_ds,
-            tau_landmark=τ1,
-        )
-        c_τ2 = dynamic_cindex_landmark(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ2,
-        )
-        c_τ3 = dynamic_cindex_landmark(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ3,
-        )
-
-        # store as tau_start = tau_end = τ_k to keep schema
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex",
-                     "tau_start": τ1, "tau_end": τ1, "value": c_τ1})
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex",
-                     "tau_start": τ2, "tau_end": τ2, "value": c_τ2})
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex",
-                     "tau_start": τ3, "tau_end": τ3, "value": c_τ3})
-
-        # ----- IPCW C-index: C(t | τ_k) -----
-        # From τ₀=0: C(τ₁|0), C(τ₂|0), C(τ₃|0)
-        c_τ1_given_τ0 = dynamic_cindex_ipcw(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ0,
-            eval_time=τ1,
-        )
-        c_τ2_given_τ0 = dynamic_cindex_ipcw(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ0,
-            eval_time=τ2,
-        )
-        c_τ3_given_τ0 = dynamic_cindex_ipcw(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ0,
-            eval_time=τ3,
+            landmark_times=landmark_times
         )
         
-        # From τ₁: C(τ₂|τ₁), C(τ₃|τ₁)
-        c_τ2_given_τ1 = dynamic_cindex_ipcw(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
+        # Store AUC results
+        for auc_res in auc_results:
+            rows.append({
+                "model": model_name,
+                "dataset": dname,
+                "metric": "auc_ipcw",
+                "tau": auc_res["tau"],
+                "t": auc_res["t"],
+                "value": auc_res["auc"],
+                "n_patients": auc_res["n_patients"]
+            })
+            
+        # Compute Brier Score at each landmark and horizon
+        print("\n  Computing Brier Score...")
+        bs_results = compute_brier_score_at_landmarks(
+            survival_train=pat_train,
+            survival_test=pat_test,
             pred_df=pred_df_ds,
-            tau_landmark=τ1,
-            eval_time=τ2,
-        )
-        c_τ3_given_τ1 = dynamic_cindex_ipcw(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ1,
-            eval_time=τ3,
+            landmark_times=landmark_times
         )
         
-        # From τ₂: C(τ₃|τ₂)
-        c_τ3_given_τ2 = dynamic_cindex_ipcw(
-            survival_train=y_train,
-            survival_test=y_test,
-            pids_test=pids_test,
-            pred_df=pred_df_ds,
-            tau_landmark=τ2,
-            eval_time=τ3,
-        )
-
-        # Store IPCW C-index from τ₀
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
-                     "tau_start": τ0, "tau_end": τ1, "value": c_τ1_given_τ0})
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
-                     "tau_start": τ0, "tau_end": τ2, "value": c_τ2_given_τ0})
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
-                     "tau_start": τ0, "tau_end": τ3, "value": c_τ3_given_τ0})
-        
-        # Store IPCW C-index from τ₁
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
-                     "tau_start": τ1, "tau_end": τ2, "value": c_τ2_given_τ1})
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
-                     "tau_start": τ1, "tau_end": τ3, "value": c_τ3_given_τ1})
-        
-        # Store IPCW C-index from τ₂
-        rows.append({"model": model_name, "dataset": dname, "metric": "cindex_ipcw",
-                     "tau_start": τ2, "tau_end": τ3, "value": c_τ3_given_τ2})
-
+        # Store Brier Score results
+        for bs_res in bs_results:
+            rows.append({
+                "model": model_name,
+                "dataset": dname,
+                "metric": "brier_score",
+                "tau": bs_res["tau"],
+                "t": bs_res["t"],
+                "value": bs_res["bs"],
+                "n_patients": bs_res["n_patients"]
+            })
 
 # -----------------------------------------------------------
-# 7. Save final results
+# 7. Save results
 # -----------------------------------------------------------
 
 results_df = pd.DataFrame(rows)
-results_df = results_df.sort_values(
-    ["model", "dataset", "metric", "tau_start", "tau_end"]
-)
+results_df = results_df.sort_values(["model", "dataset", "metric", "tau", "t"])
 results_df.to_csv("metrics.csv", index=False)
-print("\nSaved scores to metrics.csv")
+print("\n" + "="*60)
+print("Results saved to metrics.csv")
+print("="*60)
+
+# Summary statistics
+print("\n" + "="*60)
+print("Summary: Mean metrics by Model and Dataset")
+print("="*60)
+summary = results_df.groupby(["model", "dataset", "metric"])["value"].agg(["mean", "std", "count"])
+print(summary)
+
+print("\n" + "="*60)
+print("Summary: Mean metrics by Model and Metric (across all datasets)")
+print("="*60)
+model_summary = results_df.groupby(["model", "metric"])["value"].agg(["mean", "std", "count"])
+print(model_summary)
