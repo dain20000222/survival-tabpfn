@@ -66,9 +66,7 @@ def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, default_
             residual_time = float(t_event - landmark_time)
             event_indicator = int(status_event)
         else:
-            # Case B: event before (or at) landmark -> keep but set as NOT at risk
-            residual_time = 0.0
-            event_indicator = 0
+            continue  # Not at risk after landmark; skip patient
 
         # LOCF covariates up to landmark_time
         valid = patient[patient["time2"] <= landmark_time]
@@ -107,6 +105,9 @@ for file_name in dataset_files:
 
         covariates = df.columns.difference([time_col, time2_col, event_col, 'pid']).tolist()
 
+        # Build patient outcome DataFrame (from full data)
+        patient_outcome = build_patient_outcome(df)
+
         # Get event times for landmark calculation (on original scale)
         event_times = df[df[event_col] == 1]["time2"].values
         if len(event_times) == 0:
@@ -118,61 +119,8 @@ for file_name in dataset_files:
         landmark_times = [τ1, τ2, τ3]
         print(f"Landmark times: τ1={τ1:.2f}, τ2={τ2:.2f}, τ3={τ3:.2f}")
 
-        # Split patient IDs into train (70%) and test (30%)
-        all_pids = df['pid'].unique()
-        pids_train, pids_test = train_test_split(
-            all_pids, test_size=0.3, random_state=SEED
-        )
-
-        # Split dataframe by patient IDs
-        df_train = df[df['pid'].isin(pids_train)].copy()
-        df_test = df[df['pid'].isin(pids_test)].copy()
-
-        print(f"Train patients: {len(pids_train)}, Test patients: {len(pids_test)}")
-
-        # ========== PREPROCESS DATA BEFORE LANDMARKING ==========
-        # --- One-hot encode categorical variables ---
-        # Fit on TRAIN only
-        x_train = pd.get_dummies(df_train[covariates], drop_first=True)
-        x_test = pd.get_dummies(df_test[covariates], drop_first=True)
-
-        # Align columns with union of train+test
-        all_columns = x_train.columns.union(x_test.columns)
-        x_train = x_train.reindex(columns=all_columns, fill_value=0)
-        x_test = x_test.reindex(columns=all_columns, fill_value=0)
-
-        # --- Impute missing values ---
-        imputer = SimpleImputer(strategy='median')
-
-        x_train = pd.DataFrame(imputer.fit_transform(x_train),
-                            columns=x_train.columns,
-                            index=x_train.index)
-
-        x_test = pd.DataFrame(imputer.transform(x_test),
-                            columns=x_test.columns,
-                            index=x_test.index)
-
-        # Calculate default values from PROCESSED train set
-        default_values = {}
-        for col in x_train.columns:
-            default_values[col] = x_train[col].mean()
-
-        print(f"Default values calculated from processed train set ({len(default_values)} features)")
-
-        # Update dataframes with processed features
-        df_train_processed = df_train[['pid', 'time', 'time2', 'event']].copy()
-        df_train_processed = df_train_processed.join(x_train)
-
-        df_test_processed = df_test[['pid', 'time', 'time2', 'event']].copy()
-        df_test_processed = df_test_processed.join(x_test)
-
-        processed_feature_cols = list(x_train.columns)
-
-        # Build patient outcome DataFrame (from full data)
-        patient_outcome = build_patient_outcome(df)
-
-        # Dictionary to store predictions for all test patients
-        patient_predictions = {pid: {} for pid in pids_test}
+        # Dictionary to store predictions for all test patients across all landmarks
+        patient_predictions = {}
 
         # ========== Process each landmark time ==========
         for idx, tau in enumerate(landmark_times, 1):
@@ -180,14 +128,76 @@ for file_name in dataset_files:
             print(f"Processing landmark time τ{idx} = {tau:.2f}")
             print(f"{'='*50}")
 
+            # Filter patients who are still at risk at this landmark time
+            at_risk_pids = patient_outcome[patient_outcome['t_event'] > tau].index.values
+            print(f"Patients at risk at τ{idx}: {len(at_risk_pids)}")
+            
+            if len(at_risk_pids) < 10:
+                print(f"✗ Skipping τ{idx}: not enough patients at risk")
+                continue
+
+            # Filter dataframe to only include at-risk patients
+            df_at_risk = df[df['pid'].isin(at_risk_pids)].copy()
+            patient_outcome_at_risk = patient_outcome.loc[at_risk_pids]
+
+            # Split at-risk patient IDs into train (70%) and test (30%)
+            pids_train, pids_test = train_test_split(
+                at_risk_pids, test_size=0.3, random_state=SEED
+            )
+
+            # Split dataframe by patient IDs
+            df_train = df_at_risk[df_at_risk['pid'].isin(pids_train)].copy()
+            df_test = df_at_risk[df_at_risk['pid'].isin(pids_test)].copy()
+
+            print(f"Train patients: {len(pids_train)}, Test patients: {len(pids_test)}")
+
+            # ========== PREPROCESS DATA BEFORE LANDMARKING ==========
+            # --- One-hot encode categorical variables ---
+            # Fit on TRAIN only
+            x_train = pd.get_dummies(df_train[covariates], drop_first=True)
+            x_test = pd.get_dummies(df_test[covariates], drop_first=True)
+
+            # Align columns with union of train+test
+            all_columns = x_train.columns.union(x_test.columns)
+            x_train = x_train.reindex(columns=all_columns, fill_value=0)
+            x_test = x_test.reindex(columns=all_columns, fill_value=0)
+
+            # --- Impute missing values ---
+            imputer = SimpleImputer(strategy='median')
+
+            x_train = pd.DataFrame(imputer.fit_transform(x_train),
+                                columns=x_train.columns,
+                                index=x_train.index)
+
+            x_test = pd.DataFrame(imputer.transform(x_test),
+                                columns=x_test.columns,
+                                index=x_test.index)
+
+            # Calculate default values from PROCESSED train set
+            default_values = {}
+            for col in x_train.columns:
+                default_values[col] = x_train[col].mean()
+
+            print(f"Default values calculated from processed train set ({len(default_values)} features)")
+
+            # Update dataframes with processed features
+            df_train_processed = df_train[['pid', 'time', 'time2', 'event']].copy()
+            df_train_processed = df_train_processed.join(x_train)
+
+            df_test_processed = df_test[['pid', 'time', 'time2', 'event']].copy()
+            df_test_processed = df_test_processed.join(x_test)
+
+            processed_feature_cols = list(x_train.columns)
+
+            # Apply LOCF landmarking
             train_df_tau = apply_locf_landmark(
                 df_train_processed, tau, processed_feature_cols, 
-                patient_outcome, default_values
+                patient_outcome_at_risk, default_values
             )
 
             test_df_tau = apply_locf_landmark(
                 df_test_processed, tau, processed_feature_cols, 
-                patient_outcome, default_values
+                patient_outcome_at_risk, default_values
             )
 
             print(f"Train: {len(train_df_tau)} patients, Events: {train_df_tau['event'].sum()}")
@@ -221,6 +231,9 @@ for file_name in dataset_files:
 
                     # Store predictions for each test patient
                     for test_idx, pid in enumerate(test_df_tau['pid'].values):
+                        if pid not in patient_predictions:
+                            patient_predictions[pid] = {}
+                        
                         risk = test_risk_scores_tau[test_idx]
                         surv_func = surv_funcs_tau[test_idx]
                         
@@ -249,7 +262,7 @@ for file_name in dataset_files:
             fieldnames = ['pid', 'tau', 't', 'risk', 'surv_prob', 'dataset']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-            for pid in sorted(pids_test):
+            for pid in sorted(patient_predictions.keys()):
                 pred = patient_predictions[pid]
                 
                 # First, write all risk scores (τ1, τ2, τ3)

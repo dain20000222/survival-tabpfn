@@ -174,7 +174,7 @@ for file_name in dataset_files:
         default_values[col] = df_train[col].mean()
     print(f"Default values calculated from train set")
 
-    # Add default rows to TRAIN set
+    # Add default rows to TRAIN set for first landmark (τ1)
     first_eval_time = landmark_times[0]
     default_rows_train = []
     for pid in train_pids:
@@ -198,7 +198,7 @@ for file_name in dataset_files:
         x_train, t_train, e_train, train_pids = convert_to_sequential_format(df_train, covariates)
         print(f"Updated train shape: {len(x_train)} patients")
     
-    # Add default rows to TEST set
+    # Add default rows to TEST set for first landmark (τ1)
     default_rows_test = []
     for pid in test_pids:
         patient_data = df_test[df_test['pid'] == pid]
@@ -221,18 +221,28 @@ for file_name in dataset_files:
         x_test, t_test, e_test, test_pids = convert_to_sequential_format(df_test, covariates)
         print(f"Updated test shape: {len(x_test)} patients")
 
+    # NEW: build patient-level outcomes for TEST set (last follow-up time)
+    patient_outcome_test = (
+        df_test.sort_values("time2")
+               .groupby("pid")
+               .agg(
+                   t_event=("time2", "max"),      # last observed time (event or censoring)
+                   status_event=("event", "last") # kept for completeness
+               )
+    )
+
     layers = [[100], [100, 100], [100, 100, 100]]
 
     # Parameter grid
     param_grid = {
-            'layers_rnn': [2, 3],
-            'hidden_long': layers,
-            'hidden_rnn': [50, 100],
-            'hidden_att': layers,
-            'hidden_cs': layers,
-            'sigma': [0.1, 1, 3],
-            'learning_rate' : [1e-3],
-            }
+        'layers_rnn': [2, 3],
+        'hidden_long': layers,
+        'hidden_rnn': [50, 100],
+        'hidden_att': layers,
+        'hidden_cs': layers,
+        'sigma': [0.1, 1, 3],
+        'learning_rate': [1e-3],
+    }
             
     params = ParameterGrid(param_grid)
     
@@ -243,17 +253,21 @@ for file_name in dataset_files:
             print(f"\n[{param_idx+1}/{len(list(params))}] Training with params: {param}")
             
             model = DynamicDeepHit(
-                        layers_rnn = param['layers_rnn'],
-                        hidden_rnn = param['hidden_rnn'], 
-                        long_param = {'layers': param['hidden_long'], 'dropout': 0.3}, 
-                        att_param = {'layers': param['hidden_att'], 'dropout': 0.3}, 
-                        cs_param = {'layers': param['hidden_cs'], 'dropout': 0.3},
-                        sigma = param['sigma'],
-                        split = [0] + landmark_times + [np.max([t_.max() for t_ in t_train])])
+                layers_rnn = param['layers_rnn'],
+                hidden_rnn = param['hidden_rnn'], 
+                long_param = {'layers': param['hidden_long'], 'dropout': 0.3}, 
+                att_param = {'layers': param['hidden_att'], 'dropout': 0.3}, 
+                cs_param = {'layers': param['hidden_cs'], 'dropout': 0.3},
+                sigma = param['sigma'],
+                split = [0] + landmark_times + [np.max([t_.max() for t_ in t_train])]
+            )
             
             # Train the model
-            model.fit(x_train, t_train, e_train, iters = 10, 
-                    learning_rate = param['learning_rate'])
+            model.fit(
+                x_train, t_train, e_train,
+                iters = 10, 
+                learning_rate = param['learning_rate']
+            )
             
             print(f"Model trained successfully!")
             break  # Use first successful model
@@ -267,7 +281,7 @@ for file_name in dataset_files:
         print(f"Skipping {dataset_name}: No models were successfully trained")
         continue
 
-    # ========== Dynamic Landmark Evaluation (aligned with landmark_cox.py) ==========
+    # ========== Dynamic Landmark Evaluation  ==========
     print(f"\n{'='*50}")
     print("Performing dynamic landmark evaluation...")
     print(f"{'='*50}")
@@ -281,6 +295,10 @@ for file_name in dataset_files:
         print(f"Processing landmark time τ{idx} = {tau:.2f}")
         print(f"{'='*50}")
         
+        # NEW: define risk set at this landmark: patients with T_i > tau
+        at_risk_mask = patient_outcome_test["t_event"] > tau
+        at_risk_pids = set(patient_outcome_test.index[at_risk_mask])
+        
         # Predict risk at all future landmark times using information only up to tau
         future_times = [landmark_times[i] for i in range(idx-1, len(landmark_times))]
         
@@ -289,6 +307,10 @@ for file_name in dataset_files:
         
         # For each test patient, extract the risk score at tau
         for patient_idx, pid in enumerate(test_pids):
+            # Skip patients who are not at risk at tau (T_i <= tau)
+            if pid not in at_risk_pids:
+                continue
+            
             patient_visit_times = t_test[patient_idx]
             
             # Find the most recent visit at or before tau
