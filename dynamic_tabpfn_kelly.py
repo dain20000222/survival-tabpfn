@@ -164,12 +164,6 @@ def online_predict_autoregressive_eval(eval_df, feature_cols, pid_test, base_X, 
                 else:
                     X_aug, y_aug = base_X, base_y
 
-                print(f"Augmented context for patient {pid} at eval_time {row['eval_time']}:")
-                print("X_aug:")
-                print(X_aug)
-                print("y_aug:")
-                print(y_aug)
-
                 # Fit on augmented context, then predict current query
                 clf = TabPFNClassifier(device="cuda", ignore_pretraining_limits=True)
                 clf.fit(X_aug, y_aug)
