@@ -56,8 +56,8 @@ else:
 def prepare_evaluation_data(df: pd.DataFrame, times, default_values):
     """
     For each evaluation time, select the latest observed row for each patient
-    before that evaluation time. If no row exists, create a default row with
-    provided default values (already in processed feature space).
+    before that evaluation time. For the FIRST eval_time per patient, always
+    use default values. For subsequent eval_times, use latest observed data.
 
     Parameters:
     -----------
@@ -72,19 +72,15 @@ def prepare_evaluation_data(df: pd.DataFrame, times, default_values):
     has_time2 = "time2" in df.columns
     time_col = "time2" if has_time2 else "time"
     
-    for eval_time in times:
+    # Sort times to ensure we process them in order
+    sorted_times = sorted(times)
+    
+    for eval_time_idx, eval_time in enumerate(sorted_times):
         for pid in df["pid"].unique():
             patient_data = df[df["pid"] == pid].copy()
-            # Get rows observed before or at eval_time
-            eligible_rows = patient_data[patient_data[time_col] <= eval_time]
             
-            if len(eligible_rows) > 0:
-                # Select the latest observed row
-                latest_row = eligible_rows.loc[eligible_rows[time_col].idxmax()].copy()
-                latest_row["eval_time"] = eval_time
-                eval_rows.append(latest_row)
-            else:
-                # Create default row with provided default values (features + event)
+            # For the first evaluation time, always use default values
+            if eval_time_idx == 0:
                 default_row = default_values.copy()
                 default_row["pid"] = pid
                 default_row["eval_time"] = eval_time
@@ -93,7 +89,35 @@ def prepare_evaluation_data(df: pd.DataFrame, times, default_values):
                 # Convert to Series to match expected format
                 default_row = pd.Series(default_row)
                 eval_rows.append(default_row)
-                print(f"Patient {pid} has no data before eval_time {eval_time}, using default row.")
+
+            else:
+                # For subsequent evaluation times, use latest observed row
+                # Get the previous eval_time as the cutoff
+                prev_eval_time = sorted_times[eval_time_idx - 1]
+                
+                # Get rows observed before or at previous eval_time AND before current eval_time
+                eligible_rows = patient_data[
+                    (patient_data[time_col] <= prev_eval_time) & 
+                    (patient_data[time_col] < eval_time)
+                ]
+                
+                if len(eligible_rows) > 0:
+                    # Select the latest observed row
+                    latest_row = eligible_rows.loc[eligible_rows[time_col].idxmax()].copy()
+                    latest_row["eval_time"] = eval_time
+                    eval_rows.append(latest_row)
+
+                else:
+                    # Create default row if no data exists before this eval_time
+                    default_row = default_values.copy()
+                    default_row["pid"] = pid
+                    default_row["eval_time"] = eval_time
+                    default_row[time_col] = eval_time  # Set time to eval_time
+                    
+                    # Convert to Series to match expected format
+                    default_row = pd.Series(default_row)
+                    eval_rows.append(default_row)
+                    print(f"Patient {pid} has no data before prev_eval_time {prev_eval_time}, using default row.")
     
     eval_df = pd.DataFrame(eval_rows).reset_index(drop=True)
     return eval_df
@@ -106,12 +130,10 @@ def build_xy_for_pids(df: pd.DataFrame, feature_cols, pids):
     idx = sub.index.to_numpy()
     return X, y, idx
 
-def online_predict_survival_conditional(eval_df, feature_cols, pid_test, base_X, base_y,
-                                       device="cuda", history_window=None):
+def online_predict_autoregressive_eval(eval_df, feature_cols, pid_test, base_X, base_y):
     """
-    Survival prediction using conditional probabilities.
-    For each patient, compute p_k = P(Y_k = 1 | X_k, Y_1=0, ..., Y_{k-1}=0)
-    and derive survival probabilities S(τ_k).
+    Autoregressive prediction on evaluation dataset.
+    For each patient, predict eval_time 1, then eval_time 2, then eval_time 3.
     """
     results = []
 
@@ -122,80 +144,93 @@ def online_predict_survival_conditional(eval_df, feature_cols, pid_test, base_X,
     # Group by patient and predict each eval_time sequentially
     for pid, grp in test_df.groupby("pid", sort=False):
         grp = grp.copy().sort_values("eval_time")
-        survival_prob = 1.0  # S(τ_0) = 1 (initially alive)
-        
-        # Track revealed data for this patient (only non-event observations)
         revealed_X_list = []
         revealed_y_list = []
+        patient_died = False  # Track if patient has died
+        p_events = []  # Store p_event for each eval_time for this patient
 
-        for k, (ridx, row) in enumerate(grp.iterrows(), 1):
+        for ridx, row in grp.iterrows():
             x_query = row[feature_cols].to_numpy(dtype=float)[None, :]
 
-            # Build augmented context: base + revealed prefix (only survival observations)
-            if revealed_X_list:
-                if (history_window is not None) and (len(revealed_X_list) > history_window):
-                    revealed_X_list = revealed_X_list[-history_window:]
-                    revealed_y_list = revealed_y_list[-history_window:]
-
-                X_aug = np.vstack([base_X] + revealed_X_list)
-                y_aug = np.concatenate([base_y] + revealed_y_list)
+            # If patient died in previous eval_time, set p_event = 1
+            if patient_died:
+                p_event = 1.0
+                yhat = 1
             else:
-                X_aug, y_aug = base_X, base_y
+                # Build augmented context: base + revealed prefix for THIS patient
+                if revealed_X_list:
+                    X_aug = np.vstack([base_X] + revealed_X_list)
+                    y_aug = np.concatenate([base_y] + revealed_y_list)
+                else:
+                    X_aug, y_aug = base_X, base_y
 
-            # Fit on augmented context (conditioned on survival), then predict current query
-            clf = TabPFNClassifier(device=device, ignore_pretraining_limits=True)
-            clf.fit(X_aug, y_aug)
-            proba = clf.predict_proba(x_query)[0]
-            
-            # p_k = P(Y_k = 1 | X_k, Y_1=0, ..., Y_{k-1}=0)
-            p_k = float(proba[1]) if proba.shape[0] > 1 else float(proba[0])
-            
-            # Solve for S(τ_k) using: 1 - S(τ_k) = p_k * S(τ_{k-1}) + (1 - S(τ_{k-1}))
-            # Rearranging: 1 - S(τ_k) = p_k * S(τ_{k-1}) + 1 - S(τ_{k-1})
-            # => 1 - S(τ_k) = 1 - S(τ_{k-1}) * (1 - p_k)
-            # => S(τ_k) = S(τ_{k-1}) * (1 - p_k)
-            new_survival_prob = survival_prob * (1 - p_k)
-            
-            # Risk at this timepoint is the cumulative hazard up to τ_k
-            cumulative_risk = 1 - new_survival_prob
-            
-            # Discrete hazard (instantaneous risk) at this interval
-            if survival_prob > 0:
-                discrete_hazard = p_k
-            else:
-                discrete_hazard = 1.0  # If already dead, hazard is 1
-            
-            yhat = 1 if p_k > 0.5 else 0
+                print(f"Augmented context for patient {pid} at eval_time {row['eval_time']}:")
+                print("X_aug:")
+                print(X_aug)
+                print("y_aug:")
+                print(y_aug)
 
-            results.append({
+                # Fit on augmented context, then predict current query
+                clf = TabPFNClassifier(device="cuda", ignore_pretraining_limits=True)
+                clf.fit(X_aug, y_aug)
+                proba = clf.predict_proba(x_query)[0]
+                yhat = int(proba.argmax())
+                
+                # p_event is the probability of event at this timepoint
+                p_event = float(proba[1]) if proba.shape[0] > 1 else float(proba[0])
+
+            # Store p_event for survival probability calculation
+            p_events.append(p_event)
+            
+            # Calculate survival probabilities
+            eval_time_idx = len(p_events) - 1  # 0-indexed
+            
+            # Calculate all survival probabilities based on current eval_time_idx
+            if eval_time_idx == 0:
+                # At τ1: S_τ0(τ1) = 1 - p_1
+                surv_prob_tau0_tau1 = 1.0 - p_events[0]
+                surv_prob = surv_prob_tau0_tau1
+                
+            elif eval_time_idx == 1:
+                # At τ2: 
+                # S_τ0(τ2) = (1-p_2) * S_τ0(τ1) = (1-p_2) * (1-p_1)
+                # S_τ1(τ2) = 1 - p_2
+                surv_prob_tau0_tau2 = (1.0 - p_events[1]) * (1.0 - p_events[0])
+                surv_prob_tau1_tau2 = 1.0 - p_events[1]
+                surv_prob = surv_prob_tau0_tau2  # Use τ0 as default
+                
+            elif eval_time_idx == 2:
+                # At τ3:
+                # S_τ0(τ3) = (1-p_3) * S_τ0(τ2) = (1-p_3) * (1-p_2) * (1-p_1)
+                # S_τ1(τ3) = (1-p_3) * S_τ1(τ2) = (1-p_3) * (1-p_2)
+                # S_τ2(τ3) = 1 - p_3
+                surv_prob_tau0_tau3 = (1.0 - p_events[2]) * (1.0 - p_events[1]) * (1.0 - p_events[0])
+                surv_prob_tau1_tau3 = (1.0 - p_events[2]) * (1.0 - p_events[1])
+                surv_prob_tau2_tau3 = 1.0 - p_events[2]
+                surv_prob = surv_prob_tau0_tau3  # Use τ0 as default
+
+            # Create result entry with all relevant survival probabilities
+            result_entry = {
                 "pid": pid,
                 "row_index": ridx,
                 "eval_time": row["eval_time"],
-                "time_step": k,
                 "y_true": int(row["event"]),
                 "y_pred": yhat,
-                "p_k": p_k,  # Conditional probability of event at time k
-                "surv_prob": new_survival_prob,  # S(τ_k)
-                "cumulative_risk": cumulative_risk,  # 1 - S(τ_k)
-                "discrete_hazard": discrete_hazard,  # Instantaneous risk
-                "risk": cumulative_risk  # For compatibility with existing code
-            })
+                "surv_prob": surv_prob,  # Default survival probability (from τ0)
+                "risk": p_event  # Risk at this timepoint is just p_event
+            }
+            
+            results.append(result_entry)
 
-            # Update survival probability for next iteration
-            survival_prob = new_survival_prob
+            # Check if patient died at this eval_time (y_true = 1)
+            if int(row["event"]) == 1:
+                patient_died = True
 
-            # IMPORTANT: Only add to revealed data if patient survived (y=0)
-            # This maintains the conditioning Y_1=0, ..., Y_{k-1}=0 for future predictions
-            y_true = int(row["event"])
-            if y_true == 0:  # Patient survived this time step
-                x_true = x_query
-                y_true_array = np.array([y_true], dtype=int)
-                revealed_X_list.append(x_true)
-                revealed_y_list.append(y_true_array)
-            else:
-                # Patient had event - stop adding to revealed data but continue prediction
-                # (in practice, this patient would not have future observations)
-                pass
+            # APPEND THE TRUE (X,y) from this evaluation time to the revealed prefix
+            x_true = x_query
+            y_true = np.array([row["event"]], dtype=int)
+            revealed_X_list.append(x_true)
+            revealed_y_list.append(y_true)
 
     out = pd.DataFrame(results).sort_values(["pid", "eval_time"])
     return out
@@ -295,22 +330,19 @@ for i, file_name in enumerate(remaining_datasets, start=1):
 
     # Sort evaluation dataframe and define final feature columns (processed features + eval_time)
     eval_df = eval_df.sort_values(["pid", "eval_time"]).reset_index(drop=True)
-
     feature_cols = feature_cols_processed + ["eval_time"]
 
     # Build base context from TRAIN patients using processed features
     train_eval_df = eval_df[eval_df["pid"].isin(pid_train)].copy()
     X_base, y_base, _ = build_xy_for_pids(train_eval_df, feature_cols, pid_train)
     
-    # Autoregressive prediction on test evaluation data using survival conditioning
-    risk_df = online_predict_survival_conditional(
-        eval_df, feature_cols, pid_test, X_base, y_base,
-        device="cuda", history_window=None
+    # Autoregressive prediction on test evaluation data
+    risk_df = online_predict_autoregressive_eval(
+        eval_df, feature_cols, pid_test, X_base, y_base
     )
 
-    print("Survival predictions:")
+    print("Risk predictions:")
     print(risk_df.head(10))
-    print(f"Columns: {risk_df.columns.tolist()}")
 
     # Save risk_df to CSV
     risk_df['dataset'] = dataset_name
