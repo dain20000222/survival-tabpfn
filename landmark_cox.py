@@ -49,7 +49,7 @@ def build_patient_outcome(df):
 
 def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, default_values):
     """
-    Apply LOCF landmarking for a given landmark_time = tau_k (START of prediction window).
+    Apply LOCF landmarking for a given landmark_time = tau_k.
 
     - Keep only patients with t_event > landmark_time (at risk at tau_k)
     - Residual time = t_event - landmark_time
@@ -70,7 +70,7 @@ def apply_locf_landmark(df, landmark_time, covariates, patient_outcome, default_
         residual_time = float(t_event - landmark_time)
         event_indicator = int(status_event)
 
-        # LOCF covariates up to landmark_time (NOT previous tau)
+        # LOCF covariates up to landmark_time 
         valid = patient[patient["time"] <= landmark_time]
         row = {"pid": pid, "time": residual_time, "event": event_indicator}
 

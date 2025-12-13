@@ -41,7 +41,7 @@ def convert_to_sequential_format(df, covariates):
     
     # Sort PIDs to ensure consistent order
     for pid in sorted(df['pid'].unique()):  
-        patient_data = df[df['pid'] == pid].sort_values('time2')
+        patient_data = df[df['pid'] == pid].sort_values('time')
         
         # Extract features for this patient (all time points)
         patient_features = []
@@ -57,7 +57,7 @@ def convert_to_sequential_format(df, covariates):
                 features.append(float(val))
             
             patient_features.append(features)
-            patient_times.append(float(row['time2']))
+            patient_times.append(float(row['time']))
             patient_events.append(float(row['event']))
         
         if len(patient_features) == 0:
@@ -114,10 +114,13 @@ for file_name in dataset_files:
         print(f"Skipping {dataset_name}: No events observed")
         continue
     
-    # Calculate landmark times (25, 50, 75 quantiles) - same as landmark_cox.py
+    # Calculate landmark times (25, 50, 75 quantiles) 
     τ1, τ2, τ3 = np.quantile(event_times, [0.25, 0.5, 0.75])
-    landmark_times = [τ1, τ2, τ3]
-    print(f"Landmark times: τ1={τ1:.2f}, τ2={τ2:.2f}, τ3={τ3:.2f}")
+    
+    # Add tau0=0 as baseline landmark
+    τ0 = 0.0
+    landmark_times = [τ0, float(τ1), float(τ2), float(τ3)]
+    print(f"Landmark times: τ0={τ0:.2f}, τ1={τ1:.2f}, τ2={τ2:.2f}, τ3={τ3:.2f}")
 
     # Split by patient ID (70-30 train-test split)
     original_pids = df["pid"].unique()
@@ -174,18 +177,17 @@ for file_name in dataset_files:
         default_values[col] = df_train[col].mean()
     print(f"Default values calculated from train set")
 
-    # Add default rows to TRAIN set for first landmark (τ1)
-    first_eval_time = landmark_times[0]
+    # Add default rows to TRAIN set for patients without baseline (time=0)
     default_rows_train = []
     for pid in train_pids:
         patient_data = df_train[df_train['pid'] == pid]
-        min_visit_time = patient_data['time2'].min()
+        min_visit_time = patient_data['time'].min()
         
-        if min_visit_time > first_eval_time:
+        if min_visit_time > 0:
             default_row = default_values.copy()
             default_row["pid"] = pid
             default_row["time"] = 0.0
-            default_row["time2"] = first_eval_time
+            default_row["time2"] = min_visit_time
             default_row["event"] = 0.0
             default_rows_train.append(default_row)
     
@@ -198,17 +200,17 @@ for file_name in dataset_files:
         x_train, t_train, e_train, train_pids = convert_to_sequential_format(df_train, covariates)
         print(f"Updated train shape: {len(x_train)} patients")
     
-    # Add default rows to TEST set for first landmark (τ1)
+    # Add default rows to TEST set for patients without baseline (time=0)
     default_rows_test = []
     for pid in test_pids:
         patient_data = df_test[df_test['pid'] == pid]
-        min_visit_time = patient_data['time2'].min()
+        min_visit_time = patient_data['time'].min()
         
-        if min_visit_time > first_eval_time:
+        if min_visit_time > 0:
             default_row = default_values.copy()
             default_row["pid"] = pid
             default_row["time"] = 0.0
-            default_row["time2"] = first_eval_time
+            default_row["time2"] = min_visit_time
             default_row["event"] = 0.0
             default_rows_test.append(default_row)
     
@@ -259,7 +261,7 @@ for file_name in dataset_files:
                 att_param = {'layers': param['hidden_att'], 'dropout': 0.3}, 
                 cs_param = {'layers': param['hidden_cs'], 'dropout': 0.3},
                 sigma = param['sigma'],
-                split = [0] + landmark_times + [np.max([t_.max() for t_ in t_train])]
+                split = landmark_times + [np.max([t_.max() for t_ in t_train])]
             )
             
             # Train the model
@@ -289,8 +291,8 @@ for file_name in dataset_files:
     # Dictionary to store predictions for all test patients
     patient_predictions = {pid: {} for pid in test_pids}
 
-    # For each landmark time
-    for idx, tau in enumerate(landmark_times, 1):
+    # For each landmark time (idx: 0..3 corresponds to τ0..τ3)
+    for idx, tau in enumerate(landmark_times):
         print(f"\n{'='*50}")
         print(f"Processing landmark time τ{idx} = {tau:.2f}")
         print(f"{'='*50}")
@@ -300,7 +302,7 @@ for file_name in dataset_files:
         at_risk_pids = set(patient_outcome_test.index[at_risk_mask])
         
         # Predict risk at all future landmark times using information only up to tau
-        future_times = [landmark_times[i] for i in range(idx-1, len(landmark_times))]
+        future_times = [landmark_times[i] for i in range(idx, len(landmark_times))]
         
         # Get risk predictions - shape: (n_test, n_future_times, max_seq_len)
         out_risk = model.predict_risk(x_test, future_times, all_step=True)
@@ -316,10 +318,6 @@ for file_name in dataset_files:
             # Find the most recent visit at or before tau
             valid_visits_mask = patient_visit_times <= tau
             
-            if not np.any(valid_visits_mask):
-                # No visits before tau - skip this patient for this landmark
-                continue
-            
             valid_visit_indices = np.where(valid_visits_mask)[0]
             most_recent_visit_idx = valid_visit_indices[-1]
             
@@ -329,9 +327,9 @@ for file_name in dataset_files:
             
             # Extract survival probabilities for future landmarks
             surv_probs = {}
-            for future_idx in range(idx, len(landmark_times)):
+            for future_idx in range(idx + 1, len(landmark_times)):
                 # Index in out_risk for this future time
-                risk_idx = future_idx - idx + 1
+                risk_idx = future_idx - idx
                 if risk_idx < out_risk.shape[1]:
                     risk_future = out_risk[patient_idx, risk_idx, most_recent_visit_idx]
                     # Survival probability = 1 - risk
@@ -357,8 +355,8 @@ for file_name in dataset_files:
         for pid in sorted(test_pids):
             pred = patient_predictions[pid]
             
-            # First, write all risk scores (τ1, τ2, τ3)
-            for idx, tau in enumerate(landmark_times, 1):
+            # First, write all risk scores (τ0, τ1, τ2, τ3)
+            for idx, tau in enumerate(landmark_times):
                 if f'tau{idx}' in pred:
                     writer.writerow({
                         'pid': pid,
@@ -370,10 +368,10 @@ for file_name in dataset_files:
                     })
             
             # Then, write all survival probabilities
-            for idx, tau in enumerate(landmark_times, 1):
+            for idx, tau in enumerate(landmark_times):
                 if f'tau{idx}' in pred:
                     # Write survival probabilities for all future timepoints
-                    for future_idx in range(idx, len(landmark_times)):
+                    for future_idx in range(idx + 1, len(landmark_times)):
                         future_tau = landmark_times[future_idx]
                         surv_key = f'surv_tau{future_idx+1}'
                         if surv_key in pred[f'tau{idx}']:
